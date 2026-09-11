@@ -1,0 +1,21 @@
+{
+  "name": "zoey-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zoey Wallet lead-capture backend: validates and stores website leads (SQLite), then sends a branded Gmail notification.",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "retry-failed": "node src/retryFailedNotifications.js",
+    "test:smtp": "node src/testSmtp.js",
+    "create-user": "node src/createUser.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "nodemailer": "6.9.15"
+  }
+}

@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Zoey Wallet</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --white:#FFFFFF;
+    --off-white:#F7F6F3;
+    --ink:#0A0E14;
+    --ink-soft: rgba(10,14,20,0.62);
+    --ink-faint: rgba(10,14,20,0.40);
+    --navy:#0B1220;
+    --navy-deep:#05070C;
+    --navy-surface:#111A2B;
+    --cobalt:#3355FF;
+    --cobalt-light:#5B7CFF;
+    --green:#1A9A63;
+    --red:#C23A3A;
+    --border: rgba(10,14,20,0.11);
+    --border-on-dark: rgba(247,246,243,0.13);
+    --radius: 14px;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Inter', 'Liberation Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Liberation Mono', monospace;
+    --max: 1320px;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background: var(--off-white); color: var(--ink); font-family: var(--font-body);
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  img,svg{ display:block; max-width:100%; }
+  a{ color:inherit; text-decoration:none; }
+  button{ font-family:inherit; cursor:pointer; }
+  ul{ list-style:none; }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+  }
+  :focus-visible{ outline:2px solid var(--cobalt); outline-offset:3px; border-radius:4px; }
+
+  .wrap{ max-width: var(--max); margin:0 auto; padding:0 48px; }
+  .eyebrow{ font-family: var(--font-mono); font-size:12px; font-weight:500; letter-spacing:2px; text-transform:uppercase; color: var(--ink-faint); }
+
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; font-family:var(--font-body); font-weight:600; font-size:14.5px; padding:13px 24px; border-radius:100px; border:1.5px solid transparent; transition: transform .15s ease, background .15s ease, border-color .15s ease; }
+  .btn-primary{ background: var(--ink); color: var(--off-white); }
+  .btn-primary:hover{ transform: translateY(-1px); background:#000; }
+  .btn-outline{ border-color: var(--border); color: var(--ink); background:none; }
+  .btn-outline:hover{ background: var(--ink); color: var(--off-white); border-color: var(--ink); }
+
+  /* ============ TOP NAV ============ */
+  header.dash-header{ position:fixed; top:0; left:0; right:0; z-index:100; background: rgba(247,246,243,0.86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom:1px solid var(--border); }
+  .dash-nav{ display:flex; align-items:center; justify-content:space-between; max-width: var(--max); margin:0 auto; padding:16px 48px; gap:24px; }
+  .nav-logo svg{ height:22px; width:auto; }
+  .dash-nav-links{ display:flex; align-items:center; gap:30px; flex:1 1 auto; justify-content:center; }
+  .dash-nav-links a{ font-size:14px; font-weight:500; color: var(--ink-soft); transition: color .2s; white-space:nowrap; }
+  .dash-nav-links a:hover{ color: var(--ink); }
+  .dash-nav-links a.active{ color: var(--ink); position:relative; }
+  .dash-nav-links a.active::after{ content:''; position:absolute; left:0; right:0; bottom:-19px; height:2px; background: var(--cobalt); }
+
+  .dash-nav-actions{ position:relative; flex:0 0 auto; }
+  .dash-profile-btn{
+    display:flex; align-items:center; gap:9px; background:none; border:1px solid transparent;
+    border-radius:100px; padding:5px 12px 5px 5px; transition: background .15s, border-color .15s;
+  }
+  .dash-profile-btn:hover{ background: rgba(10,14,20,0.04); border-color: var(--border); }
+  .dash-avatar{
+    width:30px; height:30px; border-radius:50%; background: var(--ink); color: var(--off-white);
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:12px; font-weight:600;
+    flex:0 0 auto;
+  }
+  .dash-profile-name{ font-size:13.5px; font-weight:600; color: var(--ink); }
+  .dash-profile-chevron{ opacity:0.5; transition: transform .18s; }
+  .dash-profile-btn[aria-expanded="true"] .dash-profile-chevron{ transform: rotate(180deg); }
+
+  .dash-profile-menu{
+    position:absolute; top:calc(100% + 10px); right:0; width:220px; background: var(--white);
+    border:1px solid var(--border); border-radius:14px; box-shadow: 0 24px 48px -18px rgba(10,14,20,0.28);
+    padding:8px; display:none; z-index:50;
+  }
+  .dash-profile-menu.open{ display:block; }
+  .dash-profile-menu-header{ padding:10px 12px 12px; border-bottom:1px solid var(--border); margin-bottom:6px; }
+  .dash-profile-menu-name{ font-size:13.5px; font-weight:600; color: var(--ink); }
+  .dash-profile-menu-email{ font-size:12px; color: var(--ink-faint); margin-top:2px; word-break:break-all; }
+  .dash-logout-btn{
+    width:100%; text-align:left; padding:10px 12px; border-radius:8px; background:none; border:none;
+    font-size:13.5px; font-weight:500; color: var(--red); transition: background .15s;
+  }
+  .dash-logout-btn:hover{ background: rgba(194,58,58,0.08); }
+
+  .dash-nav-toggle{ display:none; background:none; border:1px solid var(--border); border-radius:8px; width:38px; height:38px; align-items:center; justify-content:center; color:var(--ink); }
+  .dash-mobile-menu{ display:none; flex-direction:column; padding:10px 20px 16px; background: var(--off-white); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .dash-mobile-menu.open{ display:flex; }
+  .dash-mobile-menu a, .dash-mobile-menu button{ padding:13px 4px; font-size:15px; text-align:left; color: var(--ink-soft); border-bottom:1px solid var(--border); background:none; border-left:none; border-right:none; border-top:none; }
+  .dash-mobile-menu a.active{ color: var(--ink); font-weight:600; }
+  .dash-mobile-menu button{ color: var(--red); font-weight:600; }
+  .dash-mobile-menu :last-child{ border-bottom:none; }
+
+  /* ============ MAIN ============ */
+  .dash-main{ padding:112px 0 80px; min-height:100vh; }
+  .dash-loading{ padding:120px 0; text-align:center; color: var(--ink-faint); font-family:var(--font-mono); font-size:13px; letter-spacing:1px; text-transform:uppercase; }
+
+  .dash-intro{ margin-bottom:28px; }
+  .dash-welcome{ margin-top:10px; font-family: var(--font-display); font-weight:500; letter-spacing:-0.01em; font-size:32px; color: var(--ink); }
+
+  /* ---- dark portfolio card (reuses the homepage's signature visual
+     language exactly, widened into a two-column layout) ---- */
+  .dash-portfolio-card{
+    background: var(--navy); border-radius:20px; padding:32px; color: var(--off-white);
+    box-shadow: 0 40px 90px -30px rgba(10,14,20,0.35);
+  }
+  .pf-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:26px; }
+  .pf-label{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:1.5px; color: rgba(247,246,243,0.45); margin-bottom:8px; }
+  .pf-value{ font-family:var(--font-mono); font-size:40px; font-weight:600; }
+  .pf-change{ font-family:var(--font-mono); font-size:14px; margin-top:8px; }
+  .pf-change.up{ color: var(--green); } .pf-change.down{ color: var(--red); }
+  .pf-badge{ display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:9px; background: rgba(51,85,255,0.14); flex:0 0 auto; }
+  .pf-badge .badge-mark{ width:14px; height:auto; display:block; }
+
+  .dash-portfolio-grid{ display:grid; grid-template-columns: 1.5fr 1fr; gap:36px; align-items:start; }
+  .dash-chart-label{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:1.2px; color: rgba(247,246,243,0.35); text-transform:uppercase; margin-bottom:10px; }
+  .pf-chart svg{ width:100%; height:auto; }
+
+  .pf-holdings{ display:flex; flex-direction:column; gap:0; }
+  .pf-row{ display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-top:1px solid var(--border-on-dark); }
+  .pf-row:first-child{ border-top:none; }
+  .pf-sym{ font-family:var(--font-mono); font-weight:600; font-size:14px; }
+  .pf-name{ font-size:11px; color: rgba(247,246,243,0.4); margin-top:1px; }
+  .pf-px{ font-family:var(--font-mono); font-size:14px; text-align:right; }
+  .pf-chg{ font-family:var(--font-mono); font-size:11.5px; text-align:right; margin-top:2px; }
+  .pf-chg.up{ color: var(--green); } .pf-chg.down{ color: var(--red); }
+
+  /* ---- stablecoin funding card (light, separate section per spec) ---- */
+  .dash-funding-card{
+    margin-top:24px; background: var(--white); border:1px solid var(--border); border-radius:20px;
+    padding:32px; box-shadow: 0 1px 2px rgba(10,14,20,0.03);
+  }
+  .dash-funding-head{ margin-bottom:22px; }
+  .dash-funding-title{ margin-top:8px; font-family: var(--font-display); font-weight:500; font-size:22px; color: var(--ink); }
+  .dash-funding-row{ display:flex; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
+  .dash-stable-pill{ flex:1 1 200px; background: var(--off-white); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
+  .dash-stable-pill .lbl{ font-family:var(--font-mono); font-size:10.5px; color: var(--ink-faint); letter-spacing:1px; }
+  .dash-stable-pill .val{ font-family:var(--font-mono); font-size:20px; font-weight:600; color: var(--ink); margin-top:6px; }
+  .dash-funding-actions{ display:flex; gap:12px; flex-wrap:wrap; }
+  .dash-funding-actions .btn{ flex:1 1 140px; }
+
+  /* ---- toast ---- */
+  .dash-toast{
+    position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(16px); z-index:200;
+    background: var(--ink); color: var(--off-white); font-family:var(--font-body); font-size:13.5px; font-weight:500;
+    padding:12px 20px; border-radius:100px; box-shadow: 0 20px 40px -12px rgba(10,14,20,0.4);
+    opacity:0; pointer-events:none; transition: opacity .25s, transform .25s;
+  }
+  .dash-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media (max-width: 980px){
+    .dash-nav-links{ display:none; }
+    .dash-nav-toggle{ display:flex; }
+    .dash-nav{ padding:16px 24px; }
+    .wrap{ padding:0 24px; }
+    .dash-portfolio-grid{ grid-template-columns: 1fr; gap:26px; }
+    .dash-portfolio-card{ padding:24px; }
+    .dash-funding-card{ padding:24px; }
+    .pf-value{ font-size:32px; }
+  }
+  @media (max-width: 560px){
+    .dash-welcome{ font-size:26px; }
+    .dash-profile-name{ display:none; }
+    .dash-funding-actions .btn{ flex:1 1 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="dash-header">
+  <nav class="dash-nav">
+    <a href="/dashboard" class="nav-logo"><svg viewBox="165 84 10256 1671" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoIconGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5B7CFF"/><stop offset="55%" stop-color="#3A5CFF"/><stop offset="100%" stop-color="#2540D6"/></linearGradient></defs><g fill="url(#logoIconGrad)"><path d="M 166,1024 L 172,1026 L 182,1020 L 195,1019 L 285,983 L 296,982 L 405,941 L 459,925 L 669,848 L 725,832 L 894,769 L 930,760 L 1103,698 L 1117,696 L 1204,662 L 1264,646 L 1316,626 L 1357,618 L 1502,562 L 1516,560 L 1524,550 L 1449,521 L 1394,505 L 1236,448 L 1223,447 L 1217,442 L 1182,433 L 1097,400 L 1053,388 L 1010,370 L 851,319 L 804,299 L 656,248 L 562,219 L 411,163 L 395,161 L 329,135 L 169,84 L 165,89 Z"/><path d="M 1520,1752 L 1520,811 L 1517,807 L 1412,847 L 1396,849 L 1354,867 L 1208,914 L 1183,926 L 1105,949 L 1096,955 L 914,1019 L 896,1022 L 788,1062 L 776,1063 L 605,1127 L 409,1192 L 301,1233 L 262,1243 L 197,1269 L 183,1271 L 172,1278 L 177,1285 L 244,1306 L 290,1326 L 303,1327 L 330,1339 L 344,1341 L 390,1361 L 403,1362 L 509,1403 L 709,1469 L 756,1489 L 1012,1576 L 1162,1632 L 1176,1634 L 1203,1646 L 1218,1648 L 1325,1688 L 1382,1705 L 1410,1718 L 1502,1748 L 1510,1754 Z"/></g><path d="M 2285,690 L 2281,699 L 2281,772 L 2287,778 L 2597,778 L 2606,784 L 2590,809 L 2486,935 L 2440,997 L 2326,1138 L 2286,1182 L 2280,1201 L 2283,1256 L 2289,1259 L 2736,1259 L 2746,1256 L 2751,1248 L 2751,1168 L 2744,1162 L 2447,1163 L 2437,1157 L 2601,950 L 2652,891 L 2664,870 L 2747,771 L 2751,754 L 2751,703 L 2747,691 L 2732,687 L 2300,687 Z" fill="#0A0E14"/><path d="M 3343,683 L 3290,699 L 3249,719 L 3196,760 L 3160,800 L 3125,863 L 3107,925 L 3106,1013 L 3115,1057 L 3134,1105 L 3169,1158 L 3217,1204 L 3276,1240 L 3318,1257 L 3344,1260 L 3357,1266 L 3465,1267 L 3516,1257 L 3559,1239 L 3614,1205 L 3663,1157 L 3697,1105 L 3715,1059 L 3725,1016 L 3725,922 L 3715,885 L 3697,837 L 3659,781 L 3623,745 L 3587,720 L 3520,691 L 3498,688 L 3485,682 L 3411,679 Z M 3389,770 L 3427,769 L 3482,779 L 3506,788 L 3538,807 L 3576,842 L 3593,863 L 3619,917 L 3625,953 L 3625,990 L 3619,1023 L 3599,1070 L 3574,1104 L 3530,1141 L 3493,1160 L 3456,1170 L 3369,1169 L 3335,1160 L 3301,1142 L 3277,1125 L 3248,1094 L 3222,1050 L 3219,1032 L 3212,1020 L 3212,927 L 3219,913 L 3221,897 L 3248,853 L 3276,822 L 3310,797 L 3349,780 Z" fill-rule="evenodd" fill="#0A0E14"/><path d="M 4071,925 L 4067,997 L 4067,1247 L 4073,1258 L 4483,1259 L 4486,1256 L 4489,1177 L 4483,1163 L 4180,1163 L 4166,1157 L 4165,1017 L 4170,1010 L 4445,1008 L 4452,1000 L 4453,938 L 4450,923 L 4076,921 Z M 4070,698 L 4069,765 L 4076,777 L 4483,777 L 4488,768 L 4487,694 L 4484,688 L 4477,686 L 4096,686 L 4076,688 Z" fill="#0A0E14"/><path d="M 4861,688 L 4858,699 L 4862,711 L 4885,740 L 5031,970 L 5071,1023 L 5079,1039 L 5079,1253 L 5086,1259 L 5172,1258 L 5178,1251 L 5180,1032 L 5398,704 L 5398,689 L 5292,688 L 5283,693 L 5252,736 L 5128,931 L 5117,922 L 5105,897 L 4973,689 Z" fill="#0A0E14"/><path d="M 5996,690 L 5995,704 L 6001,714 L 6003,730 L 6046,851 L 6057,894 L 6072,929 L 6083,976 L 6135,1127 L 6154,1195 L 6178,1257 L 6183,1260 L 6253,1259 L 6265,1247 L 6295,1149 L 6302,1138 L 6312,1099 L 6320,1084 L 6321,1070 L 6346,1003 L 6348,985 L 6364,945 L 6366,930 L 6384,878 L 6394,867 L 6401,872 L 6403,891 L 6427,956 L 6429,971 L 6436,983 L 6438,998 L 6462,1065 L 6464,1082 L 6472,1098 L 6473,1111 L 6498,1177 L 6501,1194 L 6506,1200 L 6509,1222 L 6520,1251 L 6529,1259 L 6601,1259 L 6610,1254 L 6632,1177 L 6692,1003 L 6693,990 L 6709,951 L 6711,937 L 6718,926 L 6729,883 L 6790,701 L 6787,690 L 6771,687 L 6697,688 L 6687,696 L 6660,779 L 6658,795 L 6642,836 L 6631,883 L 6615,924 L 6613,941 L 6597,982 L 6595,997 L 6589,1006 L 6578,1052 L 6564,1079 L 6552,1059 L 6550,1042 L 6534,1001 L 6532,984 L 6525,971 L 6497,871 L 6490,859 L 6488,843 L 6473,804 L 6470,781 L 6443,697 L 6435,690 L 6417,687 L 6361,687 L 6350,691 L 6287,885 L 6286,897 L 6261,963 L 6259,980 L 6234,1050 L 6232,1069 L 6224,1080 L 6216,1078 L 6213,1051 L 6207,1043 L 6205,1025 L 6188,984 L 6187,970 L 6180,957 L 6160,881 L 6145,844 L 6133,796 L 6126,784 L 6125,770 L 6118,756 L 6105,702 L 6096,690 L 6003,687 Z" fill="#0A0E14"/><path d="M 7177,690 L 7020,1069 L 6943,1243 L 6944,1256 L 6950,1259 L 7043,1259 L 7053,1252 L 7066,1210 L 7090,1159 L 7109,1105 L 7117,1093 L 7128,1057 L 7153,1003 L 7163,972 L 7178,943 L 7181,925 L 7196,897 L 7216,843 L 7230,822 L 7241,836 L 7271,917 L 7278,925 L 7315,1024 L 7321,1031 L 7342,1088 L 7366,1138 L 7377,1174 L 7413,1255 L 7420,1259 L 7517,1258 L 7523,1251 L 7456,1105 L 7444,1068 L 7332,814 L 7285,695 L 7271,688 L 7195,687 Z" fill="#0A0E14"/><path d="M 7796,688 L 7791,697 L 7790,1241 L 7794,1256 L 7801,1259 L 8196,1257 L 8199,1251 L 8200,1170 L 8196,1163 L 7902,1163 L 7889,1157 L 7888,695 L 7877,687 Z" fill="#0A0E14"/><path d="M 8516,690 L 8512,697 L 8512,1245 L 8516,1256 L 8522,1259 L 8922,1257 L 8925,1252 L 8925,1171 L 8920,1163 L 8621,1162 L 8614,1157 L 8614,696 L 8610,689 L 8596,687 Z" fill="#0A0E14"/><path d="M 9202,924 L 9200,1222 L 9204,1257 L 9605,1259 L 9613,1255 L 9616,1246 L 9616,1175 L 9611,1163 L 9303,1162 L 9297,1152 L 9297,1017 L 9301,1010 L 9578,1008 L 9584,992 L 9585,937 L 9580,922 L 9210,921 Z M 9201,695 L 9201,766 L 9203,773 L 9209,776 L 9605,777 L 9613,772 L 9615,766 L 9615,696 L 9610,688 L 9213,686 L 9204,688 Z" fill="#0A0E14"/><path d="M 9931,686 L 9927,696 L 9927,771 L 9931,778 L 10105,778 L 10120,785 L 10120,1248 L 10129,1258 L 10215,1258 L 10220,1251 L 10220,784 L 10233,778 L 10415,777 L 10421,770 L 10420,695 L 10412,688 Z" fill="#0A0E14"/></svg></a>
+    <div class="dash-nav-links">
+      <a href="/dashboard" class="active">Overview</a>
+      <a href="#" data-soon="Markets">Markets</a>
+      <a href="#" data-soon="Portfolio">Portfolio</a>
+      <a href="#" data-soon="Transactions">Transactions</a>
+      <a href="#" data-soon="Watchlist">Watchlist</a>
+      <a href="#" data-soon="Settings">Settings</a>
+    </div>
+    <div class="dash-nav-actions">
+      <button class="dash-profile-btn" id="dashProfileBtn" aria-haspopup="true" aria-expanded="false">
+        <span class="dash-avatar" id="dashAvatar">Z</span>
+        <span class="dash-profile-name" id="dashProfileName">&hellip;</span>
+        <svg class="dash-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="dash-profile-menu" id="dashProfileMenu">
+        <div class="dash-profile-menu-header">
+          <div class="dash-profile-menu-name" id="dashMenuName">&nbsp;</div>
+          <div class="dash-profile-menu-email" id="dashMenuEmail">&nbsp;</div>
+        </div>
+        <button class="dash-logout-btn" id="dashLogoutBtn">Log out</button>
+      </div>
+    </div>
+    <button class="dash-nav-toggle" id="dashNavToggle" aria-label="Open menu" aria-expanded="false">
+      <svg viewBox="0 0 18 18" width="18" height="18" fill="none"><path d="M2 5 H16 M2 9 H16 M2 13 H16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </nav>
+  <div class="dash-mobile-menu" id="dashMobileMenu">
+    <a href="/dashboard" class="active">Overview</a>
+    <a href="#" data-soon="Markets">Markets</a>
+    <a href="#" data-soon="Portfolio">Portfolio</a>
+    <a href="#" data-soon="Transactions">Transactions</a>
+    <a href="#" data-soon="Watchlist">Watchlist</a>
+    <a href="#" data-soon="Settings">Settings</a>
+    <button id="dashLogoutBtnMobile">Log out</button>
+  </div>
+</header>
+
+<main class="dash-main">
+  <div class="wrap">
+    <div class="dash-loading" id="dashLoading">Loading your dashboard&hellip;</div>
+
+    <div id="dashContent" style="display:none;">
+      <div class="dash-intro">
+        <div class="eyebrow">OVERVIEW</div>
+        <h1 class="dash-welcome" id="dashWelcome">Welcome back.</h1>
+      </div>
+
+      <div class="dash-portfolio-card">
+        <div class="pf-head">
+          <div>
+            <div class="pf-label">PORTFOLIO VALUE</div>
+            <div class="pf-value" id="dashPfValue">$0.00</div>
+            <div class="pf-change" id="dashPfChange">&nbsp;</div>
+          </div>
+          <div class="pf-badge"><svg class="badge-mark" viewBox="165 84 1359 1671" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="dashBadgeGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#8C9AFF"/><stop offset="55%" stop-color="#6E7EFF"/><stop offset="100%" stop-color="#4A55FF"/></linearGradient></defs><g fill="url(#dashBadgeGrad)"><path d="M 166,1024 L 172,1026 L 182,1020 L 195,1019 L 285,983 L 296,982 L 405,941 L 459,925 L 669,848 L 725,832 L 894,769 L 930,760 L 1103,698 L 1117,696 L 1204,662 L 1264,646 L 1316,626 L 1357,618 L 1502,562 L 1516,560 L 1524,550 L 1449,521 L 1394,505 L 1236,448 L 1223,447 L 1217,442 L 1182,433 L 1097,400 L 1053,388 L 1010,370 L 851,319 L 804,299 L 656,248 L 562,219 L 411,163 L 395,161 L 329,135 L 169,84 L 165,89 Z"/><path d="M 1520,1752 L 1520,811 L 1517,807 L 1412,847 L 1396,849 L 1354,867 L 1208,914 L 1183,926 L 1105,949 L 1096,955 L 914,1019 L 896,1022 L 788,1062 L 776,1063 L 605,1127 L 409,1192 L 301,1233 L 262,1243 L 197,1269 L 183,1271 L 172,1278 L 177,1285 L 244,1306 L 290,1326 L 303,1327 L 330,1339 L 344,1341 L 390,1361 L 403,1362 L 509,1403 L 709,1469 L 756,1489 L 1012,1576 L 1162,1632 L 1176,1634 L 1203,1646 L 1218,1648 L 1325,1688 L 1382,1705 L 1410,1718 L 1502,1748 L 1510,1754 Z"/></g></svg></div>
+        </div>
+
+        <div class="dash-portfolio-grid">
+          <div>
+            <div class="dash-chart-label">PORTFOLIO PERFORMANCE</div>
+            <div class="pf-chart">
+              <svg id="dashChartSvg" viewBox="0 0 560 160" width="100%" height="160" preserveAspectRatio="none">
+                <defs><linearGradient id="dashAreaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3355FF" stop-opacity="0.35"/><stop offset="100%" stop-color="#3355FF" stop-opacity="0"/></linearGradient></defs>
+                <path id="dashAreaPath" d="" fill="url(#dashAreaGrad)"/>
+                <path id="dashLinePath" d="" fill="none" stroke="#5B7CFF" stroke-width="2.4" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+          <div class="pf-holdings" id="dashHoldings"></div>
+        </div>
+      </div>
+
+      <div class="dash-funding-card">
+        <div class="dash-funding-head">
+          <div class="eyebrow">STABLECOIN FUNDING</div>
+          <h2 class="dash-funding-title">Fund your account</h2>
+        </div>
+        <div class="dash-funding-row">
+          <div class="dash-stable-pill"><div class="lbl">USDT BALANCE</div><div class="val" id="dashUsdt">0.00</div></div>
+          <div class="dash-stable-pill"><div class="lbl">USDC BALANCE</div><div class="val" id="dashUsdc">0.00</div></div>
+        </div>
+        <div class="dash-funding-actions">
+          <button class="btn btn-primary" data-soon="Deposit">Deposit</button>
+          <button class="btn btn-outline" data-soon="Buy">Buy</button>
+          <button class="btn btn-outline" data-soon="Sell">Sell</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="dash-toast" id="dashToast"></div>
+
+<script>
+(function(){
+  const loading = document.getElementById('dashLoading');
+  const content = document.getElementById('dashContent');
+  const toast = document.getElementById('dashToast');
+  let toastTimer = null;
+
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  document.querySelectorAll('[data-soon]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      showToast(el.getAttribute('data-soon') + ' is coming soon.');
+    });
+  });
+
+  // ---- profile menu ----
+  const profileBtn = document.getElementById('dashProfileBtn');
+  const profileMenu = document.getElementById('dashProfileMenu');
+  profileBtn.addEventListener('click', () => {
+    const open = profileMenu.classList.toggle('open');
+    profileBtn.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', (e) => {
+    if (!profileMenu.contains(e.target) && e.target !== profileBtn && !profileBtn.contains(e.target)){
+      profileMenu.classList.remove('open');
+      profileBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // ---- mobile nav ----
+  const navToggle = document.getElementById('dashNavToggle');
+  const mobileMenu = document.getElementById('dashMobileMenu');
+  navToggle.addEventListener('click', () => {
+    const open = mobileMenu.classList.toggle('open');
+    navToggle.setAttribute('aria-expanded', String(open));
+  });
+
+  // ---- logout ----
+  async function logout(){
+    try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+    window.location.href = '/login';
+  }
+  document.getElementById('dashLogoutBtn').addEventListener('click', logout);
+  document.getElementById('dashLogoutBtnMobile').addEventListener('click', logout);
+
+  // ---- number formatting + count-up ----
+  const money = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const plain = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function animateValue(el, to, formatFn, duration){
+    const start = performance.now();
+    function tick(now){
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = formatFn(to * eased);
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function buildChart(points){
+    const w = 560, h = 160, pad = 6;
+    const min = Math.min(...points), max = Math.max(...points);
+    const range = (max - min) || 1;
+    const stepX = (w - pad * 2) / (points.length - 1);
+    const coords = points.map((p, i) => {
+      const x = pad + i * stepX;
+      const y = h - pad - ((p - min) / range) * (h - pad * 2);
+      return [x, y];
+    });
+    const line = coords.map((c, i) => (i === 0 ? 'M' : 'L') + c[0].toFixed(1) + ',' + c[1].toFixed(1)).join(' ');
+    const area = line + ` L${coords[coords.length - 1][0].toFixed(1)},${h} L${coords[0][0].toFixed(1)},${h} Z`;
+    document.getElementById('dashLinePath').setAttribute('d', line);
+    document.getElementById('dashAreaPath').setAttribute('d', area);
+  }
+
+  // ---- load dashboard ----
+  async function init(){
+    let meRes, dashRes;
+    try {
+      [meRes, dashRes] = await Promise.all([
+        fetch('/api/auth/me'),
+        fetch('/api/dashboard'),
+      ]);
+    } catch (err) {
+      window.location.href = '/login';
+      return;
+    }
+
+    if (meRes.status === 401 || dashRes.status === 401) {
+      window.location.href = '/login';
+      return;
+    }
+
+    const meData = await meRes.json();
+    const dashData = await dashRes.json();
+    if (!meData.ok || !dashData.ok) {
+      window.location.href = '/login';
+      return;
+    }
+
+    const user = meData.user;
+    const data = dashData.data;
+
+    document.getElementById('dashProfileName').textContent = user.name;
+    document.getElementById('dashMenuName').textContent = user.name;
+    document.getElementById('dashMenuEmail').textContent = user.email;
+    document.getElementById('dashAvatar').textContent = (user.name || '?').trim().charAt(0).toUpperCase();
+    document.getElementById('dashWelcome').textContent = 'Welcome back, ' + user.name.split(' ')[0] + '.';
+
+    const changeEl = document.getElementById('dashPfChange');
+    const up = data.todayChangeAbs >= 0;
+    changeEl.className = 'pf-change ' + (up ? 'up' : 'down');
+    changeEl.textContent = (up ? '+' : '−') + '$' + Math.abs(data.todayChangeAbs).toFixed(2) + ' \u00b7 ' + (up ? '+' : '−') + Math.abs(data.todayChangePct).toFixed(2) + '% today';
+
+    animateValue(document.getElementById('dashPfValue'), data.portfolioValue, money, 900);
+    animateValue(document.getElementById('dashUsdt'), data.stablecoins.USDT, plain, 700);
+    animateValue(document.getElementById('dashUsdc'), data.stablecoins.USDC, plain, 700);
+
+    const holdingsEl = document.getElementById('dashHoldings');
+    holdingsEl.innerHTML = data.holdings.map(h => {
+      const hUp = h.changePct >= 0;
+      return `<div class="pf-row">
+        <div><div class="pf-sym">${h.symbol}</div><div class="pf-name">${h.name}</div></div>
+        <div><div class="pf-px">$${h.price.toFixed(2)}</div><div class="pf-chg ${hUp ? 'up' : 'down'}">${hUp ? '+' : '−'}${Math.abs(h.changePct).toFixed(2)}%</div></div>
+      </div>`;
+    }).join('');
+
+    buildChart(data.chartPoints);
+
+    loading.style.display = 'none';
+    content.style.display = 'block';
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
