@@ -34,6 +34,7 @@ from collections.abc import Generator
 from typing import Optional
 
 from sqlalchemy import create_engine, func, select
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.models import Base, Lead, User
@@ -66,6 +67,21 @@ from backend.models import Base, Lead, User
 # ORM/Core layer instead of hand-rolling sqlite3 vs. psycopg calls.
 
 DATABASE_URL = os.environ.get("DATABASE_URL") or "sqlite:///./local.db"
+
+# Vercel's Neon integration (and most managed-Postgres providers) hand back
+# DATABASE_URL in Postgres' own native URI form -- "postgres://..." or bare
+# "postgresql://..." -- not SQLAlchemy's dialect+driver spelling. SQLAlchemy
+# resolves the driver from the URL scheme the moment create_engine() is
+# called, so left as-is this fails immediately at import time: "postgres://"
+# isn't a dialect SQLAlchemy knows at all, and bare "postgresql://" defaults
+# to the psycopg2 driver, which isn't installed (this project uses psycopg 3
+# -- see requirements.txt). Rewriting just the scheme/driver here -- leaving
+# the host, credentials, database name, and query string (e.g. Neon's
+# ?sslmode=require) untouched -- points SQLAlchemy at the psycopg 3 driver
+# that's actually installed, without touching DATABASE_URL itself as Vercel
+# set it.
+if DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = make_url(DATABASE_URL).set(drivername="postgresql+psycopg").render_as_string(hide_password=False)
 
 _connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
