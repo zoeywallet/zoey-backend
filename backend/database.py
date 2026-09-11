@@ -89,6 +89,19 @@ if DATABASE_URL.startswith("sqlite"):
     # FastAPI/Starlette can (and does) run request handlers on different
     # worker threads, so this flag is required for local dev to work at all.
     _connect_args["check_same_thread"] = False
+elif DATABASE_URL.startswith("postgresql+psycopg://"):
+    # Vercel's Neon integration hands back a *pooled* connection string
+    # (PgBouncer, in transaction-pooling mode). psycopg 3 uses server-side
+    # prepared statements by default, but a transaction-pooling PgBouncer
+    # can route consecutive statements from the same "prepared" session to
+    # different backend Postgres connections -- the prepared statement isn't
+    # there on the connection PgBouncer picks next, which surfaces as
+    # errors like "prepared statement ... does not exist" or
+    # "DuplicatePreparedStatement". Setting prepare_threshold=None tells
+    # psycopg to never promote a statement to a server-side prepared one,
+    # which is the documented fix for using psycopg 3 behind a
+    # transaction-pooling PgBouncer (i.e. Neon's pooled DATABASE_URL).
+    _connect_args["prepare_threshold"] = None
 
 engine = create_engine(DATABASE_URL, connect_args=_connect_args, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
