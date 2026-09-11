@@ -1,464 +1,333 @@
-# Zoey Wallet — Backend
-
-Connects the Zoey Wallet website's existing "Get started" lead form to a
-real database and a Gmail notification, without changing anything about
-how the form looks or behaves — and adds a dedicated Login page + User
-Dashboard behind real, server-side session authentication.
-
-```
-Website Lead Form  →  Backend/API  →  SQLite Database  →  Gmail Notification
-
-Homepage "Log In"  →  /login (dedicated page)  →  session cookie  →  /dashboard
-```
-
-## What was already there, and what this adds
-
-The site (`public/index.html`, same file as `zoeywalletwebsitev2.html`)
-already had a fully-built lead form — name, email, phone (with country
-selector), and an optional "what are you interested in" field — with
-client-side validation, a loading state, and a success state. Its JavaScript
-already called a `submitLead()` function that POSTed JSON to
-`` `${ZOEY_LEADS_API_BASE}/api/leads` `` and expected back `{ ok, status,
-message }` on success, `{ ok:false, errors:{...} }` on a 422 validation
-failure, or a 429 on rate-limiting. **There was no backend behind it yet** —
-`ZOEY_LEADS_API_BASE` was blank, so every submission failed with an
-on-brand "couldn't reach our servers" message and nothing was ever stored.
-
-This project *is* that backend, built to the exact contract the frontend
-already expected — so the only frontend change needed was flipping on the
-fetch call (a few lines in one `<script>` block; see "Frontend change"
-below). No HTML, CSS, layout, copy, or animation changed.
-
-## Why zero (well, one) npm dependencies
-
-This was built in a sandboxed environment whose egress policy blocked
-`registry.npmjs.org` entirely (every package request came back `403`,
-including trivial ones like `lodash`) but allowed plain `git clone` against
-`github.com`. So:
-
-- The server, router, SQLite access, validation, rate limiting, admin auth,
-  and CSV export are all written on Node's built-in modules
-  (`node:http`, `node:sqlite`, `node:crypto`, `node:fs`) — nothing to
-  install for any of that.
-- The one place a battle-tested library matters — Gmail SMTP + MIME — uses
-  **Nodemailer**, vendored directly from its GitHub source
-  (`nodemailer@6.9.15`, the last version published as plain CommonJS with
-  no build step, and it has zero dependencies of its own) into
-  `node_modules/nodemailer` so this runs as-is.
-
-On a normal host with normal registry access, you can ignore all of that and
-just run `npm install` — `package.json` lists `nodemailer` as a real
-dependency and npm will fetch the genuine published package the normal way.
-The vendored copy is only there so this project runs immediately without
-that step.
-
-**Node version:** requires **Node.js 22.5 or newer** (for `node:sqlite`).
-Run `node --version` to check. If you're on an older Node, the fix is
-either upgrading Node, or swapping `src/db.js` to use `better-sqlite3` from
-npm instead (same API shape — `db.prepare(...).run()/.get()/.all()`).
-
-## Setup
-
-### 1. Install
-
-```bash
-cd zoey-backend
-npm install     # fetches the real nodemailer from npm; harmless if it
-                 # can't reach the registry, since a working copy is
-                 # already vendored in node_modules/
-```
-
-### 2. Configure environment variables
-
-```bash
-cp .env.example .env
-```
-
-Then edit `.env`. At minimum, for leads to actually save and an admin
-dashboard to exist:
-
-```
-ADMIN_KEY=<any long random string>
-```
-
-Generate one with:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
-```
-
-For Gmail notifications (App Password method — see below for why):
-
-```
-GMAIL_USER=youraddress@gmail.com
-GMAIL_APP_PASSWORD=xxxxxxxxxxxxxxxx
-NOTIFY_TO=youraddress@gmail.com
-```
-
-**Getting a Gmail App Password (~2 minutes):**
-
-1. Turn on 2-Step Verification on the Google account you want to send
-   from: <https://myaccount.google.com/security>
-2. Go to <https://myaccount.google.com/apppasswords>
-3. Create a new app password (name it something like "Zoey Wallet
-   backend"). Google shows you a 16-character password once — copy it.
-4. Paste it into `GMAIL_APP_PASSWORD` in `.env` (spaces are fine, they're
-   stripped automatically). Paste the Gmail address itself into
-   `GMAIL_USER`.
-5. Set `NOTIFY_TO` to whichever inbox should receive lead notifications —
-   it can be the same address, or a different one entirely.
-
-If you'd rather use OAuth2 (Client ID / Secret / Refresh Token) instead of
-an App Password — more setup, but avoids storing a password at all — see
-"Switching to OAuth2" near the bottom.
-
-**Until Gmail is configured, nothing breaks** — leads still save correctly,
-the mailer just logs a warning and marks the notification
-`skipped_no_credentials`. As soon as you add real credentials and restart,
-the next lead (or the background retry sweep, or a manual resend) will send
-successfully.
-
-### 3. Run it
-
-```bash
-npm start
-```
-
-By default this serves **both** the website and the API on
-`http://localhost:3001` — open that URL, click "Get started," submit the
-form, and it will hit the same-origin `/api/leads` endpoint.
-
-### 4. View collected leads
-
-```
-http://localhost:3001/admin?key=<your ADMIN_KEY>
-```
-
-Shows every lead, their notification status, and a "Resend" button for
-any that haven't successfully notified you yet. There's also a CSV export
-link on that page, or directly at:
-
-```
-http://localhost:3001/api/leads/export.csv?key=<your ADMIN_KEY>
-```
-
-(The key can also be sent as an `X-Admin-Key` header or `Authorization:
-Bearer <key>` header instead of a query string, if you're scripting
-against it.)
-
-## Deploying
-
-This is a single Node process with a single SQLite file — it runs anywhere
-that runs Node 22.5+: a small VPS, Render, Railway, Fly.io, an EC2/Lightsail
-instance, etc. A few things to know:
-
-- **Persistent disk matters.** SQLite lives at `LEADS_DB_PATH`
-  (`./data/leads.db` by default). On a platform with an ephemeral
-  filesystem (some serverless/container platforms wipe disk on redeploy),
-  point `LEADS_DB_PATH` at a mounted persistent volume, or your leads will
-  vanish on the next deploy.
-- **Outbound SMTP (port 465) must be allowed.** Gmail's App Password
-  method sends over `smtp.gmail.com:465`. Most VPS/PaaS hosts allow this;
-  a few free-tier serverless platforms block outbound SMTP ports
-  specifically to fight spam. If yours does, you'll see notification
-  emails fail with a connection error — the "Switching to OAuth2" section
-  below doesn't fix that specific problem (OAuth2 still uses SMTP for
-  Nodemailer), so on a host that blocks SMTP entirely you'd need the Gmail
-  **API** (HTTPS, not SMTP) with OAuth2, which is a further step up in
-  complexity — ask if you hit this and want it built.
-- **Set `APP_BASE_URL`** to your real deployed URL — it's used to build
-  the "View all leads" link inside notification emails.
-- Copy your `.env` values into the platform's environment-variable
-  settings (never commit `.env` — it's already gitignored).
-
-### If the frontend is hosted separately from this backend
-
-The recommended setup serves `public/index.html` (the site) and the API
-from this same process, so there's no cross-origin request at all. If you
-instead host the HTML elsewhere (e.g. a static host or CDN) and only run
-this backend for the API:
-
-1. Set `ALLOWED_ORIGIN` in this backend's `.env` to the site's real origin
-   (e.g. `https://zoeywallet.com`).
-2. In the site's HTML, find `const ZOEY_LEADS_API_BASE = '';` (inside the
-   `<script>` block, in the "Submission layer" section) and set it to this
-   backend's URL, e.g. `'https://api.zoeywallet.com'`.
-
-## How a submission flows through the system
-
-1. **Frontend validates** (existing behavior, unchanged) — name, email,
-   and phone format are checked client-side before the request is even
-   sent, purely for instant UX feedback.
-2. **POST `/api/leads`** — the visitor's browser sends the same JSON
-   payload the form already built (`name`, `email`, `phone_e164`,
-   `country`, `country_code`, `interest`, `source`, `submitted_at`).
-3. **Rate limit check** — max 5 submissions per 10 minutes per IP by
-   default (`RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_MIN`), keyed by a salted
-   hash of the IP (the raw IP is never stored).
-4. **Server-side validation** (`src/validate.js`) — re-checks everything
-   the browser checked, because browser checks are trivially bypassable.
-   A failure returns `422` with the same `{errors:{name,email,phone}}`
-   shape the frontend already knows how to render as inline field errors.
-5. **Database write** (`src/db.js`, SQLite, table `leads`) — if this
-   fails, the visitor gets a generic error and **the lead is not
-   considered submitted**, full stop. If the email address already
-   exists, the existing row is updated (latest info wins) and
-   `duplicate_count` increments, rather than creating a second row.
-6. **Gmail notification** — sent only after the database write succeeds.
-   If this fails, the lead **stays saved** (nothing is rolled back or
-   deleted); the failure is logged, `notification_status` is set to
-   `failed`, and it becomes eligible for automatic retry (see below). The
-   visitor still sees the normal success screen — an internal email
-   hiccup is never their problem.
-7. **Success response** — `{ ok:true, status:'created'|'duplicate',
-   message:"You're on the list." }`, which is exactly what the existing
-   frontend code expects to swap the modal into its existing success
-   state.
-
-## Duplicate and invalid submissions
-
-- **Invalid email / name / phone** → `422` with field-level errors, no
-  database write, no email.
-- **Duplicate email** → not rejected (a returning visitor shouldn't see an
-  error) — the existing lead row is updated with whatever new info came
-  in, `duplicate_count` increments, and by default **no second
-  notification email is sent** for a lead you were already successfully
-  told about (so your inbox doesn't get spammed by someone submitting the
-  form five times). The one exception: if the *previous* attempt(s) never
-  actually reached your inbox (still `pending`, `failed`, or
-  `skipped_no_credentials`), a resubmission is treated as a natural retry
-  opportunity and a notification is attempted again.
-
-## If the Gmail notification fails
-
-This is handled deliberately, per the requirement that a saved lead must
-never be lost or hidden just because an email didn't go out:
-
-- The lead **stays in the database** either way.
-- The failure (and the error message) is logged to `logs/app-YYYY-MM-DD.log`
-  and to stdout.
-- The lead's row gets `notification_status = 'failed'` and
-  `notification_last_error` set, visible on the `/admin` dashboard.
-- **Automatic retry:** a background sweep runs every `RETRY_INTERVAL_MIN`
-  minutes (15 by default) inside the running server, retrying every lead
-  whose notification hasn't succeeded yet, up to `RETRY_MAX_ATTEMPTS`
-  attempts (5 by default).
-- **Manual retry:** click "Resend" next to any such lead on `/admin`, or
-  run `npm run retry-failed` as a one-off (e.g. from a cron job hitting a
-  long-running deployment, or just by hand after fixing a credentials
-  typo).
-- Visitors never see any of this — no technical error, no credential
-  detail, nothing beyond the same generic "something went wrong, try
-  again" copy the form already had for network failures.
-
-## Security
-
-- No Gmail credentials, API keys, or admin keys anywhere in
-  `public/index.html`, its JavaScript, or any other browser-reachable
-  file. Everything sensitive is read from environment variables inside
-  `src/`, which only ever runs server-side.
-- `.env` is gitignored. `.env.example` documents every variable with no
-  real values.
-- `/admin`, `GET /api/leads`, `/api/leads/export.csv`, and the resend
-  endpoint all require `ADMIN_KEY` — with nothing configured, they fail
-  closed (return `401`) rather than defaulting open.
-- The admin key comparison uses `crypto.timingSafeEqual` to avoid leaking
-  timing information.
-- Submitter IPs are only ever stored as a salted SHA-256 hash
-  (`ip_hash` column), never in the clear.
-- All lead input is validated and length-capped server-side before it
-  touches the database or an email.
-- Same rules apply to auth: no password, hash, session token, or admin key
-  ever appears in any file the browser downloads. See the dedicated
-  section below for the auth-specific details.
-
-## Login, sessions & dashboard
-
-A completely separate login page (`/login`) and authenticated dashboard
-(`/dashboard`) sit alongside the lead-capture system above, sharing the same
-process, same SQLite file, and same visual design tokens — but a fully
-independent, real (not simulated) authentication path.
-
-### How it works
-
-- **Passwords** are never stored in plain text. `src/auth/password.js`
-  hashes them with Node's built-in `crypto.scryptSync` and stores them as
-  `scrypt:N:r:p:<saltHex>:<hashHex>` in the `users` table — the cost
-  parameters travel with the hash so they can be tuned later without
-  breaking existing accounts. Verification uses
-  `crypto.timingSafeEqual`, not `===`, to avoid leaking timing
-  information.
-- **Sessions, not JWTs.** On successful login, `src/auth/session.js`
-  generates an opaque 32-byte random token, stores it server-side in a
-  `sessions` table (joined to `users`), and sends the browser only an
-  `HttpOnly; SameSite=Lax` cookie (`zw_session`) containing that token.
-  Client-side JavaScript can never read this cookie — there is nothing in
-  `localStorage`, `sessionStorage`, or the page source to steal. Checking
-  "Remember me" sets a persistent `Max-Age` (`SESSION_TTL_HOURS`, 7 days by
-  default) on the cookie; leaving it off makes the cookie session-only in
-  the browser, while the server-side session itself is still valid for the
-  same window either way (so closing the tab doesn't silently log people
-  out server-side — only closing the browser without "remember me" does).
-- **Route gating happens on the server**, not just in the page's
-  JavaScript, so it can't be bypassed by disabling JS: `GET /login` and
-  `GET /dashboard` are handled specially in `src/server.js` before the
-  static-file fallback. An unauthenticated visitor to `/dashboard` gets a
-  `302` to `/login`; an already-authenticated visitor to `/login` gets a
-  `302` to `/dashboard`. `dashboard.html`'s own JS adds a second,
-  belt-and-suspenders check (`GET /api/auth/me`) on load, mainly to catch a
-  stale bfcache view right after logging out.
-- **No self-serve signup yet** (out of scope per the spec this was built
-  from — "Sign Up" on the homepage still points at the existing
-  onboarding flow, untouched). Accounts are created with a CLI instead:
-
-  ```bash
-  npm run create-user -- someone@example.com "a strong password" "Display Name"
-  # or: node src/createUser.js someone@example.com "a strong password" "Display Name"
-  ```
-
-  Re-running it for an existing email updates that user's password (also
-  useful for resetting one by hand). It refuses passwords under 8
-  characters and obviously-invalid emails.
-
-- **Dashboard data is currently mock data** (`src/dashboardData.js`) —
-  portfolio value, holdings (NVDA/TSLA/PLTR/AMD/MSFT), a chart series, and
-  USDT/USDC balances — served from `GET /api/dashboard` (auth required,
-  `401` without a valid session). Swapping in real portfolio data later
-  means editing that one file's return shape; nothing else needs to
-  change. Nav items other than "Overview" (Markets, Portfolio,
-  Transactions, Watchlist, Settings) and the Buy/Sell/Deposit buttons are
-  intentionally inert placeholders that show a "coming soon" toast —
-  they're real UI, just not wired to anything yet.
-
-### Routes this adds
-
-| Route | Method | Behavior |
-|---|---|---|
-| `/login` | GET | Serves `public/login.html`. Redirects to `/dashboard` if already authenticated. |
-| `/dashboard` | GET | Serves `public/dashboard.html`. Redirects to `/login` if not authenticated. |
-| `/api/auth/login` | POST | `{ email, password, remember }` → sets session cookie, `{ ok:true, user }`, or `401` with a generic "Incorrect email or password." (rate-limited like `/api/leads`). |
-| `/api/auth/logout` | POST | Destroys the server-side session and clears the cookie. |
-| `/api/auth/me` | GET | `{ ok:true, user }` if authenticated, else `401`. |
-| `/api/dashboard` | GET | Mock portfolio/holdings/stablecoin data. `401` without a valid session. |
-
-### Environment variables
-
-No new required variables beyond what the lead-capture system already
-uses:
-
-- `SESSION_TTL_HOURS` (optional, default `168` = 7 days) — how long a
-  session stays valid server-side either way.
-- `COOKIE_SECURE` (optional; `true`/`false`) — forces the `Secure` flag on
-  the session cookie. Left unset, it defaults to on when the request looks
-  HTTPS (respecting `TRUST_PROXY`, the same flag the rate limiter already
-  uses for `X-Forwarded-For`) and off for plain local HTTP so `npm start`
-  works out of the box over `http://localhost`.
-
-### Regenerating login.html / dashboard.html
-
-`build_login_page.py` and `build_dashboard_page.py` are source-of-truth
-generators kept around so the pages can be regenerated consistently (they
-embed a large inline logo SVG) — edit the Python source and re-run it
-rather than hand-editing the generated HTML, so the two stay in sync.
-
-### Testing this part by hand
-
-```bash
-npm run create-user -- you@example.com "a-real-password" "Your Name"
-npm start
-# visit http://localhost:3001/login
-```
-
-- [ ] Visiting `/dashboard` while logged out redirects to `/login`.
-- [ ] Wrong password shows "Incorrect email or password." without
-      revealing which field was wrong, and without claiming a filled-in
-      field is empty or malformed.
-- [ ] Correct login redirects to `/dashboard` and shows your name, animated
-      portfolio value/chart, holdings, and stablecoin balances.
-- [ ] Visiting `/login` while already logged in redirects straight to
-      `/dashboard`.
-- [ ] "Log out" (desktop profile menu or mobile menu) clears the session
-      and redirects to `/login`; `/dashboard` immediately redirects again.
-- [ ] View page source / devtools on `/login` and `/dashboard` → no
-      password hash, session token, or any other secret ever appears.
-
-## File map
+# Zoey Wallet — backend (Python/FastAPI)
+
+This is the same `zoey-backend` project that powers the public site at
+`https://zoey-wallet-website-hosting.vercel.app/` — the backend has been
+migrated in place from Node.js to Python/FastAPI. The frontend (this
+README's `index.html`, `login.html`, `dashboard.html`, and every visual
+detail in them) is unchanged from before the migration.
+
+## Why this migration happened
+
+Three production problems, all backend-side:
+
+1. **`/login` → 404.** There was no Vercel routing configured to turn the
+   bare path `/login` into `login.html`, and no backend deployed to serve
+   it dynamically either.
+2. **The lead form said "We couldn't reach our servers."** The frontend's
+   `fetch('/api/leads', ...)` call was hitting Vercel's generic 404 page
+   (no `/api/leads` function existed), and trying to parse that HTML page
+   as JSON threw an error — which the frontend correctly reported as "can't
+   reach our servers."
+3. **A previous attempt to deploy the Node backend crashed:**
+   ```
+   TypeError: db.listUsers is not a function
+       at Object.<anonymous> (/var/task/src/server.js:46:8)
+   ```
+   `src/server.js` calls `db.listUsers()` at module load time (line 46, to
+   log a warning if no accounts exist yet). `db.listUsers` *is* exported
+   from the local `src/db.js` — so this wasn't a missing function in the
+   source, it was a **stale/mismatched deployment bundle**: whatever got
+   uploaded to Vercel didn't match the local `db.js`. On top of that,
+   `src/server.js` calls `server.listen(PORT)` — a permanently-running
+   server process — which fundamentally cannot work on Vercel's serverless
+   runtime regardless of that bug: there is no persistent process for a
+   port to stay bound to. And separately, the logger tried to
+   `mkdir('/var/task/logs')`, which fails because Vercel's deployment
+   filesystem is read-only outside `/tmp`.
+
+Rather than patch around these one at a time, the backend is rebuilt in
+Python/FastAPI, designed from the ground up for how Vercel actually runs
+serverless functions (see "Serverless, explained" below).
+
+## What changed vs. what didn't
+
+**Unchanged:** every pixel of `index.html`, `login.html`, and
+`dashboard.html` — typography, colors, layout, animations, the hero and
+About and Infrastructure sections, the lead-capture modal, the dashboard
+cards and chart. Nothing here was redesigned.
+
+**Changed in the frontend (5 lines total, across 3 files):**
+- `index.html`: the `file://`-protocol guard's alert text now says
+  `uvicorn api.index:app --reload` / `http://127.0.0.1:8000` instead of
+  `npm start` / port 3001 (the actual local-dev command changed; nothing
+  else about that guard changed). The comment above
+  `ZOEY_LEADS_API_BASE` now references the Python backend. The lead-form
+  submission code itself (the fetch call, payload, success/error UI) was
+  **not** touched — it already used a relative `/api/leads` URL.
+- `login.html`: `fetch('/api/auth/login', ...)` → `fetch('/api/login', ...)`.
+- `dashboard.html`: `fetch('/api/auth/logout', ...)` → `fetch('/api/logout', ...)`,
+  and `fetch('/api/auth/me')` → `fetch('/api/me')`.
+
+**Removed:** the Node backend (`src/`, `node_modules/`, `package.json`,
+`package-lock.json`) and the now-empty `public/` folder. `index.html`,
+`login.html`, and `dashboard.html` moved from `public/` to the repo root —
+that's a deliberate, disclosed fix: it makes this project match Vercel's
+default "serve static files from the repo root" behavior with no reliance
+on a specific "Output Directory" dashboard setting, which is one plausible
+reason `/login` wasn't resolving. **These old files weren't deleted** (this
+session didn't have permission to delete on your machine) — they were
+moved into `_to_delete/` inside this same folder. Open that folder, confirm
+you don't need anything from it, and delete it yourself whenever you like.
+
+**Not carried over, disclosed:** the admin lead-viewing dashboard, CSV
+export, and Gmail lead-notification email that existed in the old Node
+backend aren't in this rewrite, because they weren't in the migration spec.
+`list_leads()` / `count_leads()` already exist in `backend/database.py` as
+a foundation if you want these back later.
+
+**Added, not yet wired up (per your request to prepare for it):**
+`backend/services/market_data.py` and `backend/services/claude.py` — empty
+placeholders with docstrings explaining where a future market-data feed and
+a future Claude integration would plug in. Nothing calls Anthropic's API
+yet, and nothing should ever put an Anthropic key in frontend JavaScript
+when you do build it — see the docstring in `claude.py`.
+
+## Final project structure
 
 ```
 zoey-backend/
-├── public/
-│   ├── index.html              # the site (same as zoeywalletwebsitev2.html)
-│   ├── login.html               # dedicated login page (generated — see below)
-│   └── dashboard.html           # authenticated dashboard (generated — see below)
-├── src/
-│   ├── server.js                # http server, routing, static file serving
-│   ├── db.js                    # SQLite schema + queries (node:sqlite) — leads, users, sessions
-│   ├── validate.js              # server-side input validation (leads)
-│   ├── mailer.js                # Gmail sending (Nodemailer, App Password)
-│   ├── render/
-│   │   ├── emailTemplate.js     # the notification email's subject/text/html
-│   │   └── adminDashboard.js    # the /admin page's HTML
-│   ├── csv.js                   # CSV export
-│   ├── rateLimit.js             # in-memory sliding-window rate limiter
-│   ├── adminAuth.js             # ADMIN_KEY check for admin-only routes
-│   ├── retryFailedNotifications.js  # retry sweep, used by server + CLI
-│   ├── logger.js                # console + logs/app-*.log
-│   ├── loadEnv.js               # minimal .env parser
-│   ├── auth/
-│   │   ├── password.js          # scrypt hashing + timing-safe verification
-│   │   └── session.js           # session tokens, cookie set/parse/clear
-│   ├── dashboardData.js         # mock portfolio/holdings/stablecoin data
-│   └── createUser.js            # CLI: create or reset a login account
-├── build_login_page.py          # generates public/login.html (dev-time tool)
-├── build_dashboard_page.py      # generates public/dashboard.html (dev-time tool)
-├── data/                        # leads.db lives here (gitignored) — also holds users/sessions tables
-├── logs/                        # app-*.log files (gitignored)
+├── index.html              # homepage — visually unchanged
+├── login.html               # 1 fetch URL changed
+├── dashboard.html            # 2 fetch URLs changed
+├── assets/                   # placeholder for future static assets
+├── api/
+│   └── index.py               # the FastAPI app — Vercel calls this directly
+├── backend/
+│   ├── __init__.py
+│   ├── models.py               # SQLAlchemy tables: User, Lead
+│   ├── database.py              # DB access layer (explicit named functions)
+│   ├── auth.py                   # password hashing + JWT session tokens
+│   ├── schemas.py                  # Pydantic request validation
+│   ├── dashboard_data.py            # mock portfolio data (same values as before)
+│   ├── create_user.py                # CLI: provision/reset a login account
+│   └── services/
+│       ├── market_data.py              # placeholder for a future price feed
+│       └── claude.py                    # placeholder for a future Claude integration
+├── tests/
+│   └── test_api.py           # pytest suite
+├── requirements.txt            # production deps
+├── requirements-dev.txt         # + pytest/httpx for local testing
+├── vercel.json
 ├── .env.example
-└── package.json
+├── .gitignore
+├── README.md                     # this file
+├── data/  logs/                    # left over from the old Node backend — gitignored,
+│                                     harmless, safe to delete whenever you like
+└── _to_delete/                       # old Node backend files, moved (not deleted) — see above
 ```
 
-## Switching to OAuth2 (optional)
+## Serverless, explained (for a Python developer new to Vercel)
 
-If you'd rather not store a password at all, Nodemailer supports Gmail via
-OAuth2 too. It's more setup:
+Vercel doesn't keep your Python process running the way `python app.py`
+does on your own machine. Instead, it takes the `app` object your code
+defines (a FastAPI instance — an ASGI application) and calls it directly,
+per request, on whatever instance happens to be warm (or a brand-new one).
+Concretely, that means:
 
-1. In [Google Cloud Console](https://console.cloud.google.com/), create a
-   project, enable the Gmail API, and configure an OAuth consent screen.
-2. Create an OAuth Client ID (type "Desktop app" is easiest for generating
-   a refresh token by hand).
-3. Use Google's [OAuth 2.0 Playground](https://developers.google.com/oauthplayground)
-   with your own Client ID/Secret (gear icon → "Use your own OAuth
-   credentials") to authorize the `https://mail.google.com/` scope and
-   obtain a refresh token.
-4. In `src/mailer.js`, change the `nodemailer.createTransport({...})` call
-   from the current SMTP/App-Password config to:
-   ```js
-   nodemailer.createTransport({
-     service: 'gmail',
-     auth: {
-       type: 'OAuth2',
-       user: process.env.GMAIL_USER,
-       clientId: process.env.GMAIL_CLIENT_ID,
-       clientSecret: process.env.GMAIL_CLIENT_SECRET,
-       refreshToken: process.env.GMAIL_REFRESH_TOKEN,
-     },
-   })
-   ```
-5. Set `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, and `GMAIL_REFRESH_TOKEN`
-   in `.env` instead of `GMAIL_APP_PASSWORD`.
+- **No `app.listen()` / no port.** `uvicorn` is only for *your own machine*
+  (`uvicorn api.index:app --reload`). Vercel never runs that command —
+  it imports `api/index.py`, finds the `app` variable, and calls it as an
+  ASGI callable itself.
+- **No shared memory between requests.** Two requests might hit two
+  completely different instances of your code with nothing in common.
+  That's why login sessions here are signed JWT tokens in a cookie
+  (`backend/auth.py`) rather than an in-memory or DB-backed session table —
+  the token itself carries everything needed to verify who's logged in,
+  so no server-side state has to persist between requests.
+- **No writable filesystem** (outside `/tmp`, which is wiped between
+  invocations and shouldn't be relied on either). That's the direct fix for
+  the `/var/task/logs` crash: this backend never tries to create a log
+  directory — it just uses normal `print()`/exceptions, which Vercel
+  captures as your function's logs automatically.
+- **No background jobs / scheduled tasks** run inside this app. Anything
+  like that would need a separate mechanism (e.g. Vercel Cron, or an
+  external worker) — out of scope here.
 
-## Testing checklist
+## Database, in Python terms
 
-- [ ] `npm start`, open `http://localhost:3001`, submit the form with a
-      real-looking name/email/phone → see the existing success screen.
-- [ ] Row appears at `http://localhost:3001/admin?key=...`.
-- [ ] With `GMAIL_USER`/`GMAIL_APP_PASSWORD`/`NOTIFY_TO` set, the
-      notification email arrives with the correct name/email/country/
-      interest/timestamp.
-- [ ] Submit the same email twice → only one row (with `duplicate_count`
-      incremented), only one notification email.
-- [ ] Submit an invalid email → inline field error, nothing saved.
-- [ ] Submit 6+ times quickly → 429 after the 5th.
-- [ ] View page source / devtools network tab on the live site → no Gmail
-      address, password, or admin key ever appears in any HTML, JS, or
-      response the browser can see.
+`backend/database.py` is the *only* file that touches the database
+directly. Every other file calls one of its named functions:
+`create_user`, `find_user_by_email`, `get_user_by_id`,
+`update_user_password`, `list_users`, `create_lead`, `list_leads`,
+`count_leads`. Nothing calls a function that doesn't exist — which is
+exactly what the old `db.listUsers is not a function` crash was: code
+calling a function that, in whatever got deployed, wasn't there.
+
+It uses SQLAlchemy, pointed at whatever `DATABASE_URL` says:
+
+- Locally, if you don't set `DATABASE_URL`, it defaults to a SQLite file
+  (`sqlite:///./local.db`) — zero setup, good enough for development.
+- In production, **set `DATABASE_URL` to a real Postgres connection
+  string** (Vercel Postgres, Neon, Supabase, Railway — any of these work).
+  Vercel's filesystem is not a place to keep a permanent SQLite file: it's
+  wiped/rebuilt on every deploy and isn't shared across function instances,
+  so SQLite there would silently lose data or behave inconsistently.
+
+The old Node backend's `data/leads.db` (SQLite) is **not** automatically
+migrated into the new database — it uses a different schema/library and
+this backend starts fresh. If you need those old leads, they're still
+sitting in `data/leads.db` (still on disk, untouched) and can be exported
+with any SQLite browser if you ever want them.
+
+## Authentication, in Python terms
+
+- **Password hashing:** `backend/auth.py` uses Python's built-in
+  `hashlib.scrypt` (no extra dependency) to hash passwords, and
+  `hmac.compare_digest` to check them — this is a memory-hard hash
+  designed to resist brute-forcing, and the same real algorithm family the
+  old Node backend used (`crypto.scryptSync`), just written in Python.
+  Plaintext passwords are never stored, ever.
+- **Sessions:** logging in creates a signed JWT (`PyJWT`) containing the
+  user's id/email/name and an expiry, stored in an `HttpOnly` cookie named
+  `zw_session` (JavaScript can't read it, which protects it from XSS). The
+  backend verifies that signature on every request to a protected route
+  (`/api/me`, `/api/dashboard`) rather than looking anything up in a
+  database — consistent with the serverless "no shared memory" constraint
+  above.
+  - **Trade-off worth knowing:** logging out clears the cookie, but the
+    JWT itself would still be technically valid (if someone had captured
+    it) until it naturally expires (`SESSION_TTL_HOURS`, default 168
+    hours / 7 days). If you ever need true instant revocation, the
+    upgrade path is a small `revoked_tokens` table checked alongside the
+    signature — not built now because it wasn't asked for, but
+    straightforward to add later.
+- **No plaintext passwords, no password hashes sent to the frontend, no
+  internal database ids sent to the frontend** — `/api/login` and
+  `/api/me` return only `name` and `email`.
+
+## API endpoints
+
+| Method & path | Purpose | Success response | Failure response |
+|---|---|---|---|
+| `POST /api/leads` | "Get started" lead-capture form | `{"ok": true, "success": true, "status": "created", "message": "..."}` | `422` with `{"ok": false, "success": false, "message": "...", "errors": {...}}` |
+| `POST /api/login` | Email + password sign-in | `{"ok": true, "success": true, "message": "...", "user": {"name", "email"}}` + sets `zw_session` cookie | `401` `{"ok": false, "success": false, "message": "Incorrect email or password."}` |
+| `POST /api/logout` | Clears the session cookie | `{"ok": true, "success": true}` | — |
+| `GET /api/me` | Who's currently signed in | `{"ok": true, "user": {"name", "email"}}` | `401` if not signed in |
+| `GET /api/dashboard` | Mock portfolio data | `{"ok": true, "data": {...}}` | `401` if not signed in |
+| `GET /api/healthz` | Liveness check | `{"ok": true}` | — |
+
+Every response includes both `ok` and `success` with the same meaning —
+the existing frontend JS already checks `data.ok`, and your spec asked for
+`{"success": true/false, ...}`; this satisfies both without touching the
+frontend's working logic.
+
+## Routing (`vercel.json`)
+
+```json
+{
+  "rewrites": [
+    { "source": "/login", "destination": "/login.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/api/:path*", "destination": "/api/index" }
+  ]
+}
+```
+
+This is deliberately narrow — it does **not** rewrite everything to
+`index.html` (which would break `/api/*`). `/login` and `/dashboard` map to
+their static HTML files; everything under `/api/` reaches the FastAPI app
+(`api/index` is Vercel's auto-generated name for the function built from
+`api/index.py`), which does its own internal routing from there
+(`/api/leads`, `/api/login`, etc.).
+
+## Running locally
+
+```bash
+cd zoey-backend            # this project's folder
+python -m venv .venv
+
+# Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# macOS/Linux:
+source .venv/bin/activate
+
+pip install -r requirements-dev.txt   # includes pytest for testing
+cp .env.example .env
+# open .env and set SECRET_KEY — generate one with:
+python -c "import secrets; print(secrets.token_hex(32))"
+
+pytest                       # run the test suite
+uvicorn api.index:app --reload
+# open http://127.0.0.1:8000
+```
+
+## Creating/updating a dashboard login account
+
+There's no self-serve signup — same as before. Provision or reset an
+account with:
+
+```bash
+python -m backend.create_user "email@example.com" "PASSWORD" "Full Name"
+```
+
+Re-running it for an email that already exists updates that account's
+password instead of erroring. **Never hard-code a real email/password into
+source** — always pass them on the command line like this, and never commit
+`.env`.
+
+To create a **production** account (Vercel can't run one-off scripts),
+run this same command from your own machine with `DATABASE_URL`
+temporarily set to your production Postgres string:
+
+```bash
+DATABASE_URL="<your-production-postgres-url>" python -m backend.create_user "email@example.com" "PASSWORD" "Full Name"
+```
+
+## Testing
+
+`pytest` (in `tests/test_api.py`) covers: successful lead capture, missing
+name, invalid email, invalid phone when one is supplied, phone/interest
+being optional, duplicate-email upsert behavior, successful login (and that
+the response never contains a password or password hash), incorrect
+password, unknown email (same generic error message as wrong password —
+deliberately, so an attacker can't tell which one it was), missing fields,
+`/api/me` and `/api/dashboard` requiring login, and `/api/logout` actually
+clearing the session.
+
+This was also verified against a real running server (not just the test
+suite): `uvicorn` was started, a real account was created via
+`python -m backend.create_user`, and the homepage lead form, login page,
+dashboard, and logout were driven through an actual browser end to end —
+including confirming the dashboard renders identically to before.
+
+## Deploying to Vercel
+
+1. Commit and push (see Git commands below).
+2. In the Vercel dashboard, open the project connected to this repo (or
+   import it fresh if it isn't connected yet). Vercel auto-detects
+   `api/index.py` as a Python serverless function — no build command
+   needed, and no "Output Directory" setting needed either now that the
+   static pages live at the repo root.
+3. Under Project Settings → Environment Variables, add the variables in
+   the table below.
+4. Set `DATABASE_URL` to a real Postgres connection string (see "Database"
+   above) — this is required for production; don't leave it unset there.
+5. Create your production login account (see the command above), run from
+   your own machine.
+6. Deploy (push to the connected branch, or `vercel --prod`). Then verify
+   directly against the live site: homepage loads, `/login` no longer
+   404s, log in with the account you just created, `/dashboard` renders,
+   log out, and re-visiting `/dashboard` bounces back to `/login`.
+
+### Environment variables to set in Vercel
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | Yes | Postgres connection string in production. |
+| `SECRET_KEY` | Yes | Signs the session cookie. Generate with `python -c "import secrets; print(secrets.token_hex(32))"`. The app refuses to start without it. |
+| `SESSION_TTL_HOURS` | No | Default `168` (7 days). |
+| `COOKIE_SECURE` | No | Default `true` — leave alone in production (Vercel serves HTTPS). |
+| `RATE_LIMIT_MAX` | No | Default `5` login/lead-submit attempts per window per IP. |
+| `RATE_LIMIT_WINDOW_MIN` | No | Default `10` minutes. |
+
+`ADMIN_KEY`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`, and `NOTIFY_TO` from the
+old Node backend are **not** needed by this rewrite — the admin dashboard
+and Gmail notifications weren't carried over (see "What changed" above).
+
+## Git commands to commit this
+
+```bash
+git add -A
+git commit -m "Migrate backend to Python/FastAPI for Vercel serverless"
+git push
+```

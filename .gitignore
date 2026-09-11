@@ -1,4 +1,13 @@
 .env
+.venv/
+__pycache__/
+*.pyc
+local.db
+.pytest_cache/
+.vercel/
+
+# Leftovers from the Node backend this project migrated away from — not
+# part of the Python app, kept locally only, never committed.
 data/
 logs/
-node_modules/
+_to_delete/

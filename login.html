@@ -367,7 +367,7 @@
     submitBtn.disabled = true;
     formError.classList.remove('show');
 
-    fetch('/api/auth/login', {
+    fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/login", "destination": "/login.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/api/:path*", "destination": "/api/index" }
+  ]
+}

@@ -1,0 +1,5 @@
+# Dependencies needed only to run the test suite locally — never installed
+# on Vercel (only requirements.txt is used for the deployed function).
+-r requirements.txt
+pytest==8.3.4
+httpx==0.28.1

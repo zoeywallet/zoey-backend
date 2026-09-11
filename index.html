@@ -2309,9 +2309,9 @@
   }));
 
   // ---- "Log In" links point to /login, a real server route served by the
-  // Zoey backend (public/login.html + session-based auth), not a static
-  // file on disk. That only resolves correctly when this page itself is
-  // being served by that backend (http://localhost:3001/, or your real
+  // Zoey backend (login.html + JWT-cookie session auth via FastAPI), not a
+  // static file on disk. That only resolves correctly when this page itself
+  // is being served by that backend (http://127.0.0.1:8000/, or your real
   // domain). If this page was instead opened directly as a local file
   // (file:///...), /login would resolve to the filesystem root and 404.
   // Detect that case and explain it, rather than letting the browser show
@@ -2321,12 +2321,12 @@
       a.addEventListener('click', (e) => {
         e.preventDefault();
         alert(
-          'The Zoey Wallet Log In page is served by the local backend, so it needs that server running — it can’t open as a local file.\n\n' +
-          'To use it:\n' +
-          '1. Open a terminal in the zoey-backend folder\n' +
-          '2. Run: npm start\n' +
-          '3. In your browser, go to http://localhost:3001 (instead of opening this HTML file directly)\n\n' +
-          'From that address, Log In will open correctly.'
+          'The Zoey Wallet Log In page is served by the backend, so it needs that server running — it can’t open as a local file.\n\n' +
+          'To use it locally:\n' +
+          '1. Open a terminal in the project folder\n' +
+          '2. Run: uvicorn api.index:app --reload\n' +
+          '3. In your browser, go to http://127.0.0.1:8000 (instead of opening this HTML file directly)\n\n' +
+          'From that address, Log In will open correctly. (In production, just use the real zoeywallet domain.)'
         );
       });
     });
@@ -3064,13 +3064,14 @@
     });
 
     // ---- Submission layer ----
-    // Wired to the Zoey Wallet Leads API (see /zoey-backend in this project).
-    // Left blank, requests go to a relative '/api/leads' — correct when this
-    // page is served BY that same backend (the recommended, zero-CORS setup;
-    // see zoey-backend/README.md). If the backend is hosted on a different
-    // origin than this page, set ZOEY_LEADS_API_BASE to that origin, e.g.
-    // 'https://api.zoeywallet.com', and set ALLOWED_ORIGIN on the backend
-    // to this page's origin.
+    // Wired to the Zoey Wallet Leads API, now implemented in Python/FastAPI
+    // (see api/index.py + backend/ in this project). Left blank, requests go
+    // to a relative '/api/leads' — correct when this page and the API are
+    // deployed together on Vercel (the recommended, zero-CORS setup; see
+    // README.md). If the backend is ever hosted on a different origin than
+    // this page, set ZOEY_LEADS_API_BASE to that origin, e.g.
+    // 'https://api.zoeywallet.com', and add CORS middleware for that origin
+    // in api/index.py.
     const ZOEY_LEADS_API_BASE = ''; // e.g. 'https://api.zoeywallet.com'
 
     async function submitLead(payload){

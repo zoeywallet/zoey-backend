@@ -1,0 +1,55 @@
+# Web framework + ASGI plumbing
+# Pinned past 0.115.6's hard Starlette ceiling (starlette>=0.40.0,<0.42.0),
+# which excluded every Starlette release with Python 3.14 fixes. 0.133.0
+# removed that ceiling; 0.134.0 also raised the floor to starlette>=0.46.0
+# (a real correctness fix, not just an unlock) with no upper bound, so pip
+# resolves Starlette to its current release — well past 0.47.3 (fixed the
+# asyncio.iscoroutinefunction deprecation) and 0.48.0 (official Python 3.14
+# support). Starlette itself is intentionally left unpinned here, same as
+# before — it's a transitive FastAPI dependency, not pinned directly.
+fastapi==0.134.0
+# Vercel's Python runtime calls the FastAPI `app` object directly as an
+# ASGI app; uvicorn is only needed to run the server yourself, locally.
+uvicorn[standard]==0.32.1
+
+# Request/response validation (installed automatically as a FastAPI
+# dependency, listed explicitly here since backend/schemas.py imports it
+# directly — plus the `email` extra, which pulls in `email-validator` so
+# Pydantic's EmailStr actually checks the address looks real).
+# Pinned to a version whose compiled pydantic-core has prebuilt wheels for
+# Python 3.14 (that wheel support landed with Pydantic 2.12) — 2.10.4
+# predates it, which is why pip fell back to building pydantic-core from
+# source and failed. fastapi==0.134.0 (above) requires pydantic>=2.7.0, so
+# this newer 2.x version is fully compatible with the FastAPI version
+# already pinned above.
+pydantic[email]==2.13.5
+
+# Database
+# Pinned to the newest stable 2.0.x release (not 2.1 — staying on the 2.0
+# series on purpose). 2.0.36 predates SQLAlchemy's Python 3.14 compatibility
+# work; 2.0.47 added a fix for how the ORM introspects Mapped[...] type
+# annotations under Python 3.14's new PEP 649 lazy-annotation behavior, and
+# this project's models (backend/models.py: `Mapped[str | None]`, etc.) go
+# through exactly that annotation-introspection code path at import time —
+# consistent with the "TypeError ... during ORM model import" you hit.
+# 2.0.52 is the latest 2.0.x point release as of this change and rolls up
+# all 2.0.x fixes since, including that one.
+sqlalchemy==2.0.52
+# Postgres driver, for DATABASE_URL=postgresql+psycopg://... in production.
+# Not used for local SQLite development (that goes through Python's stdlib
+# sqlite3, which SQLAlchemy talks to directly — no extra package needed).
+# Pinned to a version with prebuilt binary wheels for Python 3.14 (added in
+# psycopg 3.2.10) — 3.2.3 predates that and has no wheel for 3.14, which is
+# what "No matching distribution found for psycopg-binary==3.2.3" means.
+# SQLAlchemy's `postgresql+psycopg` dialect only requires psycopg>=3.0.7,
+# so this newer version is fully compatible with sqlalchemy==2.0.52 above.
+psycopg[binary]==3.3.5
+
+# Signed session tokens (JWT)
+pyjwt==2.10.1
+
+# Loads a local .env file into os.environ for local development, the same
+# job src/loadEnv.js did before. Vercel itself injects environment
+# variables directly, so this has nothing to do on Vercel — it only
+# matters when running `uvicorn` on your own machine.
+python-dotenv==1.0.1
