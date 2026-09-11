@@ -87,8 +87,23 @@ init_db()
 # (e.g. Upstash, which has a generous free tier and integrates with Vercel)
 # so every instance shares the same counters.
 
-RATE_LIMIT_MAX = int(os.environ.get("RATE_LIMIT_MAX", "5"))
-RATE_LIMIT_WINDOW_SECONDS = float(os.environ.get("RATE_LIMIT_WINDOW_MIN", "10")) * 60
+def _env_number(name: str, default: float, *, cast):
+    """Reads a numeric environment variable, falling back to `default` when
+    it's absent, blank, or not a valid number -- a misconfigured value in
+    Vercel's env vars should degrade to the default, not raise and crash
+    the whole app at import time (this is what happened when RATE_LIMIT_MAX
+    was set but not a valid integer)."""
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        return cast(raw)
+    except ValueError:
+        return default
+
+
+RATE_LIMIT_MAX = _env_number("RATE_LIMIT_MAX", 5, cast=int)
+RATE_LIMIT_WINDOW_SECONDS = _env_number("RATE_LIMIT_WINDOW_MIN", 10, cast=float) * 60
 
 _attempts: dict[str, deque] = defaultdict(deque)
 
