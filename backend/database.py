@@ -36,6 +36,7 @@ from typing import Optional
 from sqlalchemy import create_engine, func, inspect, select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from backend.models import Base, Lead, User
 
@@ -84,6 +85,7 @@ if DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql
     DATABASE_URL = make_url(DATABASE_URL).set(drivername="postgresql+psycopg").render_as_string(hide_password=False)
 
 _connect_args = {}
+_engine_kwargs: dict = {}
 if DATABASE_URL.startswith("sqlite"):
     # SQLite's default driver refuses to share a connection across threads;
     # FastAPI/Starlette can (and does) run request handlers on different
@@ -103,7 +105,36 @@ elif DATABASE_URL.startswith("postgresql+psycopg://"):
     # transaction-pooling PgBouncer (i.e. Neon's pooled DATABASE_URL).
     _connect_args["prepare_threshold"] = None
 
-engine = create_engine(DATABASE_URL, connect_args=_connect_args, future=True)
+    # Vercel's Python runtime sometimes reuses a "warm" function instance
+    # (and therefore this same module-level `engine`) across multiple
+    # invocations, minutes apart. SQLAlchemy's default pool (QueuePool)
+    # would then hand a *previously opened* connection back to a later
+    # request -- but Neon (and/or the PgBouncer pooler in front of it)
+    # closes idle server-side connections after its own timeout, so that
+    # reused connection's TLS session is already dead by the time the next
+    # request tries to use it. That's exactly this bug's traceback:
+    # "psycopg.OperationalError: consuming input failed: SSL connection
+    # has been closed unexpectedly", raised the moment a stale pooled
+    # connection is reused.
+    #
+    # NullPool makes every checkout open a brand-new physical connection
+    # and closes it again as soon as the request finishes -- nothing is
+    # ever kept alive (or reused) between invocations, so there is no
+    # stale connection left for a later request to trip over. This is the
+    # standard fix for SQLAlchemy + Postgres on serverless platforms.
+    #
+    # pool_pre_ping adds a second, cheaper line of defense: right before a
+    # connection is handed out, SQLAlchemy pings it with a trivial query
+    # and transparently reconnects if that fails (e.g. Neon's compute
+    # briefly suspending/resuming mid-request), instead of surfacing the
+    # error to the caller. With NullPool every connection is already new,
+    # so this mostly matters for that suspend/resume edge case, not for
+    # the stale-reuse bug above -- but it's a cheap, appropriate safety
+    # net on top of NullPool, not a replacement for it.
+    _engine_kwargs["poolclass"] = NullPool
+    _engine_kwargs["pool_pre_ping"] = True
+
+engine = create_engine(DATABASE_URL, connect_args=_connect_args, future=True, **_engine_kwargs)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
 
