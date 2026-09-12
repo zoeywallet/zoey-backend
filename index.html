@@ -949,6 +949,29 @@
     display:none; font-family: var(--font-body); font-size:12px; color: var(--red);
   }
   .zw-field.has-error .zw-field-error{ display:block; }
+  /* auth-error: reddens the input (e.g. "this email is already taken")
+     without showing a field-specific message that would misleadingly
+     claim the field itself is malformed -- same pattern as login.html's
+     incorrect-password state. */
+  .zw-field.auth-error .zw-input{ border-color: var(--red); }
+
+  /* Password show/hide toggle -- copied to match login.html's
+     .login-password-wrap / .login-password-toggle exactly, so the signup
+     modal's password fields look and behave identically to the existing
+     login page's password field. */
+  .login-password-wrap{ position:relative; }
+  .login-password-wrap .zw-input{ padding-right:44px; }
+  .login-password-toggle{
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+    background:none; border:none; border-radius:8px; color: var(--ink-faint);
+    transition: color .15s, background .15s;
+  }
+  .login-password-toggle:hover{ color: var(--ink); background: rgba(10,14,20,0.05); }
+  .login-password-toggle svg{ width:18px; height:18px; }
+  .login-password-toggle .eye-off{ display:none; }
+  .login-password-toggle.showing .eye{ display:none; }
+  .login-password-toggle.showing .eye-off{ display:block; }
 
   .zw-phone-row{ display:flex; gap:8px; }
   .zw-country-btn{
@@ -2200,6 +2223,30 @@
           <div class="zw-field-error" id="zwPhoneError">Enter a valid phone number.</div>
         </div>
 
+        <div class="zw-field" id="zwPasswordField">
+          <label class="zw-label" for="zwPassword">Password</label>
+          <div class="login-password-wrap">
+            <input class="zw-input" type="password" id="zwPassword" name="password" placeholder="Create a password" autocomplete="new-password" required>
+            <button type="button" class="login-password-toggle" id="zwPasswordToggle" aria-label="Show password">
+              <svg class="eye" viewBox="0 0 20 20" fill="none"><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.4" stroke="currentColor" stroke-width="1.4"/></svg>
+              <svg class="eye-off" viewBox="0 0 20 20" fill="none"><path d="M2.5 2.5l15 15M8.3 8.4a2.4 2.4 0 0 0 3.3 3.3M5.9 5.6C3.4 7 1.5 10 1.5 10s3 6 8.5 6c1.5 0 2.8-.4 3.9-1M16 14.3c1.6-1.4 2.5-3.3 2.5-4.3 0 0-3-6-8.5-6-.9 0-1.7.1-2.5.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="zw-field-error" id="zwPasswordError">Password must be at least 8 characters and include a letter and a number.</div>
+        </div>
+
+        <div class="zw-field" id="zwConfirmPasswordField">
+          <label class="zw-label" for="zwConfirmPassword">Confirm password</label>
+          <div class="login-password-wrap">
+            <input class="zw-input" type="password" id="zwConfirmPassword" name="confirm_password" placeholder="Re-enter your password" autocomplete="new-password" required>
+            <button type="button" class="login-password-toggle" id="zwConfirmPasswordToggle" aria-label="Show password">
+              <svg class="eye" viewBox="0 0 20 20" fill="none"><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.4" stroke="currentColor" stroke-width="1.4"/></svg>
+              <svg class="eye-off" viewBox="0 0 20 20" fill="none"><path d="M2.5 2.5l15 15M8.3 8.4a2.4 2.4 0 0 0 3.3 3.3M5.9 5.6C3.4 7 1.5 10 1.5 10s3 6 8.5 6c1.5 0 2.8-.4 3.9-1M16 14.3c1.6-1.4 2.5-3.3 2.5-4.3 0 0-3-6-8.5-6-.9 0-1.7.1-2.5.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="zw-field-error" id="zwConfirmPasswordError">Passwords do not match.</div>
+        </div>
+
         <div class="zw-field">
           <label class="zw-label">What are you most interested in? <span style="font-weight:400; color:var(--ink-faint);">(optional)</span></label>
           <div class="zw-interest-group" id="zwInterestGroup">
@@ -2230,7 +2277,7 @@
       </div>
       <div class="zw-success-eyebrow">You're in</div>
       <div class="zw-success-title" id="zwSuccessTitle">You're on the list.</div>
-      <p class="zw-success-copy">We'll be in touch at the email and number you provided when your Zoey access is ready.</p>
+      <p class="zw-success-copy" id="zwSuccessCopy">We'll be in touch at the email and number you provided when your Zoey access is ready.</p>
       <a href="#markets" class="btn btn-primary" id="zwSuccessClose">Explore Zoey</a>
     </div>
   </div>
@@ -3051,17 +3098,45 @@
     const nameField = document.getElementById('zwNameField');
     const emailField = document.getElementById('zwEmailField');
     const phoneField = document.getElementById('zwPhoneField');
+    const passwordField = document.getElementById('zwPasswordField');
+    const confirmPasswordField = document.getElementById('zwConfirmPasswordField');
     const nameInput = document.getElementById('zwName');
     const emailInput = document.getElementById('zwEmail');
     const phoneInput = document.getElementById('zwPhone');
+    const passwordInput = document.getElementById('zwPassword');
+    const confirmPasswordInput = document.getElementById('zwConfirmPassword');
     const submitBtn = document.getElementById('zwSubmitBtn');
 
-    [nameInput, emailInput, phoneInput].forEach(inp => {
+    [nameInput, emailInput, phoneInput, passwordInput, confirmPasswordInput].forEach(inp => {
       inp.addEventListener('input', () => {
         const field = inp.closest('.zw-field');
         if (field.classList.contains('has-error')) field.classList.remove('has-error');
+        if (field.classList.contains('auth-error')) field.classList.remove('auth-error');
       });
     });
+
+    // ---- Password show/hide toggles (same interaction as login.html's
+    // single password field, applied to both the password and confirm
+    // password inputs here). ----
+    function wirePasswordToggle(toggleId, inputEl){
+      const toggleBtn = document.getElementById(toggleId);
+      toggleBtn.addEventListener('click', () => {
+        const showing = toggleBtn.classList.toggle('showing');
+        inputEl.type = showing ? 'text' : 'password';
+        toggleBtn.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
+      });
+    }
+    wirePasswordToggle('zwPasswordToggle', passwordInput);
+    wirePasswordToggle('zwConfirmPasswordToggle', confirmPasswordInput);
+
+    // ---- Password validation (mirrors backend/schemas.py's
+    // _password_meets_requirements: at least 8 characters, at least one
+    // letter and one digit) ----
+    function validPassword(v){
+      if (v.length < 8) return false;
+      return /[A-Za-z]/.test(v) && /[0-9]/.test(v);
+    }
+    function passwordsMatch(a, b){ return a.length > 0 && a === b; }
 
     // ---- Submission layer ----
     // Wired to the Zoey Wallet Leads API, now implemented in Python/FastAPI
@@ -3100,31 +3175,68 @@
       return data; // { ok, status, message, lead? }
     }
 
+    // Real account creation -> POST /api/auth/signup (see api/index.py).
+    // Deliberately a separate function/endpoint from submitLead()/'/api/leads'
+    // above -- the existing waitlist flow must keep working completely
+    // unchanged, and this never reads or writes the `leads` table at all.
+    // On success the backend also sets the session cookie (same as
+    // /api/login), so the new account is authenticated immediately -- no
+    // separate manual login step.
+    async function submitSignup(payload){
+      let res, data;
+      try {
+        res = await fetch(`${ZOEY_LEADS_API_BASE}/api/auth/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        data = await res.json();
+      } catch (err) {
+        throw { fieldErrors: null, message: "We couldn't reach our servers. Please try again shortly." };
+      }
+
+      if (!res.ok || !data.ok){
+        if ((res.status === 422 || res.status === 409) && data.errors){
+          throw { fieldErrors: data.errors, status: res.status, message: data.message || null };
+        }
+        if (res.status === 429){
+          throw { fieldErrors: null, message: 'Too many attempts. Please try again in a few minutes.' };
+        }
+        throw { fieldErrors: null, message: (data && data.message) || "Something went wrong. Please try again." };
+      }
+
+      return data; // { ok, success, message, user }
+    }
+
     form.addEventListener('submit', function(e){
       e.preventDefault();
 
       const nameOk = validName(nameInput.value);
       const emailOk = validEmail(emailInput.value);
       const phoneOk = validPhone(phoneInput.value);
+      const passwordOk = validPassword(passwordInput.value);
+      const confirmOk = passwordsMatch(passwordInput.value, confirmPasswordInput.value);
 
       setFieldError(nameField, !nameOk);
       setFieldError(emailField, !emailOk);
       setFieldError(phoneField, !phoneOk);
+      setFieldError(passwordField, !passwordOk);
+      setFieldError(confirmPasswordField, passwordOk && !confirmOk);
 
       if (!nameOk){ nameInput.focus(); return; }
       if (!emailOk){ emailInput.focus(); return; }
       if (!phoneOk){ phoneInput.focus(); return; }
+      if (!passwordOk){ passwordInput.focus(); return; }
+      if (!confirmOk){ confirmPasswordInput.focus(); return; }
 
       const digits = phoneInput.value.replace(/\D/g, '').replace(/^0+/, '');
       const payload = {
         name: nameInput.value.trim(),
         email: emailInput.value.trim().toLowerCase(),
         phone_e164: '+' + selectedCountry[2] + digits,
-        country: selectedCountry[1],
-        country_code: selectedCountry[0],
         interest: selectedInterest,
-        source: 'website_get_started_modal',
-        submitted_at: new Date().toISOString()
+        password: passwordInput.value,
+        confirm_password: confirmPasswordInput.value,
       };
 
       submitBtn.classList.add('loading');
@@ -3132,20 +3244,41 @@
       const formError = document.getElementById('zwFormError');
       formError.style.display = 'none';
 
-      submitLead(payload).then((data) => {
+      submitSignup(payload).then((data) => {
         submitBtn.classList.remove('loading');
         submitBtn.disabled = false;
         const title = document.getElementById('zwSuccessTitle');
-        if (title && data && data.message) title.textContent = data.message;
+        const copy = document.getElementById('zwSuccessCopy');
+        if (title) title.textContent = 'Account created.';
+        if (copy) copy.textContent = "You're all set — taking you to your dashboard...";
         formState.style.display = 'none';
         successState.classList.add('show');
+        // Already authenticated (the signup response set the session
+        // cookie) -- go straight to the dashboard, no separate login step.
+        setTimeout(() => { window.location.href = '/dashboard'; }, 700);
       }).catch((err) => {
         submitBtn.classList.remove('loading');
         submitBtn.disabled = false;
         if (err && err.fieldErrors){
-          if (err.fieldErrors.name){ setFieldError(nameField, true); }
-          if (err.fieldErrors.email){ setFieldError(emailField, true); }
-          if (err.fieldErrors.phone){ setFieldError(phoneField, true); }
+          if (err.status === 409){
+            // Duplicate email: redden the field like login.html's
+            // auth-error does, without showing the "Enter a valid email
+            // address" copy underneath -- that message would be wrong
+            // here, since the address the person typed IS validly
+            // formatted, it's just already taken.
+            emailField.classList.add('auth-error');
+          } else {
+            if (err.fieldErrors.name){ setFieldError(nameField, true); }
+            if (err.fieldErrors.email){ setFieldError(emailField, true); }
+            if (err.fieldErrors.phone){ setFieldError(phoneField, true); }
+            if (err.fieldErrors.password){ setFieldError(passwordField, true); }
+            if (err.fieldErrors.confirm_password){ setFieldError(confirmPasswordField, true); }
+          }
+          const firstMessage = err.message || Object.values(err.fieldErrors)[0];
+          if (firstMessage){
+            formError.textContent = firstMessage;
+            formError.style.display = 'block';
+          }
         } else {
           formError.textContent = (err && err.message) || 'Something went wrong. Please try again.';
           formError.style.display = 'block';

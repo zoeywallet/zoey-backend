@@ -13,6 +13,7 @@ in memory between requests, and why sessions here are signed JWTs
 Routes:
     GET  /api/healthz          liveness check
     POST /api/leads            "Get started" form submissions
+    POST /api/auth/signup      real account creation -> sets the session cookie
     POST /api/login            email + password -> sets the session cookie
     POST /api/logout           clears the session cookie
     GET  /api/me                who's currently logged in (401 if nobody)
@@ -50,6 +51,7 @@ from fastapi import Cookie, Depends, FastAPI, Request, Response  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import ValidationError  # noqa: E402
+from sqlalchemy.exc import IntegrityError  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from backend.auth import (  # noqa: E402
@@ -57,11 +59,12 @@ from backend.auth import (  # noqa: E402
     SESSION_TTL_HOURS,
     create_access_token,
     decode_access_token,
+    hash_password,
     verify_password,
 )
 from backend.dashboard_data import get_dashboard_data
-from backend.database import create_lead, find_user_by_email, get_db, init_db
-from backend.schemas import LeadIn, LoginIn
+from backend.database import create_lead, create_user, find_user_by_email, get_db, init_db
+from backend.schemas import LeadIn, LoginIn, SignupIn
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -209,6 +212,97 @@ async def api_create_lead(request: Request, db: Session = Depends(get_db)):
         "success": True,
         "status": "created" if is_new else "duplicate",
         "message": message,
+    }
+
+
+@app.post("/api/auth/signup")
+async def api_auth_signup(request: Request, response: Response, db: Session = Depends(get_db)):
+    """Creates a real login account from the homepage's "Create your Zoey
+    account" modal, and immediately authenticates the new user (same as a
+    successful /api/login) so there's no separate manual login step right
+    after signing up.
+
+    This is a distinct endpoint from /api/leads on purpose -- the waitlist
+    form's existing behavior (upsert-by-email into `leads`, no password)
+    must keep working completely unchanged. This endpoint only ever writes
+    to the `users` table; it never reads or writes `leads` at all, so an
+    existing waitlist submission is untouched (and not required) for a new
+    account to be created here.
+    """
+    ip = _client_ip(request)
+    if _rate_limited(f"signup:{ip}"):
+        return JSONResponse(
+            status_code=429,
+            content={"ok": False, "success": False, "message": "Too many attempts. Please try again in a few minutes."},
+        )
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    try:
+        signup_in = SignupIn.model_validate(body)
+    except ValidationError as exc:
+        # Same {field: message} error shape /api/leads already uses, so the
+        # existing frontend error-rendering code can be reused as-is.
+        errors: dict[str, str] = {}
+        for err in exc.errors():
+            field = str(err["loc"][0]) if err.get("loc") else "form"
+            errors.setdefault(field, err["msg"])
+        return JSONResponse(
+            status_code=422,
+            content={"ok": False, "success": False, "message": "Please check the highlighted fields.", "errors": errors},
+        )
+
+    # Checked up front so a duplicate email gets a clear, specific error
+    # (rather than a generic 500) in the common case. The unique constraint
+    # on User.email (see backend/models.py) is still the real guarantee --
+    # the IntegrityError handler below catches the rare race where two
+    # signups for the same email land at almost the same instant.
+    if find_user_by_email(db, signup_in.email) is not None:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "ok": False,
+                "success": False,
+                "message": "An account with this email already exists. Try logging in instead.",
+                "errors": {"email": "An account with this email already exists."},
+            },
+        )
+
+    password_hash = hash_password(signup_in.password)
+    try:
+        user = create_user(
+            db,
+            email=signup_in.email,
+            name=signup_in.name,
+            password_hash=password_hash,
+            phone=signup_in.phone,
+            interests=signup_in.interest,
+        )
+    except IntegrityError:
+        db.rollback()
+        return JSONResponse(
+            status_code=409,
+            content={
+                "ok": False,
+                "success": False,
+                "message": "An account with this email already exists. Try logging in instead.",
+                "errors": {"email": "An account with this email already exists."},
+            },
+        )
+
+    # Auto-authenticate: issue the same session cookie /api/login would, so
+    # the new user lands straight on /dashboard without a separate login.
+    token = create_access_token(user_id=user.id, email=user.email, name=user.name, remember=True)
+    _set_session_cookie(response, token, remember=True)
+
+    return {
+        "ok": True,
+        "success": True,
+        "message": "Account created.",
+        "user": {"name": user.name, "email": user.email},
     }
 
 

@@ -14,7 +14,7 @@ file, it becomes trivial to `grep` for a name before calling it, and the
 test suite (tests/test_api.py) exercises every one of them.
 
 Functions defined here:
-    create_user(db, email, name, password_hash)
+    create_user(db, email, name, password_hash, phone=None, interests=None)
     find_user_by_email(db, email)
     get_user_by_id(db, user_id)
     update_user_password(db, user_id, password_hash)
@@ -33,7 +33,7 @@ import os
 from collections.abc import Generator
 from typing import Optional
 
-from sqlalchemy import create_engine, func, select
+from sqlalchemy import create_engine, func, inspect, select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -113,6 +113,33 @@ def init_db() -> None:
     schema is already there (this mirrors what db.js did with its
     `CREATE TABLE IF NOT EXISTS` statements)."""
     Base.metadata.create_all(bind=engine)
+    _ensure_user_columns()
+
+
+def _ensure_user_columns() -> None:
+    """Adds the `phone` and `interests` columns to an ALREADY-EXISTING
+    `users` table if they aren't there yet.
+
+    create_all() above only issues CREATE TABLE IF NOT EXISTS -- it never
+    alters a table that already exists. These two columns were added to
+    the User model alongside the self-serve signup flow (POST
+    /api/auth/signup), after Neon's `users` table had already been created
+    by an earlier deployment, so a plain create_all() would silently never
+    add them. This is a small, additive, non-destructive ALTER TABLE that
+    only runs when a column is actually missing -- it never touches
+    existing rows, the `leads` table, or drops/recreates anything."""
+    inspector = inspect(engine)
+    if "users" not in inspector.get_table_names():
+        # Table doesn't exist yet -- create_all() just created it (with
+        # these columns already included via the model), so there's
+        # nothing to add.
+        return
+    existing_columns = {col["name"] for col in inspector.get_columns("users")}
+    for column_name in ("phone", "interests"):
+        if column_name in existing_columns:
+            continue
+        with engine.begin() as conn:
+            conn.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} VARCHAR(200)"))
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -133,11 +160,29 @@ def get_db() -> Generator[Session, None, None]:
 # Users
 # ---------------------------------------------------------------------------
 
-def create_user(db: Session, *, email: str, name: str, password_hash: str) -> User:
+def create_user(
+    db: Session,
+    *,
+    email: str,
+    name: str,
+    password_hash: str,
+    phone: str | None = None,
+    interests: str | None = None,
+) -> User:
     """Insert a new user row. Raises sqlalchemy.exc.IntegrityError if the
     email is already taken (the `unique=True` on User.email enforces this at
-    the database level, not just in Python)."""
-    user = User(email=email.lower().strip(), name=name, password_hash=password_hash)
+    the database level, not just in Python).
+
+    `phone`/`interests` are optional and default to None so this stays
+    backward compatible with backend/create_user.py's CLI usage, which
+    doesn't collect either."""
+    user = User(
+        email=email.lower().strip(),
+        name=name,
+        password_hash=password_hash,
+        phone=phone,
+        interests=interests,
+    )
     db.add(user)
     db.commit()
     db.refresh(user)

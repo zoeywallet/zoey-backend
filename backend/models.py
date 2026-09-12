@@ -42,10 +42,12 @@ class Base(DeclarativeBase):
 class User(Base):
     """A login account. One row per person who can sign in to the dashboard.
 
-    There is no self-serve signup in this project (by design, same as the
-    previous version) — accounts are created with the `create_user` CLI
-    script (backend/create_user.py), which is the Python equivalent of the
-    old `npm run create-user`.
+    Accounts are created two ways: the self-serve signup flow
+    (POST /api/auth/signup, see api/index.py) that backs the homepage's
+    "Create your Zoey account" modal, or by hand with the `create_user` CLI
+    script (backend/create_user.py) — the Python equivalent of the old
+    `npm run create-user`, still useful for provisioning an account without
+    going through the public form.
     """
 
     __tablename__ = "users"
@@ -58,6 +60,13 @@ class User(Base):
     # just implemented with Python's stdlib hashlib.scrypt instead of Node's
     # crypto.scryptSync.
     password_hash: Mapped[str] = mapped_column(String(300), nullable=False)
+    # Both optional -- the signup form's phone/interest fields are optional,
+    # same as the existing Lead model just below. Added alongside the
+    # self-serve signup flow; see backend/database.py's `_ensure_user_columns`
+    # for how these get added to an ALREADY-DEPLOYED users table in Neon
+    # without dropping or recreating it.
+    phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    interests: Mapped[str | None] = mapped_column(String(200), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=False

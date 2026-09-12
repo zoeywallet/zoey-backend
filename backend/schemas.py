@@ -31,6 +31,24 @@ def _looks_like_a_phone_number(value: str) -> bool:
     return 7 <= len(digits) <= 15
 
 
+# Backend password policy for self-serve signup (POST /api/auth/signup):
+# at least 8 characters (matching the floor backend/create_user.py's CLI
+# already enforces), plus at least one letter and one digit, so a purely
+# numeric or purely alphabetic string doesn't pass. Deliberately not
+# requiring symbols/mixed-case on top of that -- length plus a mix of
+# letters and numbers is a reasonable minimum bar without being punishing
+# for a "Phase 1" signup form.
+_PASSWORD_MIN_LENGTH = 8
+
+
+def _password_meets_requirements(password: str) -> bool:
+    if len(password) < _PASSWORD_MIN_LENGTH:
+        return False
+    has_letter = any(c.isalpha() for c in password)
+    has_digit = any(c.isdigit() for c in password)
+    return has_letter and has_digit
+
+
 class LeadIn(BaseModel):
     """POST /api/leads request body.
 
@@ -87,6 +105,76 @@ class LeadIn(BaseModel):
     def _interest_length(cls, v: str | None) -> str | None:
         if v is not None and len(v) > 200:
             raise ValueError("That's too long.")
+        return v
+
+
+class SignupIn(BaseModel):
+    """POST /api/auth/signup request body -- the "Create your Zoey account"
+    modal's real account-creation request, as distinct from LeadIn (the
+    same modal's fields used to power the waitlist form before this).
+
+    Field names deliberately match LeadIn's shape (`phone`/`phone_e164`
+    alias, `interest`) so the existing frontend payload structure barely
+    has to change -- only `password`/`confirm_password` are new.
+    """
+
+    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
+
+    name: str
+    email: EmailStr
+    phone: str | None = None
+    interest: str | None = None
+    password: str
+    confirm_password: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_phone_e164_alias(cls, data: dict) -> dict:
+        if isinstance(data, dict) and not data.get("phone") and data.get("phone_e164"):
+            data = {**data, "phone": data["phone_e164"]}
+        return data
+
+    @field_validator("name")
+    @classmethod
+    def _name_not_blank(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Please enter your name.")
+        if len(v) > 200:
+            raise ValueError("Name is too long.")
+        return v.strip()
+
+    @field_validator("phone")
+    @classmethod
+    def _phone_valid_if_present(cls, v: str | None) -> str | None:
+        if v is None or v == "":
+            return None
+        if not _looks_like_a_phone_number(v):
+            raise ValueError("Please enter a valid phone number.")
+        return v
+
+    @field_validator("interest")
+    @classmethod
+    def _interest_length(cls, v: str | None) -> str | None:
+        if v is not None and len(v) > 200:
+            raise ValueError("That's too long.")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def _password_valid(cls, v: str) -> str:
+        if not _password_meets_requirements(v):
+            raise ValueError(
+                f"Password must be at least {_PASSWORD_MIN_LENGTH} characters "
+                "and include at least one letter and one number."
+            )
+        return v
+
+    @field_validator("confirm_password")
+    @classmethod
+    def _passwords_match(cls, v: str, info) -> str:
+        password = info.data.get("password")
+        if password is not None and v != password:
+            raise ValueError("Passwords do not match.")
         return v
 
 

@@ -315,6 +315,22 @@
 
 <script>
 (function(){
+  // If there's already a valid session (e.g. the user hit /login directly
+  // while logged in, or used the browser back button), send them straight
+  // to /dashboard instead of showing the login form again. This mirrors
+  // dashboard.html's own already-working `fetch('/api/me')` pattern, since
+  // vercel.json's rewrite serves this file as a static page in production
+  // -- it never reaches api/index.py's server-side redirect handler for
+  // this same check, so the check has to happen here on the client instead.
+  fetch('/api/me').then((res) => {
+    if (res.status === 200) {
+      window.location.href = '/dashboard';
+    }
+  }).catch(() => {
+    // Not reachable / not logged in -- fall through and show the login
+    // form as normal.
+  });
+
   const form = document.getElementById('loginForm');
   const emailInput = document.getElementById('loginEmail');
   const passwordInput = document.getElementById('loginPassword');
