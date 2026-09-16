@@ -1365,6 +1365,22 @@
      ============================================================ */
   .page-hidden{ display:none !important; }
 
+  /* Rendering-performance hint only — no visual/behavioral change.
+     showPage() (further down) flips #page-landing/#page-about between
+     display:none and visible as a single synchronous operation; both are
+     large subtrees, so that flip can force the browser to lay out far
+     more off-screen content than is actually on screen at once. Letting
+     the browser skip style/layout work for whichever parts of these two
+     containers aren't near the viewport reduces that cost. Wrapped in
+     @supports so browsers without this feature fall back to exactly
+     today's behavior (the properties are simply not applied). */
+  @supports (content-visibility: auto) {
+    #page-landing, #page-about{
+      content-visibility: auto;
+      contain-intrinsic-size: auto 5000px;
+    }
+  }
+
   /* ============================================================
      ABOUT PAGE — sections for the toggleable #page-about view
      ============================================================ */
