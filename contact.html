@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact — Zoey Wallet</title>
+<meta name="description" content="Get in touch with the Zoey Wallet team — questions about investing, funding, partnerships or getting started with global markets access.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --white:#FFFFFF;
+    --off-white:#F7F6F3;
+    --ink:#0A0E14;
+    --ink-soft: rgba(10,14,20,0.62);
+    --ink-faint: rgba(10,14,20,0.40);
+    --navy:#0B1220;
+    --navy-deep:#05070C;
+    --navy-surface:#111A2B;
+    --cobalt:#3355FF;
+    --cobalt-light:#5B7CFF;
+    --green:#1A9A63;
+    --red:#C23A3A;
+    --border: rgba(10,14,20,0.11);
+    --border-on-dark: rgba(247,246,243,0.13);
+    --radius: 14px;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Inter', 'Liberation Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Liberation Mono', monospace;
+    --max: 1320px;
+    --header-h: 90px;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background: var(--off-white); color: var(--ink); font-family: var(--font-body);
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  img,svg{ display:block; max-width:100%; }
+  a{ color:inherit; text-decoration:none; }
+  button{ font-family:inherit; cursor:pointer; }
+  ul{ list-style:none; }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; scroll-behavior:auto !important; }
+  }
+  :focus-visible{ outline:2px solid var(--cobalt); outline-offset:3px; border-radius:4px; }
+
+  .wrap{ max-width: var(--max); margin:0 auto; padding:0 48px; }
+  section{ position:relative; }
+
+  .eyebrow{ font-family: var(--font-mono); font-size:13px; font-weight:500; letter-spacing:2px; text-transform:uppercase; color: var(--ink-faint); margin-bottom:20px; }
+  h1,h2,h3{ font-family: var(--font-display); font-weight:500; letter-spacing:-0.01em; color: var(--ink); }
+  .lede{ color: var(--ink-soft); font-size:19px; line-height:1.6; font-family: var(--font-body); font-weight:400; }
+
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; font-family:var(--font-body); font-weight:600; font-size:15px; padding:14px 28px; border-radius:100px; border:1.5px solid transparent; transition: transform .15s ease, background .15s ease, border-color .15s ease; }
+  .btn-cobalt{ background: #0B1220; color:#fff; }
+  .btn-cobalt:hover{ transform: translateY(-1px); background:#151D2C; }
+  .btn-sm{ padding:10px 20px; font-size:13.5px; }
+
+  .reveal{ opacity:0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in{ opacity:1; transform:none; }
+
+  /* ============ NAV (reused verbatim from index.html) ============ */
+  header{ position:fixed; top:0; left:0; right:0; z-index:100; background: rgba(247,246,243,0.86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom:1px solid var(--border); }
+  nav{ display:flex; align-items:center; justify-content:space-between; max-width: var(--max); margin:0 auto; padding:20px 48px; gap:20px; }
+  .nav-logo svg{ height:24px; width:auto; }
+  .nav-links{ display:flex; align-items:center; gap:40px; }
+  .nav-links a{ font-size:14.5px; font-weight:500; color: var(--ink-soft); transition: color .2s; }
+  .nav-links a:hover{ color: var(--ink); }
+  .nav-actions{ display:flex; align-items:center; gap:16px; }
+  .nav-actions .ghost-link{ font-size:14.5px; font-weight:500; color: var(--ink-soft); white-space:nowrap; }
+  .nav-toggle{ display:none; background:none; border:1px solid var(--border); border-radius:8px; width:38px; height:38px; align-items:center; justify-content:center; color:var(--ink); }
+  .mobile-menu{ display:none; flex-direction:column; padding:10px 20px 20px; background: var(--off-white); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .mobile-menu.open{ display:flex; }
+  .mobile-menu a{ padding:13px 4px; font-size:15px; color: var(--ink-soft); border-bottom:1px solid var(--border); }
+  .mobile-menu a:last-of-type{ border-bottom:none; }
+
+  /* ============ FORM SYSTEM (reused verbatim from index.html's signup
+     modal -- same .zw-field/.zw-input/.zw-label/.zw-field-error classes,
+     so this page's form looks and behaves identically to the rest of the
+     site) ============ */
+  .zw-form{ display:flex; flex-direction:column; gap:16px; }
+  .zw-field{ display:flex; flex-direction:column; gap:7px; }
+  .zw-label{ font-family: var(--font-body); font-size:12.5px; font-weight:600; color: var(--ink-soft); }
+  .zw-input{
+    height:48px; padding:0 15px; border-radius:12px; border:1px solid var(--border);
+    background: var(--off-white); font-family: var(--font-body); font-size:14.5px; color: var(--ink);
+    width:100%; box-sizing:border-box; transition: border-color .18s, box-shadow .18s, background .18s;
+  }
+  .zw-input::placeholder{ color: var(--ink-faint); }
+  .zw-input:focus{ outline:none; border-color: var(--cobalt); background: var(--white); box-shadow: 0 0 0 3px rgba(53,85,255,0.14); }
+  select.zw-input{
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1L5 5L9 1' stroke='%23606A78' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat; background-position: right 15px center; padding-right:38px; cursor:pointer;
+  }
+  textarea.zw-input{ height:auto; min-height:120px; padding:13px 15px; resize:vertical; line-height:1.55; }
+  .zw-field.has-error .zw-input{ border-color: var(--red); }
+  .zw-field-error{ display:none; font-family: var(--font-body); font-size:12px; color: var(--red); }
+  .zw-field.has-error .zw-field-error{ display:block; }
+
+  .zw-phone-row{ display:flex; gap:8px; }
+  .zw-country-btn{
+    flex:0 0 auto; display:flex; align-items:center; gap:6px; height:48px; padding:0 10px 0 13px;
+    border-radius:12px; border:1px solid var(--border); background: var(--off-white); cursor:pointer;
+    font-family: var(--font-mono); font-size:13.5px; font-weight:600; color: var(--ink);
+    transition: border-color .18s, background .18s;
+  }
+  .zw-country-btn:hover{ background: var(--white); border-color: rgba(10,14,20,0.2); }
+  .zc-flag-img{
+    display:inline-block; flex:0 0 auto; object-fit:cover; border-radius:2px;
+    box-shadow: 0 0 0 1px rgba(10,14,20,0.10); background: var(--off-white); vertical-align:middle;
+  }
+  .zc-country-flag{ width:18px; height:13px; }
+  .zc-country-code{ font-family: var(--font-mono); font-size:12.5px; font-weight:600; color: var(--ink); }
+  .zc-country-chevron{ opacity:0.5; transition: transform .18s; }
+  .zw-country-btn[aria-expanded="true"] .zc-country-chevron{ transform: rotate(180deg); }
+  .zw-phone-row .zw-input{ flex:1 1 auto; min-width:0; }
+
+  .zw-country-dropdown{ position:relative; margin-top:8px; display:none; }
+  .zw-country-dropdown.open{ display:block; }
+  .zw-country-panel{
+    position:absolute; top:0; left:0; right:0; z-index:20;
+    background: var(--white); border:1px solid var(--border); border-radius:14px;
+    box-shadow: 0 24px 48px -18px rgba(10,14,20,0.28); overflow:hidden;
+  }
+  .zc-country-search{
+    width:100%; box-sizing:border-box; height:42px; padding:0 14px; border:none;
+    border-bottom:1px solid var(--border); font-family: var(--font-body); font-size:13.5px; color: var(--ink);
+    background: var(--white);
+  }
+  .zc-country-search:focus{ outline:none; background: var(--off-white); }
+  .zc-country-list{ max-height:220px; overflow-y:auto; }
+  .zc-country-option{ display:flex; align-items:center; gap:10px; padding:9px 14px; cursor:pointer; font-family: var(--font-body); font-size:13.5px; color: var(--ink); }
+  .zc-country-option:hover{ background: var(--off-white); }
+  .zc-country-option-flag{ width:20px; height:15px; }
+  .zc-country-option-code{ flex:0 0 auto; width:24px; font-family: var(--font-mono); font-size:12px; font-weight:600; color: var(--ink-faint); }
+  .zc-country-option-name{ flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .zc-country-option-dial{ font-family: var(--font-mono); font-size:12px; color: var(--ink-faint); flex:0 0 auto; }
+  .zc-country-empty{ padding:16px 14px; font-size:13px; color: var(--ink-faint); text-align:center; }
+
+  .zw-submit-btn{
+    position:relative; margin-top:6px; height:50px; border-radius:12px; border:none;
+    background: var(--ink); color: var(--off-white); font-family: var(--font-body); font-size:15px; font-weight:600;
+    cursor:pointer; transition: background .2s, transform .2s, opacity .2s; width:100%;
+  }
+  .zw-submit-btn:hover{ background:#000; transform: translateY(-1px); }
+  .zw-submit-btn:disabled{ opacity:0.55; cursor:not-allowed; transform:none; }
+  .zw-submit-btn .zw-spinner{
+    display:none; width:16px; height:16px; border-radius:50%;
+    border:2px solid rgba(247,246,243,0.35); border-top-color: var(--off-white);
+    animation: zwSpin .7s linear infinite; margin-right:8px; vertical-align:-3px;
+  }
+  .zw-submit-btn.loading .zw-spinner{ display:inline-block; }
+  .zw-submit-btn.loading .zw-submit-label{ opacity:0.85; }
+  @keyframes zwSpin{ to{ transform:rotate(360deg); } }
+
+  .zw-legal{ margin-top:14px; font-family: var(--font-body); font-size:11.5px; line-height:1.6; color: var(--ink-faint); text-align:center; }
+
+  .zw-success{ display:none; text-align:center; padding:20px 4px; }
+  .zw-success.show{ display:block; }
+  .zw-success-icon{
+    width:56px; height:56px; margin:0 auto 20px; border-radius:50%; background: var(--off-white);
+    display:flex; align-items:center; justify-content:center; color: var(--green);
+  }
+  .zw-success-eyebrow{ font-family: var(--font-mono); font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color: var(--green); }
+  .zw-success-title{ margin-top:12px; font-family: var(--font-display); font-weight:500; letter-spacing:-0.015em; font-size:27px; color: var(--ink); }
+  .zw-success-copy{ margin-top:12px; font-family: var(--font-body); font-size:14.5px; line-height:1.6; color: var(--ink-soft); }
+
+  /* ============ CONTACT HERO ============ */
+  .contact-hero{ padding:190px 0 110px; }
+  .contact-hero-grid{ display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1.05fr); gap:72px; align-items:start; }
+  .contact-hero-left h1{ font-size:52px; line-height:1.08; max-width:560px; margin-bottom:24px; }
+  .contact-hero-left .lede{ max-width:500px; margin-bottom:48px; }
+  .contact-proof-list{ display:flex; flex-direction:column; gap:22px; border-top:1px solid var(--border); padding-top:32px; max-width:460px; }
+  .contact-proof{ display:flex; align-items:baseline; gap:18px; }
+  .contact-proof-num{ font-family:var(--font-mono); font-size:13px; color:var(--ink-faint); flex:0 0 auto; width:22px; }
+  .contact-proof-text{ font-family:var(--font-body); font-size:16px; font-weight:600; color:var(--ink); }
+
+  .contact-form-card{
+    background:var(--white); border:1px solid var(--border); border-radius:20px;
+    padding:44px 40px 40px; box-shadow:0 30px 70px -35px rgba(10,14,20,0.18);
+  }
+  .contact-form-title{ font-size:27px; margin-top:4px; margin-bottom:8px; }
+  .contact-form-sub{ font-family:var(--font-body); font-size:14px; color:var(--ink-soft); margin-bottom:28px; }
+  .contact-form-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+  /* ============ HOW CAN WE HELP ============ */
+  .contact-categories{ padding:100px 0 96px; border-top:1px solid var(--border); }
+  .contact-categories h2{ font-size:34px; max-width:520px; }
+  .contact-cards-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:22px; margin-top:48px; }
+  .contact-card{ border:1px solid var(--border); border-radius:16px; padding:28px 24px; background:var(--white); transition: border-color .2s, transform .2s; }
+  .contact-card:hover{ border-color: rgba(10,14,20,0.22); transform: translateY(-2px); }
+  .contact-card-num{ font-family:var(--font-mono); font-size:12px; color:var(--ink-faint); margin-bottom:18px; }
+  .contact-card h3{ font-size:18.5px; margin-bottom:10px; }
+  .contact-card p{ font-family:var(--font-body); font-size:13.5px; line-height:1.65; color:var(--ink-soft); }
+
+  /* ============ HELP CENTER BAND ============ */
+  .contact-helpcenter{ background:var(--navy); color:var(--off-white); padding:76px 0; }
+  .contact-helpcenter-inner{ display:flex; justify-content:space-between; align-items:center; gap:40px; flex-wrap:wrap; }
+  .contact-helpcenter .eyebrow{ color:rgba(247,246,243,0.4); }
+  .contact-helpcenter h2{ color:var(--off-white); font-size:32px; margin-top:6px; }
+  .contact-helpcenter .lede{ color:rgba(247,246,243,0.62); max-width:480px; margin-top:14px; }
+  .contact-helpcenter .btn-cobalt{ background:var(--off-white); color:var(--navy); flex:0 0 auto; }
+  .contact-helpcenter .btn-cobalt:hover{ background:#fff; transform: translateY(-1px); }
+
+  /* ============ FAQ ============ */
+  .contact-faq{ padding:100px 0; scroll-margin-top: calc(var(--header-h) + 20px); }
+  .contact-faq h2{ font-size:34px; max-width:560px; }
+  .contact-faq-list{ max-width:820px; margin-top:48px; }
+  .zc-faq-row{ border-top:1px solid var(--border); }
+  .zc-faq-row:last-child{ border-bottom:1px solid var(--border); }
+  .zc-faq-trigger{
+    width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px;
+    padding:22px 2px; background:none; border:none; text-align:left;
+    font-family:var(--font-body); font-size:16.5px; font-weight:600; color:var(--ink);
+    transition: color .18s;
+  }
+  .zc-faq-trigger:hover{ color:var(--cobalt); }
+  .zc-faq-icon{ position:relative; width:18px; height:18px; flex:0 0 auto; }
+  .zc-faq-icon::before, .zc-faq-icon::after{ content:''; position:absolute; background:currentColor; color:var(--ink); border-radius:1px; transition:transform .25s ease; }
+  .zc-faq-icon::before{ left:0; top:50%; width:18px; height:1.6px; transform:translateY(-50%); background:var(--ink); }
+  .zc-faq-icon::after{ top:0; left:50%; height:18px; width:1.6px; transform:translateX(-50%); background:var(--ink); }
+  .zc-faq-row.open .zc-faq-icon::after{ transform:translateX(-50%) scaleY(0); }
+  .zc-faq-panel{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .32s ease; }
+  .zc-faq-panel.open{ grid-template-rows:1fr; }
+  .zc-faq-panel-inner{ overflow:hidden; }
+  .zc-faq-panel-inner p{ padding:0 26px 24px 0; max-width:680px; font-family:var(--font-body); font-size:14.5px; line-height:1.7; color:var(--ink-soft); }
+  .zc-faq-panel-inner a{ color:var(--ink); text-decoration:underline; }
+
+  /* ============ FINAL CTA ============ */
+  .contact-final-cta{ padding:110px 0 120px; text-align:center; border-top:1px solid var(--border); }
+  .contact-final-cta-inner{ max-width:680px; margin:0 auto; }
+  .contact-final-cta h2{ font-size:38px; }
+  .contact-final-cta .lede{ margin:18px auto 32px; }
+
+  /* ============ FOOTER (reused verbatim from index.html) ============ */
+  footer{ background: var(--navy); color: var(--off-white); padding:72px 0 0; overflow:hidden; }
+  .footer-grid{ display:grid; grid-template-columns:1.3fr repeat(4,1fr); gap:40px; margin-bottom:64px; }
+  .footer-brand svg{ height:22px; margin-bottom:18px; }
+  .footer-brand p{ font-size:14px; color: rgba(247,246,243,0.5); line-height:1.6; max-width:260px; }
+  .footer-col h4{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:1.5px; color: rgba(247,246,243,0.4); text-transform:uppercase; margin-bottom:18px; }
+  .footer-col a{ display:block; font-size:14.5px; color: rgba(247,246,243,0.65); margin-bottom:12px; transition: color .2s; }
+  .footer-col a:hover{ color: var(--off-white); }
+  .footer-bottom{ display:flex; justify-content:space-between; gap:24px; padding-top:32px; padding-bottom:40px; border-top:1px solid var(--border-on-dark); flex-wrap:wrap; }
+  .footer-bottom p{ font-size:11.5px; color: rgba(247,246,243,0.35); line-height:1.7; max-width:760px; }
+  .footer-legal{ font-size:12px; color: rgba(247,246,243,0.4); white-space:nowrap; }
+
+  .footer-social{ margin-top:26px; }
+  .footer-social-label{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:1.5px; color: rgba(247,246,243,0.4); text-transform:uppercase; margin-bottom:14px; }
+  .footer-social-icons{ display:flex; align-items:center; gap:12px; }
+  .footer-social-icons a{
+    position:relative; overflow:hidden; box-sizing:border-box;
+    display:inline-flex; align-items:center; justify-content:center;
+    width:40px; height:40px; border-radius:11px;
+    color: rgba(247,246,243,0.68);
+    background: linear-gradient(165deg, rgba(247,246,243,0.13), rgba(247,246,243,0.03) 55%, rgba(247,246,243,0.06));
+    border:1px solid rgba(247,246,243,0.15);
+    box-shadow:
+      inset 0 1px 0 rgba(247,246,243,0.16),
+      inset 0 -1px 0 rgba(5,7,12,0.35),
+      0 6px 14px -10px rgba(5,7,12,0.7);
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    transition: color .22s ease, border-color .22s ease, background .22s ease, box-shadow .22s ease, transform .22s ease;
+  }
+  .footer-social-icons a::before{
+    content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background: linear-gradient(135deg, rgba(247,246,243,0.12) 0%, rgba(247,246,243,0) 45%);
+  }
+  .footer-social-icons a svg{ position:absolute; inset:0; margin:auto; z-index:1; width:24px; height:24px; display:block; fill:currentColor; }
+  .footer-social-icons a[aria-label$="Instagram"] svg{ width:24px; height:24px; }
+  .footer-social-icons a[aria-label$="LinkedIn"] svg{ width:23px; height:23px; }
+  .footer-social-icons a[aria-label$="X"] svg{ width:26px; height:26px; }
+  .footer-social-icons a[aria-label$="TikTok"] svg{ width:28px; height:28px; }
+  .footer-social-icons a:hover, .footer-social-icons a:focus-visible{
+    color: var(--off-white);
+    border-color: rgba(247,246,243,0.3);
+    background: linear-gradient(165deg, rgba(247,246,243,0.2), rgba(247,246,243,0.05) 55%, rgba(247,246,243,0.09));
+    box-shadow:
+      inset 0 1px 0 rgba(247,246,243,0.24),
+      inset 0 -1px 0 rgba(5,7,12,0.35),
+      0 10px 20px -12px rgba(5,7,12,0.75);
+    transform: translateY(-1px);
+  }
+  .footer-social-icons a:focus-visible{ outline:2px solid rgba(247,246,243,0.55); outline-offset:3px; }
+
+  .footer-giant-mark{ margin-top:56px; padding:0 0 18px; line-height:0; color: rgba(247,246,243,0.92); }
+  .footer-giant-mark svg{ display:block; width:calc(100% + 56px); margin:0 -28px; height:auto; }
+  @media (max-width: 900px){
+    .footer-giant-mark{ margin-top:40px; padding-bottom:14px; }
+    .footer-giant-mark svg{ width:calc(100% + 24px); margin:0 -12px; }
+  }
+  @media (max-width: 640px){
+    footer{ padding-top:56px; }
+    .footer-giant-mark{ margin-top:30px; padding-bottom:10px; }
+    .footer-giant-mark svg{ width:100%; margin:0; }
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1080px){
+    .footer-grid{ grid-template-columns:1fr 1fr; }
+    .contact-hero-grid{ grid-template-columns:1fr; gap:56px; }
+    .contact-hero-left h1, .contact-hero-left .lede, .contact-proof-list{ max-width:620px; }
+    .contact-form-card{ max-width:560px; }
+    .contact-cards-grid{ grid-template-columns:1fr 1fr; }
+  }
+  @media (max-width: 900px){
+    .nav-links{ display:none; }
+    .nav-actions .ghost-link{ display:none; }
+    .nav-toggle{ display:flex; }
+  }
+  @media (max-width: 640px){
+    .wrap{ padding:0 22px; }
+    nav{ padding:16px 22px; }
+    .contact-hero{ padding:150px 0 64px; }
+    .contact-hero-left h1{ font-size: clamp(30px, 8vw, 38px); }
+    .contact-hero-left .lede{ font-size:16px; margin-bottom:36px; }
+    .contact-proof-list{ padding-top:26px; gap:18px; }
+    .contact-form-card{ padding:28px 20px 26px; border-radius:16px; }
+    .contact-form-row{ grid-template-columns:1fr; }
+    .contact-categories{ padding:72px 0 64px; }
+    .contact-categories h2{ font-size:27px; }
+    .contact-cards-grid{ grid-template-columns:1fr; gap:16px; margin-top:36px; }
+    .contact-helpcenter{ padding:56px 0; }
+    .contact-helpcenter-inner{ flex-direction:column; align-items:flex-start; gap:24px; }
+    .contact-helpcenter h2{ font-size:26px; }
+    .contact-helpcenter .btn-cobalt{ width:100%; text-align:center; }
+    .contact-faq{ padding:64px 0; }
+    .contact-faq h2{ font-size:27px; }
+    .contact-faq-list{ margin-top:32px; }
+    .zc-faq-trigger{ font-size:15px; gap:14px; padding:18px 0; }
+    .contact-final-cta{ padding:72px 0 80px; }
+    .contact-final-cta h2{ font-size:27px; }
+    .footer-grid{ grid-template-columns:1fr 1fr; gap:32px; }
+    .footer-social{ margin-top:20px; }
+    .footer-social-icons{ gap:9px; }
+    .footer-social-icons a{ width:34px; height:34px; border-radius:9px; }
+    .footer-social-icons a svg{ width:20px; height:20px; }
+    .footer-social-icons a[aria-label$="Instagram"] svg{ width:20px; height:20px; }
+    .footer-social-icons a[aria-label$="LinkedIn"] svg{ width:19px; height:19px; }
+    .footer-social-icons a[aria-label$="X"] svg{ width:22px; height:22px; }
+    .footer-social-icons a[aria-label$="TikTok"] svg{ width:24px; height:24px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a href="index.html" class="nav-logo"><svg viewBox="165 84 10256 1671" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoIconGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5B7CFF"/><stop offset="55%" stop-color="#3A5CFF"/><stop offset="100%" stop-color="#2540D6"/></linearGradient></defs><g fill="url(#logoIconGrad)"><path d="M 166,1024 L 172,1026 L 182,1020 L 195,1019 L 285,983 L 296,982 L 405,941 L 459,925 L 669,848 L 725,832 L 894,769 L 930,760 L 1103,698 L 1117,696 L 1204,662 L 1264,646 L 1316,626 L 1357,618 L 1502,562 L 1516,560 L 1524,550 L 1449,521 L 1394,505 L 1236,448 L 1223,447 L 1217,442 L 1182,433 L 1097,400 L 1053,388 L 1010,370 L 851,319 L 804,299 L 656,248 L 562,219 L 411,163 L 395,161 L 329,135 L 169,84 L 165,89 Z"/><path d="M 1520,1752 L 1520,811 L 1517,807 L 1412,847 L 1396,849 L 1354,867 L 1208,914 L 1183,926 L 1105,949 L 1096,955 L 914,1019 L 896,1022 L 788,1062 L 776,1063 L 605,1127 L 409,1192 L 301,1233 L 262,1243 L 197,1269 L 183,1271 L 172,1278 L 177,1285 L 244,1306 L 290,1326 L 303,1327 L 330,1339 L 344,1341 L 390,1361 L 403,1362 L 509,1403 L 709,1469 L 756,1489 L 1012,1576 L 1162,1632 L 1176,1634 L 1203,1646 L 1218,1648 L 1325,1688 L 1382,1705 L 1410,1718 L 1502,1748 L 1510,1754 Z"/></g><path d="M 2285,690 L 2281,699 L 2281,772 L 2287,778 L 2597,778 L 2606,784 L 2590,809 L 2486,935 L 2440,997 L 2326,1138 L 2286,1182 L 2280,1201 L 2283,1256 L 2289,1259 L 2736,1259 L 2746,1256 L 2751,1248 L 2751,1168 L 2744,1162 L 2447,1163 L 2437,1157 L 2601,950 L 2652,891 L 2664,870 L 2747,771 L 2751,754 L 2751,703 L 2747,691 L 2732,687 L 2300,687 Z" fill="#0A0E14"/><path d="M 3343,683 L 3290,699 L 3249,719 L 3196,760 L 3160,800 L 3125,863 L 3107,925 L 3106,1013 L 3115,1057 L 3134,1105 L 3169,1158 L 3217,1204 L 3276,1240 L 3318,1257 L 3344,1260 L 3357,1266 L 3465,1267 L 3516,1257 L 3559,1239 L 3614,1205 L 3663,1157 L 3697,1105 L 3715,1059 L 3725,1016 L 3725,922 L 3715,885 L 3697,837 L 3659,781 L 3623,745 L 3587,720 L 3520,691 L 3498,688 L 3485,682 L 3411,679 Z M 3389,770 L 3427,769 L 3482,779 L 3506,788 L 3538,807 L 3576,842 L 3593,863 L 3619,917 L 3625,953 L 3625,990 L 3619,1023 L 3599,1070 L 3574,1104 L 3530,1141 L 3493,1160 L 3456,1170 L 3369,1169 L 3335,1160 L 3301,1142 L 3277,1125 L 3248,1094 L 3222,1050 L 3219,1032 L 3212,1020 L 3212,927 L 3219,913 L 3221,897 L 3248,853 L 3276,822 L 3310,797 L 3349,780 Z" fill-rule="evenodd" fill="#0A0E14"/><path d="M 4071,925 L 4067,997 L 4067,1247 L 4073,1258 L 4483,1259 L 4486,1256 L 4489,1177 L 4483,1163 L 4180,1163 L 4166,1157 L 4165,1017 L 4170,1010 L 4445,1008 L 4452,1000 L 4453,938 L 4450,923 L 4076,921 Z M 4070,698 L 4069,765 L 4076,777 L 4483,777 L 4488,768 L 4487,694 L 4484,688 L 4477,686 L 4096,686 L 4076,688 Z" fill="#0A0E14"/><path d="M 4861,688 L 4858,699 L 4862,711 L 4885,740 L 5031,970 L 5071,1023 L 5079,1039 L 5079,1253 L 5086,1259 L 5172,1258 L 5178,1251 L 5180,1032 L 5398,704 L 5398,689 L 5292,688 L 5283,693 L 5252,736 L 5128,931 L 5117,922 L 5105,897 L 4973,689 Z" fill="#0A0E14"/><path d="M 5996,690 L 5995,704 L 6001,714 L 6003,730 L 6046,851 L 6057,894 L 6072,929 L 6083,976 L 6135,1127 L 6154,1195 L 6178,1257 L 6183,1260 L 6253,1259 L 6265,1247 L 6295,1149 L 6302,1138 L 6312,1099 L 6320,1084 L 6321,1070 L 6346,1003 L 6348,985 L 6364,945 L 6366,930 L 6384,878 L 6394,867 L 6401,872 L 6403,891 L 6427,956 L 6429,971 L 6436,983 L 6438,998 L 6462,1065 L 6464,1082 L 6472,1098 L 6473,1111 L 6498,1177 L 6501,1194 L 6506,1200 L 6509,1222 L 6520,1251 L 6529,1259 L 6601,1259 L 6610,1254 L 6632,1177 L 6692,1003 L 6693,990 L 6709,951 L 6711,937 L 6718,926 L 6729,883 L 6790,701 L 6787,690 L 6771,687 L 6697,688 L 6687,696 L 6660,779 L 6658,795 L 6642,836 L 6631,883 L 6615,924 L 6613,941 L 6597,982 L 6595,997 L 6589,1006 L 6578,1052 L 6564,1079 L 6552,1059 L 6550,1042 L 6534,1001 L 6532,984 L 6525,971 L 6497,871 L 6490,859 L 6488,843 L 6473,804 L 6470,781 L 6443,697 L 6435,690 L 6417,687 L 6361,687 L 6350,691 L 6287,885 L 6286,897 L 6261,963 L 6259,980 L 6234,1050 L 6232,1069 L 6224,1080 L 6216,1078 L 6213,1051 L 6207,1043 L 6205,1025 L 6188,984 L 6187,970 L 6180,957 L 6160,881 L 6145,844 L 6133,796 L 6126,784 L 6125,770 L 6118,756 L 6105,702 L 6096,690 L 6003,687 Z" fill="#0A0E14"/><path d="M 7177,690 L 7020,1069 L 6943,1243 L 6944,1256 L 6950,1259 L 7043,1259 L 7053,1252 L 7066,1210 L 7090,1159 L 7109,1105 L 7117,1093 L 7128,1057 L 7153,1003 L 7163,972 L 7178,943 L 7181,925 L 7196,897 L 7216,843 L 7230,822 L 7241,836 L 7271,917 L 7278,925 L 7315,1024 L 7321,1031 L 7342,1088 L 7366,1138 L 7377,1174 L 7413,1255 L 7420,1259 L 7517,1258 L 7523,1251 L 7456,1105 L 7444,1068 L 7332,814 L 7285,695 L 7271,688 L 7195,687 Z" fill="#0A0E14"/><path d="M 7796,688 L 7791,697 L 7790,1241 L 7794,1256 L 7801,1259 L 8196,1257 L 8199,1251 L 8200,1170 L 8196,1163 L 7902,1163 L 7889,1157 L 7888,695 L 7877,687 Z" fill="#0A0E14"/><path d="M 8516,690 L 8512,697 L 8512,1245 L 8516,1256 L 8522,1259 L 8922,1257 L 8925,1252 L 8925,1171 L 8920,1163 L 8621,1162 L 8614,1157 L 8614,696 L 8610,689 L 8596,687 Z" fill="#0A0E14"/><path d="M 9202,924 L 9200,1222 L 9204,1257 L 9605,1259 L 9613,1255 L 9616,1246 L 9616,1175 L 9611,1163 L 9303,1162 L 9297,1152 L 9297,1017 L 9301,1010 L 9578,1008 L 9584,992 L 9585,937 L 9580,922 L 9210,921 Z M 9201,695 L 9201,766 L 9203,773 L 9209,776 L 9605,777 L 9613,772 L 9615,766 L 9615,696 L 9610,688 L 9213,686 L 9204,688 Z" fill="#0A0E14"/><path d="M 9931,686 L 9927,696 L 9927,771 L 9931,778 L 10105,778 L 10120,785 L 10120,1248 L 10129,1258 L 10215,1258 L 10220,1251 L 10220,784 L 10233,778 L 10415,777 L 10421,770 L 10420,695 L 10412,688 Z" fill="#0A0E14"/></svg></a>
+    <ul class="nav-links">
+      <li><a href="index.html#trust">Invest</a></li>
+      <li><a href="index.html#solution">How It Works</a></li>
+      <li><a href="index.html#markets">Markets</a></li>
+      <li><a href="index.html#security">Security</a></li>
+      <li><a href="index.html#about">About us</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a href="/login" class="ghost-link">Log In</a>
+      <a href="index.html#cta" class="btn btn-cobalt btn-sm">Sign Up</a>
+    </div>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">
+      <svg viewBox="0 0 18 18" width="18" height="18" fill="none"><path id="toggleIcon" d="M2 5 H16 M2 9 H16 M2 13 H16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </nav>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html#trust">Invest</a>
+    <a href="index.html#solution">How It Works</a>
+    <a href="index.html#markets">Markets</a>
+    <a href="index.html#security">Security</a>
+    <a href="index.html#about">About us</a>
+    <a href="/login">Log In</a>
+    <a href="index.html#cta" class="btn btn-cobalt" style="margin-top:12px; text-align:center;">Sign Up</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============ HERO + CONTACT FORM ============ -->
+  <section class="contact-hero" id="top">
+    <div class="wrap contact-hero-grid">
+
+      <div class="contact-hero-left reveal">
+        <div class="eyebrow">CONTACT</div>
+        <h1>Let's build access to global markets.</h1>
+        <p class="lede">Tell us what you're building, what you want to invest in, or what you need help understanding. Our team is building the infrastructure for simpler, more direct access to global equities from Africa.</p>
+        <div class="contact-proof-list">
+          <div class="contact-proof"><span class="contact-proof-num">01</span><span class="contact-proof-text">Access built around you</span></div>
+          <div class="contact-proof"><span class="contact-proof-num">02</span><span class="contact-proof-text">Global markets, simplified</span></div>
+          <div class="contact-proof"><span class="contact-proof-num">03</span><span class="contact-proof-text">A direct line to the Zoey team</span></div>
+        </div>
+      </div>
+
+      <div class="contact-hero-right reveal">
+        <div class="contact-form-card">
+
+          <div id="contactFormState">
+            <div class="eyebrow" style="margin-bottom:6px;">GET IN TOUCH</div>
+            <h2 class="contact-form-title">Start the conversation.</h2>
+            <p class="contact-form-sub">Tell us a little about yourself and how we can help.</p>
+
+            <form class="zw-form" id="zcForm" novalidate>
+              <div class="contact-form-row">
+                <div class="zw-field" id="zcFirstNameField">
+                  <label class="zw-label" for="zcFirstName">First name</label>
+                  <input class="zw-input" type="text" id="zcFirstName" name="first_name" placeholder="First name" autocomplete="given-name" required>
+                  <div class="zw-field-error">Enter your first name.</div>
+                </div>
+                <div class="zw-field" id="zcLastNameField">
+                  <label class="zw-label" for="zcLastName">Last name</label>
+                  <input class="zw-input" type="text" id="zcLastName" name="last_name" placeholder="Last name" autocomplete="family-name" required>
+                  <div class="zw-field-error">Enter your last name.</div>
+                </div>
+              </div>
+
+              <div class="zw-field" id="zcEmailField">
+                <label class="zw-label" for="zcEmail">Email address</label>
+                <input class="zw-input" type="email" id="zcEmail" name="email" placeholder="Email address" autocomplete="email" required>
+                <div class="zw-field-error">Enter a valid email address.</div>
+              </div>
+
+              <div class="zw-field" id="zcPhoneField">
+                <label class="zw-label" for="zcPhone">Phone number</label>
+                <div class="zw-phone-row">
+                  <button type="button" class="zw-country-btn" id="zcCountryBtn" aria-haspopup="listbox" aria-expanded="false">
+                    <img class="zc-flag-img zc-country-flag" id="zcCountryFlag" src="https://flagcdn.com/ng.svg" width="18" height="13" alt="" aria-hidden="true" loading="lazy">
+                    <span class="zc-country-code" id="zcCountryCode">NG</span>
+                    <span id="zcCountryDial">+234</span>
+                    <svg class="zc-country-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <input class="zw-input" type="tel" id="zcPhone" name="phone" placeholder="801 234 5678" autocomplete="tel-national" inputmode="numeric" required>
+                </div>
+                <div class="zw-country-dropdown" id="zcCountryDropdown">
+                  <div class="zw-country-panel">
+                    <input class="zc-country-search" type="text" id="zcCountrySearch" placeholder="Search country or code" autocomplete="off">
+                    <div class="zc-country-list" id="zcCountryList" role="listbox"></div>
+                  </div>
+                </div>
+                <div class="zw-field-error">Enter a valid phone number.</div>
+              </div>
+
+              <div class="zw-field" id="zcCountryField">
+                <label class="zw-label" for="zcCountrySelect">Country</label>
+                <select class="zw-input" id="zcCountrySelect" name="country" required>
+                </select>
+                <div class="zw-field-error">Select your country.</div>
+              </div>
+
+              <div class="zw-field">
+                <label class="zw-label" for="zcInterest">What are you interested in?</label>
+                <select class="zw-input" id="zcInterest" name="interest">
+            <option value="" selected disabled>Select an option</option>
+            <option value="us_equities">Investing in U.S. equities</option>
+            <option value="fractional_shares">Fractional shares</option>
+            <option value="funding_account">Funding my Zoey account</option>
+            <option value="learning_about_zoey">Learning about Zoey</option>
+            <option value="partnership">Partnership</option>
+            <option value="institutional">Institutional / business inquiry</option>
+            <option value="media_press">Media / press</option>
+            <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div class="zw-field">
+                <label class="zw-label" for="zcSource">How did you hear about Zoey?</label>
+                <select class="zw-input" id="zcSource" name="source">
+            <option value="" selected disabled>Select an option</option>
+            <option value="Instagram">Instagram</option>
+            <option value="X">X</option>
+            <option value="LinkedIn">LinkedIn</option>
+            <option value="TikTok">TikTok</option>
+            <option value="Google">Google</option>
+            <option value="Friend or referral">Friend or referral</option>
+            <option value="Community">Community</option>
+            <option value="Event">Event</option>
+            <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div class="zw-field">
+                <label class="zw-label" for="zcMessage">Tell us how we can help</label>
+                <textarea class="zw-input" id="zcMessage" name="message" placeholder="Tell us what you're looking for, what you're building, or what you'd like to understand about Zoey."></textarea>
+              </div>
+
+              <p class="zw-field-error" id="zcFormError" style="display:none; margin:-4px 0 0; text-align:center;"></p>
+
+              <button type="submit" class="zw-submit-btn" id="zcSubmitBtn">
+                <span class="zw-spinner"></span><span class="zw-submit-label">Send message</span>
+              </button>
+              <p class="zw-legal">We'll review your message and get back to you.</p>
+            </form>
+          </div>
+
+          <div class="zw-success" id="zcSuccessState">
+            <div class="zw-success-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 12.5L9.5 18L20 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="zw-success-eyebrow">MESSAGE RECEIVED</div>
+            <div class="zw-success-title">Message received.</div>
+            <div class="zw-success-copy">Thanks for reaching out to Zoey. We've received your details and will review your message.</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ HOW CAN WE HELP ============ -->
+  <section class="contact-categories">
+    <div class="wrap">
+      <div class="eyebrow reveal">TOPICS</div>
+      <h2 class="reveal">How can we help?</h2>
+      <div class="contact-cards-grid">
+        <div class="contact-card reveal">
+          <div class="contact-card-num">01</div>
+          <h3>Getting started</h3>
+          <p>Questions about creating an account, eligibility, onboarding or getting started with Zoey.</p>
+        </div>
+        <div class="contact-card reveal">
+          <div class="contact-card-num">02</div>
+          <h3>Investing</h3>
+          <p>Questions about global equities, fractional shares, markets, portfolio access or investing.</p>
+        </div>
+        <div class="contact-card reveal">
+          <div class="contact-card-num">03</div>
+          <h3>Funding</h3>
+          <p>Questions about funding your account, stablecoin rails, deposits, withdrawals or account balances.</p>
+        </div>
+        <div class="contact-card reveal">
+          <div class="contact-card-num">04</div>
+          <h3>Partnerships & business</h3>
+          <p>Interested in working with Zoey, partnerships, media, institutional relationships or other business inquiries.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HELP CENTER ============ -->
+  <section class="contact-helpcenter">
+    <div class="wrap contact-helpcenter-inner">
+      <div class="reveal">
+        <div class="eyebrow">SUPPORT</div>
+        <h2>Need help?</h2>
+        <p class="lede">Find answers to common questions about getting started with Zoey, investing, funding, security and access to global markets.</p>
+      </div>
+      <a href="#faq" class="btn btn-cobalt reveal">Visit Help Center</a>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="contact-faq" id="faq">
+    <div class="wrap">
+      <div class="eyebrow reveal">FAQ</div>
+      <h2 class="reveal">Frequently Asked Questions</h2>
+      <div class="contact-faq-list">
+        <div class="zc-faq-row reveal">
+          <button type="button" class="zc-faq-trigger" id="faqTrigger1" aria-expanded="false" aria-controls="faqPanel1">
+            <span>What is Zoey Wallet?</span>
+            <span class="zc-faq-icon" aria-hidden="true"></span>
+          </button>
+          <div class="zc-faq-panel" id="faqPanel1" role="region" aria-labelledby="faqTrigger1">
+            <div class="zc-faq-panel-inner"><p>Zoey Wallet is a technology platform built to make access to global financial markets simpler for people across Africa. It's designed around a stablecoin-native model &mdash; funding and moving value using USDT and USDC &mdash; layered on top of access to U.S. equities and other global markets, rather than a traditional bank-account-first approach.</p></div>
+          </div>
+        </div>
+        <div class="zc-faq-row reveal">
+          <button type="button" class="zc-faq-trigger" id="faqTrigger2" aria-expanded="false" aria-controls="faqPanel2">
+            <span>Can I invest in U.S. stocks through Zoey?</span>
+            <span class="zc-faq-icon" aria-hidden="true"></span>
+          </button>
+          <div class="zc-faq-panel" id="faqPanel2" role="region" aria-labelledby="faqTrigger2">
+            <div class="zc-faq-panel-inner"><p>Zoey is built around giving you access to U.S. equities and other global markets through our technology platform, with investment transactions executed by a third-party regulated brokerage partner. Some features described on this site are still being rolled out &mdash; where something isn't yet available in your account, the app will make that clear rather than leave you guessing.</p></div>
+          </div>
+        </div>
+        <div class="zc-faq-row reveal">
+          <button type="button" class="zc-faq-trigger" id="faqTrigger3" aria-expanded="false" aria-controls="faqPanel3">
+            <span>What are fractional shares?</span>
+            <span class="zc-faq-icon" aria-hidden="true"></span>
+          </button>
+          <div class="zc-faq-panel" id="faqPanel3" role="region" aria-labelledby="faqTrigger3">
+            <div class="zc-faq-panel-inner"><p>A fractional share is a portion of a single share of stock, rather than the whole thing. Instead of needing enough money to buy one full share of an expensive company, fractional investing lets you put in whatever amount you have and own a proportional slice of that share.</p></div>
+          </div>
+        </div>
+        <div class="zc-faq-row reveal">
+          <button type="button" class="zc-faq-trigger" id="faqTrigger4" aria-expanded="false" aria-controls="faqPanel4">
+            <span>How much do I need to start investing?</span>
+            <span class="zc-faq-icon" aria-hidden="true"></span>
+          </button>
+          <div class="zc-faq-panel" id="faqPanel4" role="region" aria-labelledby="faqTrigger4">
+            <div class="zc-faq-panel-inner"><p>Zoey is built around low-minimum, fractional investing &mdash; the platform is designed so you can start investing in global equities for as little as $1, funded with supported stablecoins.</p></div>
+          </div>
+        </div>
+        <div class="zc-faq-row reveal">
+          <button type="button" class="zc-faq-trigger" id="faqTrigger5" aria-expanded="false" aria-controls="faqPanel5">
+            <span>How do I fund my Zoey account?</span>
+            <span class="zc-faq-icon" aria-hidden="true"></span>
+          </button>
+          <div class="zc-faq-panel" id="faqPanel5" role="region" aria-labelledby="faqTrigger5">
+            <div class="zc-faq-panel-inner"><p>Zoey's funding model is stablecoin-native: the intended experience is to fund your account using supported stablecoins like USDT and USDC, which are then used to access investments on the platform. Deposit and withdrawal functionality is being built out in phases, and the app will always show you exactly what's available in your account at any given time.</p></div>
+          </div>
+        </div>
+        <div class="zc-faq-row reveal">
+          <button type="button" class="zc-faq-trigger" id="faqTrigger6" aria-expanded="false" aria-controls="faqPanel6">
+            <span>Is Zoey a broker-dealer?</span>
+            <span class="zc-faq-icon" aria-hidden="true"></span>
+          </button>
+          <div class="zc-faq-panel" id="faqPanel6" role="region" aria-labelledby="faqTrigger6">
+            <div class="zc-faq-panel-inner"><p>No. Zoey Wallet is a technology platform, not a broker-dealer. Brokerage services &mdash; including the execution and custody of investments &mdash; are provided by a third-party regulated broker-dealer, member FINRA/SIPC. Zoey builds the interface and infrastructure that connects you to that regulated partner.</p></div>
+          </div>
+        </div>
+        <div class="zc-faq-row reveal">
+          <button type="button" class="zc-faq-trigger" id="faqTrigger7" aria-expanded="false" aria-controls="faqPanel7">
+            <span>How are my investments protected?</span>
+            <span class="zc-faq-icon" aria-hidden="true"></span>
+          </button>
+          <div class="zc-faq-panel" id="faqPanel7" role="region" aria-labelledby="faqTrigger7">
+            <div class="zc-faq-panel-inner"><p>Investments made through Zoey are held and executed through our third-party regulated brokerage partner, a FINRA/SIPC member, which is subject to the regulatory protections that apply to accounts held there. As with any investing, the value of your investments can go up or down, and past performance doesn't guarantee future results &mdash; see our <a href="legal.html#disclosures">Important Disclosures</a> for more detail.</p></div>
+          </div>
+        </div>
+        <div class="zc-faq-row reveal">
+          <button type="button" class="zc-faq-trigger" id="faqTrigger8" aria-expanded="false" aria-controls="faqPanel8">
+            <span>Can I use Zoey if I am based in Africa?</span>
+            <span class="zc-faq-icon" aria-hidden="true"></span>
+          </button>
+          <div class="zc-faq-panel" id="faqPanel8" role="region" aria-labelledby="faqTrigger8">
+            <div class="zc-faq-panel-inner"><p>Zoey is built with an Africa-first focus, and much of our design &mdash; from stablecoin funding to fractional access &mdash; reflects that. That said, availability can depend on your specific country, eligibility and onboarding requirements, so not every country is automatically supported yet. If you're unsure whether Zoey is available where you are, reach out using the form on this page and we'll let you know.</p></div>
+          </div>
+        </div>
+        <div class="zc-faq-row reveal">
+          <button type="button" class="zc-faq-trigger" id="faqTrigger9" aria-expanded="false" aria-controls="faqPanel9">
+            <span>How does Zoey keep my account and information secure?</span>
+            <span class="zc-faq-icon" aria-hidden="true"></span>
+          </button>
+          <div class="zc-faq-panel" id="faqPanel9" role="region" aria-labelledby="faqTrigger9">
+            <div class="zc-faq-panel-inner"><p>Security is built into the platform at every layer &mdash; from encrypted connections and secure authentication to controlled access to your account data and ongoing monitoring for suspicious activity. We don't publish the specifics of our internal security architecture, for the same reason a bank doesn't publish its vault combination, but protecting your information and access to your account is a core design principle, not an afterthought.</p></div>
+          </div>
+        </div>
+        <div class="zc-faq-row reveal">
+          <button type="button" class="zc-faq-trigger" id="faqTrigger10" aria-expanded="false" aria-controls="faqPanel10">
+            <span>How can I contact Zoey?</span>
+            <span class="zc-faq-icon" aria-hidden="true"></span>
+          </button>
+          <div class="zc-faq-panel" id="faqPanel10" role="region" aria-labelledby="faqTrigger10">
+            <div class="zc-faq-panel-inner"><p>This Contact page is the best way to reach the Zoey team directly. Use the form above, select the option that best matches your reason for reaching out, and a member of our team will follow up. You can also use the categories below to jump straight to the kind of help you need.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA ============ -->
+  <section class="contact-final-cta">
+    <div class="wrap contact-final-cta-inner reveal">
+      <h2>Global markets shouldn't feel out of reach.</h2>
+      <p class="lede">Have a question, an idea, or a partnership in mind? Start a conversation with Zoey.</p>
+      <a href="index.html#cta" class="btn btn-cobalt">Get Started</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg viewBox="165 84 10256 1671" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoIconGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5B7CFF"/><stop offset="55%" stop-color="#3A5CFF"/><stop offset="100%" stop-color="#2540D6"/></linearGradient></defs><g fill="url(#logoIconGrad)"><path d="M 166,1024 L 172,1026 L 182,1020 L 195,1019 L 285,983 L 296,982 L 405,941 L 459,925 L 669,848 L 725,832 L 894,769 L 930,760 L 1103,698 L 1117,696 L 1204,662 L 1264,646 L 1316,626 L 1357,618 L 1502,562 L 1516,560 L 1524,550 L 1449,521 L 1394,505 L 1236,448 L 1223,447 L 1217,442 L 1182,433 L 1097,400 L 1053,388 L 1010,370 L 851,319 L 804,299 L 656,248 L 562,219 L 411,163 L 395,161 L 329,135 L 169,84 L 165,89 Z"/><path d="M 1520,1752 L 1520,811 L 1517,807 L 1412,847 L 1396,849 L 1354,867 L 1208,914 L 1183,926 L 1105,949 L 1096,955 L 914,1019 L 896,1022 L 788,1062 L 776,1063 L 605,1127 L 409,1192 L 301,1233 L 262,1243 L 197,1269 L 183,1271 L 172,1278 L 177,1285 L 244,1306 L 290,1326 L 303,1327 L 330,1339 L 344,1341 L 390,1361 L 403,1362 L 509,1403 L 709,1469 L 756,1489 L 1012,1576 L 1162,1632 L 1176,1634 L 1203,1646 L 1218,1648 L 1325,1688 L 1382,1705 L 1410,1718 L 1502,1748 L 1510,1754 Z"/></g><path d="M 2285,690 L 2281,699 L 2281,772 L 2287,778 L 2597,778 L 2606,784 L 2590,809 L 2486,935 L 2440,997 L 2326,1138 L 2286,1182 L 2280,1201 L 2283,1256 L 2289,1259 L 2736,1259 L 2746,1256 L 2751,1248 L 2751,1168 L 2744,1162 L 2447,1163 L 2437,1157 L 2601,950 L 2652,891 L 2664,870 L 2747,771 L 2751,754 L 2751,703 L 2747,691 L 2732,687 L 2300,687 Z" fill="#F7F6F3"/><path d="M 3343,683 L 3290,699 L 3249,719 L 3196,760 L 3160,800 L 3125,863 L 3107,925 L 3106,1013 L 3115,1057 L 3134,1105 L 3169,1158 L 3217,1204 L 3276,1240 L 3318,1257 L 3344,1260 L 3357,1266 L 3465,1267 L 3516,1257 L 3559,1239 L 3614,1205 L 3663,1157 L 3697,1105 L 3715,1059 L 3725,1016 L 3725,922 L 3715,885 L 3697,837 L 3659,781 L 3623,745 L 3587,720 L 3520,691 L 3498,688 L 3485,682 L 3411,679 Z M 3389,770 L 3427,769 L 3482,779 L 3506,788 L 3538,807 L 3576,842 L 3593,863 L 3619,917 L 3625,953 L 3625,990 L 3619,1023 L 3599,1070 L 3574,1104 L 3530,1141 L 3493,1160 L 3456,1170 L 3369,1169 L 3335,1160 L 3301,1142 L 3277,1125 L 3248,1094 L 3222,1050 L 3219,1032 L 3212,1020 L 3212,927 L 3219,913 L 3221,897 L 3248,853 L 3276,822 L 3310,797 L 3349,780 Z" fill-rule="evenodd" fill="#F7F6F3"/><path d="M 4071,925 L 4067,997 L 4067,1247 L 4073,1258 L 4483,1259 L 4486,1256 L 4489,1177 L 4483,1163 L 4180,1163 L 4166,1157 L 4165,1017 L 4170,1010 L 4445,1008 L 4452,1000 L 4453,938 L 4450,923 L 4076,921 Z M 4070,698 L 4069,765 L 4076,777 L 4483,777 L 4488,768 L 4487,694 L 4484,688 L 4477,686 L 4096,686 L 4076,688 Z" fill="#F7F6F3"/><path d="M 4861,688 L 4858,699 L 4862,711 L 4885,740 L 5031,970 L 5071,1023 L 5079,1039 L 5079,1253 L 5086,1259 L 5172,1258 L 5178,1251 L 5180,1032 L 5398,704 L 5398,689 L 5292,688 L 5283,693 L 5252,736 L 5128,931 L 5117,922 L 5105,897 L 4973,689 Z" fill="#F7F6F3"/><path d="M 5996,690 L 5995,704 L 6001,714 L 6003,730 L 6046,851 L 6057,894 L 6072,929 L 6083,976 L 6135,1127 L 6154,1195 L 6178,1257 L 6183,1260 L 6253,1259 L 6265,1247 L 6295,1149 L 6302,1138 L 6312,1099 L 6320,1084 L 6321,1070 L 6346,1003 L 6348,985 L 6364,945 L 6366,930 L 6384,878 L 6394,867 L 6401,872 L 6403,891 L 6427,956 L 6429,971 L 6436,983 L 6438,998 L 6462,1065 L 6464,1082 L 6472,1098 L 6473,1111 L 6498,1177 L 6501,1194 L 6506,1200 L 6509,1222 L 6520,1251 L 6529,1259 L 6601,1259 L 6610,1254 L 6632,1177 L 6692,1003 L 6693,990 L 6709,951 L 6711,937 L 6718,926 L 6729,883 L 6790,701 L 6787,690 L 6771,687 L 6697,688 L 6687,696 L 6660,779 L 6658,795 L 6642,836 L 6631,883 L 6615,924 L 6613,941 L 6597,982 L 6595,997 L 6589,1006 L 6578,1052 L 6564,1079 L 6552,1059 L 6550,1042 L 6534,1001 L 6532,984 L 6525,971 L 6497,871 L 6490,859 L 6488,843 L 6473,804 L 6470,781 L 6443,697 L 6435,690 L 6417,687 L 6361,687 L 6350,691 L 6287,885 L 6286,897 L 6261,963 L 6259,980 L 6234,1050 L 6232,1069 L 6224,1080 L 6216,1078 L 6213,1051 L 6207,1043 L 6205,1025 L 6188,984 L 6187,970 L 6180,957 L 6160,881 L 6145,844 L 6133,796 L 6126,784 L 6125,770 L 6118,756 L 6105,702 L 6096,690 L 6003,687 Z" fill="#F7F6F3"/><path d="M 7177,690 L 7020,1069 L 6943,1243 L 6944,1256 L 6950,1259 L 7043,1259 L 7053,1252 L 7066,1210 L 7090,1159 L 7109,1105 L 7117,1093 L 7128,1057 L 7153,1003 L 7163,972 L 7178,943 L 7181,925 L 7196,897 L 7216,843 L 7230,822 L 7241,836 L 7271,917 L 7278,925 L 7315,1024 L 7321,1031 L 7342,1088 L 7366,1138 L 7377,1174 L 7413,1255 L 7420,1259 L 7517,1258 L 7523,1251 L 7456,1105 L 7444,1068 L 7332,814 L 7285,695 L 7271,688 L 7195,687 Z" fill="#F7F6F3"/><path d="M 7796,688 L 7791,697 L 7790,1241 L 7794,1256 L 7801,1259 L 8196,1257 L 8199,1251 L 8200,1170 L 8196,1163 L 7902,1163 L 7889,1157 L 7888,695 L 7877,687 Z" fill="#F7F6F3"/><path d="M 8516,690 L 8512,697 L 8512,1245 L 8516,1256 L 8522,1259 L 8922,1257 L 8925,1252 L 8925,1171 L 8920,1163 L 8621,1162 L 8614,1157 L 8614,696 L 8610,689 L 8596,687 Z" fill="#F7F6F3"/><path d="M 9202,924 L 9200,1222 L 9204,1257 L 9605,1259 L 9613,1255 L 9616,1246 L 9616,1175 L 9611,1163 L 9303,1162 L 9297,1152 L 9297,1017 L 9301,1010 L 9578,1008 L 9584,992 L 9585,937 L 9580,922 L 9210,921 Z M 9201,695 L 9201,766 L 9203,773 L 9209,776 L 9605,777 L 9613,772 L 9615,766 L 9615,696 L 9610,688 L 9213,686 L 9204,688 Z" fill="#F7F6F3"/><path d="M 9931,686 L 9927,696 L 9927,771 L 9931,778 L 10105,778 L 10120,785 L 10120,1248 L 10129,1258 L 10215,1258 L 10220,1251 L 10220,784 L 10233,778 L 10415,777 L 10421,770 L 10420,695 L 10412,688 Z" fill="#F7F6F3"/></svg>
+        <p>Global markets. One wallet. Direct, regulated access to global equities, funded with stablecoins and built for Africa.</p>
+        <div class="footer-social">
+          <div class="footer-social-label">Follow us on</div>
+          <div class="footer-social-icons">
+            <a href="https://x.com/zoeywallet_io?s=11" target="_blank" rel="noopener noreferrer" aria-label="Zoey Wallet on X">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <a href="https://www.instagram.com/zoeywallet.io?stkn=NGE4M2dmM29sb25x&amp;utm_source=qr" target="_blank" rel="noopener noreferrer" aria-label="Zoey Wallet on Instagram">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 0C8.74 0 8.333.014 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.014 8.333 0 8.74 0 12s.014 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.986 8.74 24 12 24s3.667-.014 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.336 1.384-2.126.296-.765.499-1.636.558-2.913.058-1.28.072-1.687.072-4.947s-.014-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.65.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.014 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.898 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.898-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.86.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.795.646-1.439 1.44-1.439.793 0 1.44.644 1.44 1.44z"/></svg>
+            </a>
+            <a href="https://www.linkedin.com/in/zoey-wallet-759493437" target="_blank" rel="noopener noreferrer" aria-label="Zoey Wallet on LinkedIn">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            </a>
+            <a href="https://www.tiktok.com/@zoeywallet.io?_r=1&amp;_t=ZS-99lLNF3S49Q" target="_blank" rel="noopener noreferrer" aria-label="Zoey Wallet on TikTok">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16.6 5.82c-1.007-1.02-1.552-2.394-1.523-3.82h-3.44v13.615c-.026 1.53-1.284 2.762-2.822 2.762-1.549 0-2.822-1.24-2.822-2.775 0-1.815 1.75-3.176 3.554-2.614V9.406c-3.79-.518-7.124 2.42-7.124 6.148 0 3.626 3.006 6.194 6.062 6.194 3.279 0 6.033-2.65 6.033-6.194V9.6a9.096 9.096 0 0 0 5.31 1.7v-3.44c-1.505 0-3.02-.583-4.228-1.836z"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-col"><h4>Product</h4><a href="index.html#solution">How it works</a><a href="index.html#markets">Markets</a><a href="index.html#security">Security</a></div>
+      <div class="footer-col"><h4>Company</h4><a href="index.html#about">About</a><a href="#">Careers</a><a href="contact.html">Contact</a></div>
+      <div class="footer-col"><h4>Resources</h4><a href="index.html#market-data">Market Data</a><a href="#">Blog</a></div>
+      <div class="footer-col"><h4>Legal</h4><a href="legal.html#terms">Terms</a><a href="legal.html#privacy">Privacy</a><a href="legal.html#disclosures">Disclosures</a></div>
+    </div>
+    <div class="footer-bottom">
+      <p>Zoey Wallet is a technology platform. Brokerage services are provided by a third-party regulated broker-dealer, member FINRA/SIPC. Investing involves risk, including possible loss of principal. Fractional shares may have restrictions on transfer and trading. Stablecoin conversions carry additional risk, including peg deviation risk.</p>
+      <div class="footer-legal">&copy; 2026 Zoey Wallet</div>
+    </div>
+
+    <div class="footer-giant-mark" aria-hidden="true">
+      <svg viewBox="2260 655 8181 632" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"><path d="M 2285,690 L 2281,699 L 2281,772 L 2287,778 L 2597,778 L 2606,784 L 2590,809 L 2486,935 L 2440,997 L 2326,1138 L 2286,1182 L 2280,1201 L 2283,1256 L 2289,1259 L 2736,1259 L 2746,1256 L 2751,1248 L 2751,1168 L 2744,1162 L 2447,1163 L 2437,1157 L 2601,950 L 2652,891 L 2664,870 L 2747,771 L 2751,754 L 2751,703 L 2747,691 L 2732,687 L 2300,687 Z" fill="currentColor"/><path d="M 3343,683 L 3290,699 L 3249,719 L 3196,760 L 3160,800 L 3125,863 L 3107,925 L 3106,1013 L 3115,1057 L 3134,1105 L 3169,1158 L 3217,1204 L 3276,1240 L 3318,1257 L 3344,1260 L 3357,1266 L 3465,1267 L 3516,1257 L 3559,1239 L 3614,1205 L 3663,1157 L 3697,1105 L 3715,1059 L 3725,1016 L 3725,922 L 3715,885 L 3697,837 L 3659,781 L 3623,745 L 3587,720 L 3520,691 L 3498,688 L 3485,682 L 3411,679 Z M 3389,770 L 3427,769 L 3482,779 L 3506,788 L 3538,807 L 3576,842 L 3593,863 L 3619,917 L 3625,953 L 3625,990 L 3619,1023 L 3599,1070 L 3574,1104 L 3530,1141 L 3493,1160 L 3456,1170 L 3369,1169 L 3335,1160 L 3301,1142 L 3277,1125 L 3248,1094 L 3222,1050 L 3219,1032 L 3212,1020 L 3212,927 L 3219,913 L 3221,897 L 3248,853 L 3276,822 L 3310,797 L 3349,780 Z" fill-rule="evenodd" fill="currentColor"/><path d="M 4071,925 L 4067,997 L 4067,1247 L 4073,1258 L 4483,1259 L 4486,1256 L 4489,1177 L 4483,1163 L 4180,1163 L 4166,1157 L 4165,1017 L 4170,1010 L 4445,1008 L 4452,1000 L 4453,938 L 4450,923 L 4076,921 Z M 4070,698 L 4069,765 L 4076,777 L 4483,777 L 4488,768 L 4487,694 L 4484,688 L 4477,686 L 4096,686 L 4076,688 Z" fill="currentColor"/><path d="M 4861,688 L 4858,699 L 4862,711 L 4885,740 L 5031,970 L 5071,1023 L 5079,1039 L 5079,1253 L 5086,1259 L 5172,1258 L 5178,1251 L 5180,1032 L 5398,704 L 5398,689 L 5292,688 L 5283,693 L 5252,736 L 5128,931 L 5117,922 L 5105,897 L 4973,689 Z" fill="currentColor"/><path d="M 5996,690 L 5995,704 L 6001,714 L 6003,730 L 6046,851 L 6057,894 L 6072,929 L 6083,976 L 6135,1127 L 6154,1195 L 6178,1257 L 6183,1260 L 6253,1259 L 6265,1247 L 6295,1149 L 6302,1138 L 6312,1099 L 6320,1084 L 6321,1070 L 6346,1003 L 6348,985 L 6364,945 L 6366,930 L 6384,878 L 6394,867 L 6401,872 L 6403,891 L 6427,956 L 6429,971 L 6436,983 L 6438,998 L 6462,1065 L 6464,1082 L 6472,1098 L 6473,1111 L 6498,1177 L 6501,1194 L 6506,1200 L 6509,1222 L 6520,1251 L 6529,1259 L 6601,1259 L 6610,1254 L 6632,1177 L 6692,1003 L 6693,990 L 6709,951 L 6711,937 L 6718,926 L 6729,883 L 6790,701 L 6787,690 L 6771,687 L 6697,688 L 6687,696 L 6660,779 L 6658,795 L 6642,836 L 6631,883 L 6615,924 L 6613,941 L 6597,982 L 6595,997 L 6589,1006 L 6578,1052 L 6564,1079 L 6552,1059 L 6550,1042 L 6534,1001 L 6532,984 L 6525,971 L 6497,871 L 6490,859 L 6488,843 L 6473,804 L 6470,781 L 6443,697 L 6435,690 L 6417,687 L 6361,687 L 6350,691 L 6287,885 L 6286,897 L 6261,963 L 6259,980 L 6234,1050 L 6232,1069 L 6224,1080 L 6216,1078 L 6213,1051 L 6207,1043 L 6205,1025 L 6188,984 L 6187,970 L 6180,957 L 6160,881 L 6145,844 L 6133,796 L 6126,784 L 6125,770 L 6118,756 L 6105,702 L 6096,690 L 6003,687 Z" fill="currentColor"/><path d="M 7177,690 L 7020,1069 L 6943,1243 L 6944,1256 L 6950,1259 L 7043,1259 L 7053,1252 L 7066,1210 L 7090,1159 L 7109,1105 L 7117,1093 L 7128,1057 L 7153,1003 L 7163,972 L 7178,943 L 7181,925 L 7196,897 L 7216,843 L 7230,822 L 7241,836 L 7271,917 L 7278,925 L 7315,1024 L 7321,1031 L 7342,1088 L 7366,1138 L 7377,1174 L 7413,1255 L 7420,1259 L 7517,1258 L 7523,1251 L 7456,1105 L 7444,1068 L 7332,814 L 7285,695 L 7271,688 L 7195,687 Z" fill="currentColor"/><path d="M 7796,688 L 7791,697 L 7790,1241 L 7794,1256 L 7801,1259 L 8196,1257 L 8199,1251 L 8200,1170 L 8196,1163 L 7902,1163 L 7889,1157 L 7888,695 L 7877,687 Z" fill="currentColor"/><path d="M 8516,690 L 8512,697 L 8512,1245 L 8516,1256 L 8522,1259 L 8922,1257 L 8925,1252 L 8925,1171 L 8920,1163 L 8621,1162 L 8614,1157 L 8614,696 L 8610,689 L 8596,687 Z" fill="currentColor"/><path d="M 9202,924 L 9200,1222 L 9204,1257 L 9605,1259 L 9613,1255 L 9616,1246 L 9616,1175 L 9611,1163 L 9303,1162 L 9297,1152 L 9297,1017 L 9301,1010 L 9578,1008 L 9584,992 L 9585,937 L 9580,922 L 9210,921 Z M 9201,695 L 9201,766 L 9203,773 L 9209,776 L 9605,777 L 9613,772 L 9615,766 L 9615,696 L 9610,688 L 9213,686 L 9204,688 Z" fill="currentColor"/><path d="M 9931,686 L 9927,696 L 9927,771 L 9931,778 L 10105,778 L 10120,785 L 10120,1248 L 10129,1258 L 10215,1258 L 10220,1251 L 10220,784 L 10233,778 L 10415,777 L 10421,770 L 10420,695 L 10412,688 Z" fill="currentColor"/></svg>
+    </div>
+  </div>
+</footer>
+
+<script src="contact.js"></script>
+</body>
+</html>

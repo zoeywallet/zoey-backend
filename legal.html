@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legal & Disclosures — Zoey Wallet</title>
+<meta name="description" content="Terms of Use, Privacy Policy and Important Disclosures for Zoey Wallet's stablecoin-native global investing platform.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --white:#FFFFFF;
+    --off-white:#F7F6F3;
+    --ink:#0A0E14;
+    --ink-soft: rgba(10,14,20,0.62);
+    --ink-faint: rgba(10,14,20,0.40);
+    --navy:#0B1220;
+    --navy-deep:#05070C;
+    --navy-surface:#111A2B;
+    --cobalt:#3355FF;
+    --cobalt-light:#5B7CFF;
+    --green:#1A9A63;
+    --red:#C23A3A;
+    --border: rgba(10,14,20,0.11);
+    --border-on-dark: rgba(247,246,243,0.13);
+    --radius: 14px;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Inter', 'Liberation Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Liberation Mono', monospace;
+    --max: 1320px;
+    --header-h: 90px;
+    --legal-nav-h: 54px;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background: var(--off-white); color: var(--ink); font-family: var(--font-body);
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  img,svg{ display:block; max-width:100%; }
+  a{ color:inherit; text-decoration:none; }
+  button{ font-family:inherit; cursor:pointer; }
+  ul{ list-style:none; }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; scroll-behavior:auto !important; }
+  }
+  :focus-visible{ outline:2px solid var(--cobalt); outline-offset:3px; border-radius:4px; }
+
+  .wrap{ max-width: var(--max); margin:0 auto; padding:0 48px; }
+  section{ position:relative; }
+
+  .eyebrow{ font-family: var(--font-mono); font-size:13px; font-weight:500; letter-spacing:2px; text-transform:uppercase; color: var(--ink-faint); margin-bottom:20px; }
+  h1,h2,h3{ font-family: var(--font-display); font-weight:500; letter-spacing:-0.01em; color: var(--ink); }
+  .lede{ color: var(--ink-soft); font-size:19px; line-height:1.6; font-family: var(--font-body); font-weight:400; }
+
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; font-family:var(--font-body); font-weight:600; font-size:15px; padding:14px 28px; border-radius:100px; border:1.5px solid transparent; transition: transform .15s ease, background .15s ease, border-color .15s ease; }
+  .btn-cobalt{ background: #0B1220; color:#fff; }
+  .btn-cobalt:hover{ transform: translateY(-1px); background:#151D2C; }
+  .btn-sm{ padding:10px 20px; font-size:13.5px; }
+
+  /* ============ NAV (reused verbatim from index.html) ============ */
+  header{ position:fixed; top:0; left:0; right:0; z-index:100; background: rgba(247,246,243,0.86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom:1px solid var(--border); }
+  nav{ display:flex; align-items:center; justify-content:space-between; max-width: var(--max); margin:0 auto; padding:20px 48px; gap:20px; }
+  .nav-logo svg{ height:24px; width:auto; }
+  .nav-links{ display:flex; align-items:center; gap:40px; }
+  .nav-links a{ font-size:14.5px; font-weight:500; color: var(--ink-soft); transition: color .2s; }
+  .nav-links a:hover{ color: var(--ink); }
+  .nav-actions{ display:flex; align-items:center; gap:16px; }
+  .nav-actions .ghost-link{ font-size:14.5px; font-weight:500; color: var(--ink-soft); white-space:nowrap; }
+  .nav-toggle{ display:none; background:none; border:1px solid var(--border); border-radius:8px; width:38px; height:38px; align-items:center; justify-content:center; color:var(--ink); }
+  .mobile-menu{ display:none; flex-direction:column; padding:10px 20px 20px; background: var(--off-white); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .mobile-menu.open{ display:flex; }
+  .mobile-menu a{ padding:13px 4px; font-size:15px; color: var(--ink-soft); border-bottom:1px solid var(--border); }
+  .mobile-menu a:last-of-type{ border-bottom:none; }
+
+  /* ============ LEGAL PAGE ============ */
+  .legal-intro{ padding:186px 0 56px; }
+  .legal-intro h1{ font-size:56px; line-height:1.05; max-width:760px; margin-bottom:22px; }
+  .legal-intro .lede{ max-width:620px; }
+  .legal-intro-meta{ display:flex; gap:40px; margin-top:40px; flex-wrap:wrap; padding-top:32px; border-top:1px solid var(--border); }
+  .legal-intro-meta div{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:1px; color:var(--ink-faint); text-transform:uppercase; }
+  .legal-intro-meta b{ display:block; font-family:var(--font-body); font-size:14.5px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--ink); margin-top:7px; }
+
+  /* This is a <nav> element for semantics, but the site's global bare
+     `nav{...}` tag-selector rule (padding:20px 48px, display:flex,
+     max-width, margin:0 auto -- meant for the header's own <nav>) would
+     otherwise apply here too and silently double the sub-nav's height with
+     unwanted padding. Reset every property that rule sets, then lay this
+     nav out with its own rules. */
+  .legal-subnav{
+    display:block; margin:0; max-width:none; padding:0; gap:0;
+    position:sticky; top:var(--header-h); z-index:40;
+    background:rgba(247,246,243,0.9); backdrop-filter:blur(12px) saturate(140%); -webkit-backdrop-filter:blur(12px) saturate(140%);
+    border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+  }
+  /* Redesigned as a restrained underline-tab document index rather than
+     pill buttons: fine bottom-border active indicator, mono type, tighter
+     tracking -- reads as "table of contents for this document" rather than
+     a generic nav control. */
+  .legal-subnav-inner{ max-width: var(--max); margin:0 auto; display:flex; gap:28px; padding:0 48px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .legal-subnav-inner::-webkit-scrollbar{ display:none; }
+  .legal-subnav-inner a{
+    flex:0 0 auto; display:inline-flex; align-items:center; gap:7px;
+    font-family:var(--font-mono); font-size:12px; letter-spacing:0.8px;
+    color: var(--ink-faint); white-space:nowrap; padding:16px 0;
+    border-bottom:2px solid transparent; transition: color .2s ease, border-color .2s ease;
+  }
+  .legal-subnav-inner a span{ opacity:.6; }
+  .legal-subnav-inner a:hover{ color:var(--ink); }
+  .legal-subnav-inner a.active{ color: var(--ink); border-bottom-color: var(--ink); }
+
+  .legal-block{ padding:88px 0 72px; border-bottom:1px solid var(--border); }
+  .legal-block:last-of-type{ border-bottom:none; padding-bottom:120px; }
+
+  /* -- Three-column editorial grid: a slim numeral rail identifies the
+     section at a glance; the main column carries the actual document; a
+     sticky context rail on the right gives the page real information
+     density instead of leaving that space empty -- a per-section "on this
+     page" index plus lightweight document metadata, the way institutional
+     documentation systems (not marketing pages) are laid out. Source order
+     is rail / context / main so a screen reader (and the mobile stack)
+     meets the section identity and its index before the prose; the grid
+     areas below re-place them visually for desktop. */
+  .legal-block-grid{
+    display:grid;
+    grid-template-columns: 96px minmax(0,1fr) 260px;
+    grid-template-areas: "rail main context";
+    gap:48px;
+    align-items:start;
+  }
+  .legal-rail-left{ grid-area:rail; }
+  .legal-main{ grid-area:main; min-width:0; }
+  .legal-rail-right{ grid-area:context; }
+
+  .legal-num{ font-family:var(--font-display); font-size:64px; line-height:0.85; font-weight:500; color: rgba(10,14,20,0.16); }
+  .legal-rail-eyebrow{
+    font-family:var(--font-mono); font-size:10.5px; letter-spacing:1.5px; color:var(--ink-faint);
+    text-transform:uppercase; margin-top:14px; writing-mode:vertical-rl; transform:rotate(180deg);
+    display:inline-block;
+  }
+
+  .legal-main .eyebrow{ margin-bottom:10px; }
+  .legal-main h2{ font-size:36px; margin-bottom:18px; }
+  .legal-section-intro{ font-size:16px; line-height:1.65; color:var(--ink-soft); max-width:600px; margin-bottom:48px; padding-bottom:40px; border-bottom:1px solid var(--border); }
+
+  .legal-articles{ max-width:620px; }
+  .legal-article{ padding:24px 0; border-top:1px solid var(--border); scroll-margin-top: calc(var(--header-h) + var(--legal-nav-h) + 20px); }
+  .legal-article:first-child{ border-top:none; padding-top:0; }
+  .legal-article-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:9px; }
+  .legal-article-num{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.6px; color:var(--ink-faint); flex:0 0 auto; }
+  .legal-article h3{ font-family:var(--font-body); font-weight:600; font-size:16px; letter-spacing:-0.005em; color:var(--ink); }
+  .legal-article p{ font-size:14.5px; line-height:1.72; color: var(--ink-soft); }
+  .legal-article p a{ color: var(--ink); text-decoration:underline; }
+
+  /* Sticky document-context card: floats alongside the (much longer) main
+     column as you scroll, so its per-section index stays usable the whole
+     way down a 20-subsection block rather than scrolling away after the
+     first screen. Capped height + its own scroll so a long index never
+     pushes past the viewport or gets clipped. */
+  .legal-rail-right{
+    position:sticky; top: calc(var(--header-h) + var(--legal-nav-h) + 32px);
+    max-height: calc(100vh - var(--header-h) - var(--legal-nav-h) - 64px);
+    overflow-y:auto; scrollbar-width:thin;
+  }
+  .legal-context-card{
+    border:1px solid var(--border); border-radius:2px; background: rgba(10,14,20,0.02);
+    padding:22px 22px 24px;
+  }
+  .legal-context-group{ margin-bottom:16px; }
+  .legal-context-label{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:1.1px; text-transform:uppercase; color:var(--ink-faint); margin-bottom:5px; }
+  .legal-context-value{ font-size:13px; color:var(--ink); font-weight:500; }
+  .legal-context-divider{ height:1px; background:var(--border); margin:18px 0 16px; }
+  .legal-context-index-label{ margin-bottom:12px; }
+  .legal-context-index{ display:flex; flex-direction:column; gap:1px; }
+  .legal-context-index a{
+    display:flex; gap:9px; padding:8px 6px; margin:0 -6px; border-radius:3px;
+    font-size:12px; line-height:1.4; color:var(--ink-soft);
+    transition: background .15s ease, color .15s ease;
+  }
+  .legal-context-index a span{ font-family:var(--font-mono); font-size:10.5px; color:var(--ink-faint); flex:0 0 auto; }
+  .legal-context-index a:hover{ background: rgba(10,14,20,0.045); color:var(--ink); }
+
+  .reveal{ opacity:0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in{ opacity:1; transform:none; }
+
+  /* ============ FOOTER (reused verbatim from index.html) ============ */
+  footer{ background: var(--navy); color: var(--off-white); padding:72px 0 0; overflow:hidden; }
+  .footer-grid{ display:grid; grid-template-columns:1.3fr repeat(4,1fr); gap:40px; margin-bottom:64px; }
+  .footer-brand svg{ height:22px; margin-bottom:18px; }
+  .footer-brand p{ font-size:14px; color: rgba(247,246,243,0.5); line-height:1.6; max-width:260px; }
+  .footer-col h4{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:1.5px; color: rgba(247,246,243,0.4); text-transform:uppercase; margin-bottom:18px; }
+  .footer-col a{ display:block; font-size:14.5px; color: rgba(247,246,243,0.65); margin-bottom:12px; transition: color .2s; }
+  .footer-col a:hover{ color: var(--off-white); }
+  .footer-bottom{ display:flex; justify-content:space-between; gap:24px; padding-top:32px; padding-bottom:40px; border-top:1px solid var(--border-on-dark); flex-wrap:wrap; }
+  .footer-bottom p{ font-size:11.5px; color: rgba(247,246,243,0.35); line-height:1.7; max-width:760px; }
+  .footer-legal{ font-size:12px; color: rgba(247,246,243,0.4); white-space:nowrap; }
+
+  .footer-social{ margin-top:26px; }
+  .footer-social-label{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:1.5px; color: rgba(247,246,243,0.4); text-transform:uppercase; margin-bottom:14px; }
+  .footer-social-icons{ display:flex; align-items:center; gap:12px; }
+  .footer-social-icons a{
+    position:relative; overflow:hidden; box-sizing:border-box;
+    display:inline-flex; align-items:center; justify-content:center;
+    width:40px; height:40px; border-radius:11px;
+    color: rgba(247,246,243,0.68);
+    background: linear-gradient(165deg, rgba(247,246,243,0.13), rgba(247,246,243,0.03) 55%, rgba(247,246,243,0.06));
+    border:1px solid rgba(247,246,243,0.15);
+    box-shadow:
+      inset 0 1px 0 rgba(247,246,243,0.16),
+      inset 0 -1px 0 rgba(5,7,12,0.35),
+      0 6px 14px -10px rgba(5,7,12,0.7);
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    transition: color .22s ease, border-color .22s ease, background .22s ease, box-shadow .22s ease, transform .22s ease;
+  }
+  .footer-social-icons a::before{
+    content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background: linear-gradient(135deg, rgba(247,246,243,0.12) 0%, rgba(247,246,243,0) 45%);
+  }
+  .footer-social-icons a svg{
+    position:absolute; inset:0; margin:auto; z-index:1;
+    width:24px; height:24px; display:block; fill:currentColor;
+  }
+  .footer-social-icons a[aria-label$="Instagram"] svg{ width:24px; height:24px; }
+  .footer-social-icons a[aria-label$="LinkedIn"] svg{ width:23px; height:23px; }
+  .footer-social-icons a[aria-label$="X"] svg{ width:26px; height:26px; }
+  .footer-social-icons a[aria-label$="TikTok"] svg{ width:28px; height:28px; }
+  .footer-social-icons a:hover, .footer-social-icons a:focus-visible{
+    color: var(--off-white);
+    border-color: rgba(247,246,243,0.3);
+    background: linear-gradient(165deg, rgba(247,246,243,0.2), rgba(247,246,243,0.05) 55%, rgba(247,246,243,0.09));
+    box-shadow:
+      inset 0 1px 0 rgba(247,246,243,0.24),
+      inset 0 -1px 0 rgba(5,7,12,0.35),
+      0 10px 20px -12px rgba(5,7,12,0.75);
+    transform: translateY(-1px);
+  }
+  .footer-social-icons a:focus-visible{ outline:2px solid rgba(247,246,243,0.55); outline-offset:3px; }
+
+  .footer-giant-mark{ margin-top:56px; padding:0 0 18px; line-height:0; color: rgba(247,246,243,0.92); }
+  .footer-giant-mark svg{ display:block; width:calc(100% + 56px); margin:0 -28px; height:auto; }
+  @media (max-width: 900px){
+    .footer-giant-mark{ margin-top:40px; padding-bottom:14px; }
+    .footer-giant-mark svg{ width:calc(100% + 24px); margin:0 -12px; }
+  }
+  @media (max-width: 640px){
+    footer{ padding-top:56px; }
+    .footer-giant-mark{ margin-top:30px; padding-bottom:10px; }
+    .footer-giant-mark svg{ width:100%; margin:0; }
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1080px){
+    .footer-grid{ grid-template-columns:1fr 1fr; }
+  }
+  @media (max-width: 900px){
+    .nav-links{ display:none; }
+    .nav-actions .ghost-link{ display:none; }
+    .nav-toggle{ display:flex; }
+
+    /* Collapse the 3-column editorial grid to a single stacked column:
+       source order is already rail / context / main (see comment above
+       .legal-block-grid), which reads correctly stacked -- section
+       identity, then its quick index/metadata, then the prose. The sticky
+       right-rail behavior is desktop-only real estate management, so it
+       becomes a normal static block on narrow viewports. */
+    .legal-block-grid{
+      grid-template-columns:1fr;
+      grid-template-areas: "rail" "context" "main";
+      gap:28px;
+    }
+    .legal-rail-left{ display:flex; align-items:baseline; gap:14px; }
+    .legal-num{ font-size:44px; }
+    .legal-rail-eyebrow{ writing-mode:horizontal-tb; transform:none; margin-top:0; }
+    .legal-rail-right{ position:static; top:auto; max-height:none; overflow-y:visible; }
+    .legal-context-card{ padding:18px 18px 20px; }
+    .legal-section-intro{ max-width:none; }
+    .legal-articles{ max-width:none; }
+  }
+  @media (max-width: 640px){
+    .wrap{ padding:0 22px; }
+    nav{ padding:16px 22px; }
+    .legal-subnav-inner{ padding-left:22px; padding-right:22px; gap:20px; }
+    .legal-intro{ padding:150px 0 44px; }
+    .legal-intro h1{ font-size: clamp(32px, 9vw, 42px); }
+    .legal-intro .lede{ font-size:16px; }
+    .legal-intro-meta{ gap:22px; }
+    .legal-block{ padding:56px 0 48px; }
+    .legal-block-grid{ gap:22px; }
+    .legal-num{ font-size:36px; }
+    .legal-main h2{ font-size:27px; }
+    .legal-section-intro{ margin-bottom:32px; padding-bottom:28px; }
+    .legal-article{ padding:18px 0; }
+    .legal-context-card{ padding:16px 16px 18px; }
+    .footer-grid{ grid-template-columns:1fr 1fr; gap:32px; }
+    .footer-social{ margin-top:20px; }
+    .footer-social-icons{ gap:9px; }
+    .footer-social-icons a{ width:34px; height:34px; border-radius:9px; }
+    .footer-social-icons a svg{ width:20px; height:20px; }
+    .footer-social-icons a[aria-label$="Instagram"] svg{ width:20px; height:20px; }
+    .footer-social-icons a[aria-label$="LinkedIn"] svg{ width:19px; height:19px; }
+    .footer-social-icons a[aria-label$="X"] svg{ width:22px; height:22px; }
+    .footer-social-icons a[aria-label$="TikTok"] svg{ width:24px; height:24px; }
+  }
+
+  /* Anchors land below BOTH the fixed header and the sticky legal sub-nav.
+     Kept on plain, non-.reveal wrapper elements (not on any element that
+     itself carries the .reveal fade/translate transition) -- an anchor
+     target that is still mid-transition when the browser jumps to it lands
+     in the wrong place once the transition finishes, which is exactly the
+     bug already fixed for #trust/#market-data on the homepage. */
+  #terms, #privacy, #disclosures{ scroll-margin-top: calc(var(--header-h) + var(--legal-nav-h) + 20px); }
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a href="index.html" class="nav-logo"><svg viewBox="165 84 10256 1671" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoIconGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5B7CFF"/><stop offset="55%" stop-color="#3A5CFF"/><stop offset="100%" stop-color="#2540D6"/></linearGradient></defs><g fill="url(#logoIconGrad)"><path d="M 166,1024 L 172,1026 L 182,1020 L 195,1019 L 285,983 L 296,982 L 405,941 L 459,925 L 669,848 L 725,832 L 894,769 L 930,760 L 1103,698 L 1117,696 L 1204,662 L 1264,646 L 1316,626 L 1357,618 L 1502,562 L 1516,560 L 1524,550 L 1449,521 L 1394,505 L 1236,448 L 1223,447 L 1217,442 L 1182,433 L 1097,400 L 1053,388 L 1010,370 L 851,319 L 804,299 L 656,248 L 562,219 L 411,163 L 395,161 L 329,135 L 169,84 L 165,89 Z"/><path d="M 1520,1752 L 1520,811 L 1517,807 L 1412,847 L 1396,849 L 1354,867 L 1208,914 L 1183,926 L 1105,949 L 1096,955 L 914,1019 L 896,1022 L 788,1062 L 776,1063 L 605,1127 L 409,1192 L 301,1233 L 262,1243 L 197,1269 L 183,1271 L 172,1278 L 177,1285 L 244,1306 L 290,1326 L 303,1327 L 330,1339 L 344,1341 L 390,1361 L 403,1362 L 509,1403 L 709,1469 L 756,1489 L 1012,1576 L 1162,1632 L 1176,1634 L 1203,1646 L 1218,1648 L 1325,1688 L 1382,1705 L 1410,1718 L 1502,1748 L 1510,1754 Z"/></g><path d="M 2285,690 L 2281,699 L 2281,772 L 2287,778 L 2597,778 L 2606,784 L 2590,809 L 2486,935 L 2440,997 L 2326,1138 L 2286,1182 L 2280,1201 L 2283,1256 L 2289,1259 L 2736,1259 L 2746,1256 L 2751,1248 L 2751,1168 L 2744,1162 L 2447,1163 L 2437,1157 L 2601,950 L 2652,891 L 2664,870 L 2747,771 L 2751,754 L 2751,703 L 2747,691 L 2732,687 L 2300,687 Z" fill="#0A0E14"/><path d="M 3343,683 L 3290,699 L 3249,719 L 3196,760 L 3160,800 L 3125,863 L 3107,925 L 3106,1013 L 3115,1057 L 3134,1105 L 3169,1158 L 3217,1204 L 3276,1240 L 3318,1257 L 3344,1260 L 3357,1266 L 3465,1267 L 3516,1257 L 3559,1239 L 3614,1205 L 3663,1157 L 3697,1105 L 3715,1059 L 3725,1016 L 3725,922 L 3715,885 L 3697,837 L 3659,781 L 3623,745 L 3587,720 L 3520,691 L 3498,688 L 3485,682 L 3411,679 Z M 3389,770 L 3427,769 L 3482,779 L 3506,788 L 3538,807 L 3576,842 L 3593,863 L 3619,917 L 3625,953 L 3625,990 L 3619,1023 L 3599,1070 L 3574,1104 L 3530,1141 L 3493,1160 L 3456,1170 L 3369,1169 L 3335,1160 L 3301,1142 L 3277,1125 L 3248,1094 L 3222,1050 L 3219,1032 L 3212,1020 L 3212,927 L 3219,913 L 3221,897 L 3248,853 L 3276,822 L 3310,797 L 3349,780 Z" fill-rule="evenodd" fill="#0A0E14"/><path d="M 4071,925 L 4067,997 L 4067,1247 L 4073,1258 L 4483,1259 L 4486,1256 L 4489,1177 L 4483,1163 L 4180,1163 L 4166,1157 L 4165,1017 L 4170,1010 L 4445,1008 L 4452,1000 L 4453,938 L 4450,923 L 4076,921 Z M 4070,698 L 4069,765 L 4076,777 L 4483,777 L 4488,768 L 4487,694 L 4484,688 L 4477,686 L 4096,686 L 4076,688 Z" fill="#0A0E14"/><path d="M 4861,688 L 4858,699 L 4862,711 L 4885,740 L 5031,970 L 5071,1023 L 5079,1039 L 5079,1253 L 5086,1259 L 5172,1258 L 5178,1251 L 5180,1032 L 5398,704 L 5398,689 L 5292,688 L 5283,693 L 5252,736 L 5128,931 L 5117,922 L 5105,897 L 4973,689 Z" fill="#0A0E14"/><path d="M 5996,690 L 5995,704 L 6001,714 L 6003,730 L 6046,851 L 6057,894 L 6072,929 L 6083,976 L 6135,1127 L 6154,1195 L 6178,1257 L 6183,1260 L 6253,1259 L 6265,1247 L 6295,1149 L 6302,1138 L 6312,1099 L 6320,1084 L 6321,1070 L 6346,1003 L 6348,985 L 6364,945 L 6366,930 L 6384,878 L 6394,867 L 6401,872 L 6403,891 L 6427,956 L 6429,971 L 6436,983 L 6438,998 L 6462,1065 L 6464,1082 L 6472,1098 L 6473,1111 L 6498,1177 L 6501,1194 L 6506,1200 L 6509,1222 L 6520,1251 L 6529,1259 L 6601,1259 L 6610,1254 L 6632,1177 L 6692,1003 L 6693,990 L 6709,951 L 6711,937 L 6718,926 L 6729,883 L 6790,701 L 6787,690 L 6771,687 L 6697,688 L 6687,696 L 6660,779 L 6658,795 L 6642,836 L 6631,883 L 6615,924 L 6613,941 L 6597,982 L 6595,997 L 6589,1006 L 6578,1052 L 6564,1079 L 6552,1059 L 6550,1042 L 6534,1001 L 6532,984 L 6525,971 L 6497,871 L 6490,859 L 6488,843 L 6473,804 L 6470,781 L 6443,697 L 6435,690 L 6417,687 L 6361,687 L 6350,691 L 6287,885 L 6286,897 L 6261,963 L 6259,980 L 6234,1050 L 6232,1069 L 6224,1080 L 6216,1078 L 6213,1051 L 6207,1043 L 6205,1025 L 6188,984 L 6187,970 L 6180,957 L 6160,881 L 6145,844 L 6133,796 L 6126,784 L 6125,770 L 6118,756 L 6105,702 L 6096,690 L 6003,687 Z" fill="#0A0E14"/><path d="M 7177,690 L 7020,1069 L 6943,1243 L 6944,1256 L 6950,1259 L 7043,1259 L 7053,1252 L 7066,1210 L 7090,1159 L 7109,1105 L 7117,1093 L 7128,1057 L 7153,1003 L 7163,972 L 7178,943 L 7181,925 L 7196,897 L 7216,843 L 7230,822 L 7241,836 L 7271,917 L 7278,925 L 7315,1024 L 7321,1031 L 7342,1088 L 7366,1138 L 7377,1174 L 7413,1255 L 7420,1259 L 7517,1258 L 7523,1251 L 7456,1105 L 7444,1068 L 7332,814 L 7285,695 L 7271,688 L 7195,687 Z" fill="#0A0E14"/><path d="M 7796,688 L 7791,697 L 7790,1241 L 7794,1256 L 7801,1259 L 8196,1257 L 8199,1251 L 8200,1170 L 8196,1163 L 7902,1163 L 7889,1157 L 7888,695 L 7877,687 Z" fill="#0A0E14"/><path d="M 8516,690 L 8512,697 L 8512,1245 L 8516,1256 L 8522,1259 L 8922,1257 L 8925,1252 L 8925,1171 L 8920,1163 L 8621,1162 L 8614,1157 L 8614,696 L 8610,689 L 8596,687 Z" fill="#0A0E14"/><path d="M 9202,924 L 9200,1222 L 9204,1257 L 9605,1259 L 9613,1255 L 9616,1246 L 9616,1175 L 9611,1163 L 9303,1162 L 9297,1152 L 9297,1017 L 9301,1010 L 9578,1008 L 9584,992 L 9585,937 L 9580,922 L 9210,921 Z M 9201,695 L 9201,766 L 9203,773 L 9209,776 L 9605,777 L 9613,772 L 9615,766 L 9615,696 L 9610,688 L 9213,686 L 9204,688 Z" fill="#0A0E14"/><path d="M 9931,686 L 9927,696 L 9927,771 L 9931,778 L 10105,778 L 10120,785 L 10120,1248 L 10129,1258 L 10215,1258 L 10220,1251 L 10220,784 L 10233,778 L 10415,777 L 10421,770 L 10420,695 L 10412,688 Z" fill="#0A0E14"/></svg></a>
+    <ul class="nav-links">
+      <li><a href="index.html#trust">Invest</a></li>
+      <li><a href="index.html#solution">How It Works</a></li>
+      <li><a href="index.html#markets">Markets</a></li>
+      <li><a href="index.html#security">Security</a></li>
+      <li><a href="index.html#about">About us</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a href="/login" class="ghost-link">Log In</a>
+      <a href="index.html#cta" class="btn btn-cobalt btn-sm">Sign Up</a>
+    </div>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">
+      <svg viewBox="0 0 18 18" width="18" height="18" fill="none"><path id="toggleIcon" d="M2 5 H16 M2 9 H16 M2 13 H16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </nav>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html#trust">Invest</a>
+    <a href="index.html#solution">How It Works</a>
+    <a href="index.html#markets">Markets</a>
+    <a href="index.html#security">Security</a>
+    <a href="index.html#about">About us</a>
+    <a href="/login">Log In</a>
+    <a href="index.html#cta" class="btn btn-cobalt" style="margin-top:12px; text-align:center;">Sign Up</a>
+  </div>
+</header>
+
+<main>
+
+  <section class="legal-intro">
+    <div class="wrap">
+      <div class="eyebrow">LEGAL &amp; DISCLOSURES</div>
+      <h1>Terms, Privacy &amp; Disclosures</h1>
+      <p class="lede">Important information governing the use of Zoey Wallet and the stablecoin-native investing services made available through the platform, presented here as one structured reference document.</p>
+      <div class="legal-intro-meta">
+        <div>Last updated<b>September 2026</b></div>
+        <div>Applies to<b>zoeywallet.co &amp; app</b></div>
+        <div>Structure<b>3 sections, 51 subsections</b></div>
+      </div>
+    </div>
+  </section>
+
+  <nav class="legal-subnav" aria-label="Legal document sections">
+    <div class="legal-subnav-inner">
+      <a href="#terms" data-section="terms"><span>01</span> Terms</a>
+      <a href="#privacy" data-section="privacy"><span>02</span> Privacy</a>
+      <a href="#disclosures" data-section="disclosures"><span>03</span> Disclosures</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+
+    <section class="legal-block" id="terms">
+      <div class="legal-block-grid">
+
+        <div class="legal-rail-left">
+          <div class="legal-num">01</div>
+          <div class="legal-rail-eyebrow">TERMS</div>
+        </div>
+
+        <aside class="legal-rail-right">
+          <div class="legal-context-card">
+            <div class="legal-context-group">
+              <div class="legal-context-label">Document</div>
+              <div class="legal-context-value">Legal &amp; Disclosures</div>
+            </div>
+            <div class="legal-context-group">
+              <div class="legal-context-label">Section</div>
+              <div class="legal-context-value">01 — Terms of Use</div>
+            </div>
+            <div class="legal-context-group">
+              <div class="legal-context-label">Structure</div>
+              <div class="legal-context-value">20 subsections</div>
+            </div>
+            <div class="legal-context-divider"></div>
+            <div class="legal-context-label legal-context-index-label">On this section</div>
+            <nav class="legal-context-index" aria-label="Terms of Use subsections">
+          <a href="#t01"><span>01.01</span>Acceptance of Terms</a>
+          <a href="#t02"><span>01.02</span>About Zoey Wallet</a>
+          <a href="#t03"><span>01.03</span>Eligibility</a>
+          <a href="#t04"><span>01.04</span>Account Registration</a>
+          <a href="#t05"><span>01.05</span>Account Security</a>
+          <a href="#t06"><span>01.06</span>Platform Use</a>
+          <a href="#t07"><span>01.07</span>Investment and Market Access</a>
+          <a href="#t08"><span>01.08</span>Fractional Shares</a>
+          <a href="#t09"><span>01.09</span>Stablecoin Funding</a>
+          <a href="#t10"><span>01.10</span>Fees and Charges</a>
+          <a href="#t11"><span>01.11</span>Third-Party Brokerage Services</a>
+          <a href="#t12"><span>01.12</span>Market Data</a>
+          <a href="#t13"><span>01.13</span>Intellectual Property</a>
+          <a href="#t14"><span>01.14</span>Prohibited Use</a>
+          <a href="#t15"><span>01.15</span>Suspension and Termination</a>
+          <a href="#t16"><span>01.16</span>Disclaimers</a>
+          <a href="#t17"><span>01.17</span>Limitation of Liability</a>
+          <a href="#t18"><span>01.18</span>Changes to the Terms</a>
+          <a href="#t19"><span>01.19</span>Governing Law</a>
+          <a href="#t20"><span>01.20</span>Contact Information</a>
+            </nav>
+          </div>
+        </aside>
+
+        <div class="legal-main">
+          <div class="eyebrow">TERMS</div>
+          <h2>Terms of Use</h2>
+          <p class="legal-section-intro">These Terms of Use govern your access to Zoey Wallet and the investment services made available through the platform. They are organized below by topic, from eligibility and account security through to the terms that govern brokerage access, market data and liability.</p>
+          <div class="legal-articles">
+        <article class="legal-article" id="t01">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.01</span>
+              <h3>Acceptance of Terms</h3>
+            </div>
+            <p>By accessing or using the Zoey Wallet platform, including this website and any associated application, you agree to be bound by these Terms of Use. If you do not agree to these terms, you should not access or use the platform. These Terms apply to all visitors, users and others who access the service.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t02">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.02</span>
+              <h3>About Zoey Wallet</h3>
+            </div>
+            <p>Zoey Wallet is a technology platform that provides stablecoin-native infrastructure for accessing global equity markets. Zoey Wallet is not itself a broker-dealer, bank or custodian; brokerage services described elsewhere in these Terms and in the Important Disclosures section are provided by a third-party regulated broker-dealer. The full legal name, registration and licensing details of Zoey Wallet's operating entity and its brokerage partner will be published here following legal review, and this section will be updated accordingly.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t03">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.03</span>
+              <h3>Eligibility</h3>
+            </div>
+            <p>You must be at least the age of majority in your place of residence and have the legal capacity to enter into a binding agreement to use Zoey Wallet. Use of the platform may also be subject to eligibility and verification requirements imposed by our third-party brokerage partner, including identity verification and any applicable residency or jurisdictional restrictions communicated to you during onboarding.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t04">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.04</span>
+              <h3>Account Registration</h3>
+            </div>
+            <p>To access investment features, you must register for an account and provide accurate, current and complete information as prompted. You are responsible for keeping your account information up to date. Zoey Wallet and its brokerage partner may decline to open, or may suspend, an account where required information cannot be verified.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t05">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.05</span>
+              <h3>Account Security</h3>
+            </div>
+            <p>You are responsible for maintaining the confidentiality of your login credentials and for all activity that occurs under your account. Notify us immediately if you suspect any unauthorized access to or use of your account. We recommend using a strong, unique password and enabling any additional account-security features made available to you.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t06">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.06</span>
+              <h3>Platform Use</h3>
+            </div>
+            <p>You agree to use Zoey Wallet only for its intended purpose and in compliance with these Terms and all applicable laws. You will not attempt to interfere with the proper functioning of the platform, circumvent any security measures, or use the platform in a manner that could damage, disable or impair it for other users.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t07">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.07</span>
+              <h3>Investment and Market Access</h3>
+            </div>
+            <p>Zoey Wallet provides technology that enables access to global equity markets; investment transactions themselves are executed by our third-party regulated brokerage partner. Access to specific markets, securities or order types may be limited by that partner, by applicable regulation, or by exchange trading hours and rules, and is not guaranteed at any particular time.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t08">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.08</span>
+              <h3>Fractional Shares</h3>
+            </div>
+            <p>Where offered, fractional share investing allows you to invest a specific amount rather than purchasing a whole share. Fractional shares may carry restrictions on transfer, and on how or whether they can be withdrawn to an external brokerage account, that do not apply to whole shares. Additional detail on these restrictions is provided in the Important Disclosures section.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t09">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.09</span>
+              <h3>Stablecoin Funding</h3>
+            </div>
+            <p>Zoey Wallet allows eligible accounts to be funded using supported stablecoins, including USDT and USDC. Stablecoin deposits are converted as part of the funding process; conversion is subject to prevailing rates and processing terms disclosed to you at the time of the transaction, and carries the risks described in the Important Disclosures section, including peg deviation risk.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t10">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.10</span>
+              <h3>Fees and Charges</h3>
+            </div>
+            <p>Use of Zoey Wallet and the investment services made available through it may involve fees, including fees charged by our third-party brokerage partner and network or conversion costs associated with stablecoin funding. A complete, itemized fee schedule will be presented to you before you incur any charge, and will also be published here as part of ongoing legal review.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t11">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.11</span>
+              <h3>Third-Party Brokerage Services</h3>
+            </div>
+            <p>Investment and custody services accessible through Zoey Wallet are provided by a third-party, independently regulated broker-dealer, not by Zoey Wallet itself. Your use of those services may also be subject to that partner's own terms and disclosures, which will be made available to you as part of account opening.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t12">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.12</span>
+              <h3>Market Data</h3>
+            </div>
+            <p>Market data, pricing, charts and related information made available on Zoey Wallet are provided for informational purposes and may be sourced from third-party providers. Market data may be delayed, may not reflect real-time pricing, and is provided without warranty of accuracy, completeness or timeliness.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t13">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.13</span>
+              <h3>Intellectual Property</h3>
+            </div>
+            <p>The Zoey Wallet name, logo, website and application, and all associated content, design and software, are the property of Zoey Wallet or its licensors and are protected by applicable intellectual property laws. You may not copy, modify, distribute or create derivative works from any part of the platform without prior written permission.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t14">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.14</span>
+              <h3>Prohibited Use</h3>
+            </div>
+            <p>You may not use Zoey Wallet for any unlawful purpose, to violate any applicable regulation, to engage in market manipulation or fraud, to infringe the rights of others, or to attempt to gain unauthorized access to any part of the platform, other accounts, or connected systems.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t15">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.15</span>
+              <h3>Suspension and Termination</h3>
+            </div>
+            <p>We may suspend or terminate your access to Zoey Wallet, in whole or in part, where we reasonably believe these Terms have been violated, where required by our brokerage partner or by applicable law, or to protect the platform, other users, or Zoey Wallet itself. Where practical, we will provide notice of any such action.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t16">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.16</span>
+              <h3>Disclaimers</h3>
+            </div>
+            <p>Zoey Wallet is provided on an “as is” and “as available” basis. To the fullest extent permitted by applicable law, we disclaim all warranties, express or implied, regarding the platform, including warranties of merchantability, fitness for a particular purpose, and non-infringement. Nothing on the platform constitutes a guarantee of investment performance.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t17">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.17</span>
+              <h3>Limitation of Liability</h3>
+            </div>
+            <p>To the fullest extent permitted by applicable law, Zoey Wallet and its officers, employees and affiliates will not be liable for any indirect, incidental, special or consequential damages arising from your use of, or inability to use, the platform, including losses relating to investment performance, market movements, or stablecoin conversion.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t18">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.18</span>
+              <h3>Changes to the Terms</h3>
+            </div>
+            <p>We may update these Terms from time to time to reflect changes to the platform, our services, or applicable law. Where changes are material, we will make reasonable efforts to notify you before they take effect. Continued use of Zoey Wallet after changes take effect constitutes acceptance of the updated Terms.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t19">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.19</span>
+              <h3>Governing Law</h3>
+            </div>
+            <p>The governing law and jurisdiction applicable to these Terms will be specified here following legal review, and will be selected to reflect the jurisdictions in which Zoey Wallet and its regulated brokerage partner actually operate and are licensed.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="t20">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">01.20</span>
+              <h3>Contact Information</h3>
+            </div>
+            <p>Questions about these Terms of Use can be directed to Zoey Wallet through the <a href="contact.html">Contact page</a>. Formal legal notices should be sent to the contact address that will be published here once finalized.</p>
+          </div>
+        </article>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="legal-block" id="privacy">
+      <div class="legal-block-grid">
+
+        <div class="legal-rail-left">
+          <div class="legal-num">02</div>
+          <div class="legal-rail-eyebrow">PRIVACY</div>
+        </div>
+
+        <aside class="legal-rail-right">
+          <div class="legal-context-card">
+            <div class="legal-context-group">
+              <div class="legal-context-label">Document</div>
+              <div class="legal-context-value">Legal &amp; Disclosures</div>
+            </div>
+            <div class="legal-context-group">
+              <div class="legal-context-label">Section</div>
+              <div class="legal-context-value">02 — Privacy Policy</div>
+            </div>
+            <div class="legal-context-group">
+              <div class="legal-context-label">Structure</div>
+              <div class="legal-context-value">16 subsections</div>
+            </div>
+            <div class="legal-context-divider"></div>
+            <div class="legal-context-label legal-context-index-label">On this section</div>
+            <nav class="legal-context-index" aria-label="Privacy Policy subsections">
+          <a href="#p01"><span>02.01</span>Introduction</a>
+          <a href="#p02"><span>02.02</span>Information We Collect</a>
+          <a href="#p03"><span>02.03</span>Information You Provide</a>
+          <a href="#p04"><span>02.04</span>Information Collected Automatically</a>
+          <a href="#p05"><span>02.05</span>How We Use Information</a>
+          <a href="#p06"><span>02.06</span>How We Share Information</a>
+          <a href="#p07"><span>02.07</span>Service Providers and Third Parties</a>
+          <a href="#p08"><span>02.08</span>Financial and Transaction Information</a>
+          <a href="#p09"><span>02.09</span>Cookies and Similar Technologies</a>
+          <a href="#p10"><span>02.10</span>Data Security</a>
+          <a href="#p11"><span>02.11</span>Data Retention</a>
+          <a href="#p12"><span>02.12</span>Your Privacy Rights</a>
+          <a href="#p13"><span>02.13</span>International Data Transfers</a>
+          <a href="#p14"><span>02.14</span>Children's Privacy</a>
+          <a href="#p15"><span>02.15</span>Changes to This Privacy Policy</a>
+          <a href="#p16"><span>02.16</span>Contact Us</a>
+            </nav>
+          </div>
+        </aside>
+
+        <div class="legal-main">
+          <div class="eyebrow">PRIVACY</div>
+          <h2>Privacy Policy</h2>
+          <p class="legal-section-intro">This Privacy Policy explains what information Zoey Wallet collects in connection with the platform, how that information is used and shared, and the choices available to you as a user of Zoey Wallet's stablecoin-funded investing services.</p>
+          <div class="legal-articles">
+        <article class="legal-article" id="p01">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.01</span>
+              <h3>Introduction</h3>
+            </div>
+            <p>This Privacy Policy describes how Zoey Wallet collects, uses, shares and protects information in connection with your use of the platform. It applies to visitors to this website and to registered users of the Zoey Wallet application.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p02">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.02</span>
+              <h3>Information We Collect</h3>
+            </div>
+            <p>We collect information you provide directly to us, information collected automatically through your use of the platform, and information received from third parties, including our brokerage partner and identity-verification providers, as described below.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p03">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.03</span>
+              <h3>Information You Provide</h3>
+            </div>
+            <p>This includes information you submit when creating an account or expressing interest in Zoey Wallet, such as your name, email address, phone number and country, and information required for identity verification and account opening by our brokerage partner.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p04">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.04</span>
+              <h3>Information Collected Automatically</h3>
+            </div>
+            <p>When you use our website or application, we may automatically collect certain technical information, such as device and browser type, IP address, general location, and how you interact with the platform, in order to operate, secure and improve the service.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p05">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.05</span>
+              <h3>How We Use Information</h3>
+            </div>
+            <p>We use the information we collect to provide and maintain the platform, process your requests, communicate with you, verify your identity where required, detect and prevent fraud, comply with applicable law, and improve Zoey Wallet's products and services.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p06">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.06</span>
+              <h3>How We Share Information</h3>
+            </div>
+            <p>We share information with our third-party brokerage partner and other service providers as necessary to provide the platform's services, and we may disclose information where required by law, regulation or legal process. We do not sell your personal information.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p07">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.07</span>
+              <h3>Service Providers and Third Parties</h3>
+            </div>
+            <p>We work with service providers that help us operate Zoey Wallet, including infrastructure, identity-verification, market-data and brokerage partners. These providers are permitted to use information we share with them only as needed to provide their services to us.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p08">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.08</span>
+              <h3>Financial and Transaction Information</h3>
+            </div>
+            <p>Information relating to funding, stablecoin conversions, and investment transactions is handled with particular care, and is shared with our brokerage partner and relevant payment or blockchain infrastructure providers only as necessary to execute and record those transactions.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p09">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.09</span>
+              <h3>Cookies and Similar Technologies</h3>
+            </div>
+            <p>Our website may use cookies and similar technologies to remember preferences, understand usage, and support core functionality. Where required by applicable law, we will provide additional detail and controls regarding these technologies.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p10">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.10</span>
+              <h3>Data Security</h3>
+            </div>
+            <p>We use administrative, technical and physical safeguards designed to protect information from unauthorized access, loss, misuse or alteration. No method of transmission or storage is completely secure, and we cannot guarantee absolute security.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p11">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.11</span>
+              <h3>Data Retention</h3>
+            </div>
+            <p>We retain information for as long as necessary to provide the platform's services, comply with our legal and regulatory obligations (including obligations that may apply to our brokerage partner), resolve disputes, and enforce our agreements.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p12">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.12</span>
+              <h3>Your Privacy Rights</h3>
+            </div>
+            <p>Depending on your jurisdiction, you may have rights regarding your personal information, such as the right to access, correct or delete certain information. Specific rights and how to exercise them will be detailed here as part of ongoing legal review, reflecting the jurisdictions Zoey Wallet serves.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p13">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.13</span>
+              <h3>International Data Transfers</h3>
+            </div>
+            <p>Because Zoey Wallet, our service providers and our brokerage partner may operate in different countries, information may be transferred to and processed in jurisdictions other than your own, subject to appropriate safeguards.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p14">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.14</span>
+              <h3>Children's Privacy</h3>
+            </div>
+            <p>Zoey Wallet is not directed to individuals under the age of majority in their jurisdiction, and we do not knowingly collect personal information from children. If we become aware that we have collected such information, we will take steps to delete it.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p15">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.15</span>
+              <h3>Changes to This Privacy Policy</h3>
+            </div>
+            <p>We may update this Privacy Policy from time to time to reflect changes to our practices or applicable law. Where changes are material, we will make reasonable efforts to notify you before they take effect.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="p16">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">02.16</span>
+              <h3>Contact Us</h3>
+            </div>
+            <p>Questions about this Privacy Policy or how your information is handled can be directed to Zoey Wallet through the <a href="contact.html">Contact page</a>, or to the privacy contact address that will be published here once finalized.</p>
+          </div>
+        </article>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="legal-block" id="disclosures">
+      <div class="legal-block-grid">
+
+        <div class="legal-rail-left">
+          <div class="legal-num">03</div>
+          <div class="legal-rail-eyebrow">DISCLOSURES</div>
+        </div>
+
+        <aside class="legal-rail-right">
+          <div class="legal-context-card">
+            <div class="legal-context-group">
+              <div class="legal-context-label">Document</div>
+              <div class="legal-context-value">Legal &amp; Disclosures</div>
+            </div>
+            <div class="legal-context-group">
+              <div class="legal-context-label">Section</div>
+              <div class="legal-context-value">03 — Important Disclosures</div>
+            </div>
+            <div class="legal-context-group">
+              <div class="legal-context-label">Structure</div>
+              <div class="legal-context-value">15 subsections</div>
+            </div>
+            <div class="legal-context-divider"></div>
+            <div class="legal-context-label legal-context-index-label">On this section</div>
+            <nav class="legal-context-index" aria-label="Important Disclosures subsections">
+          <a href="#d01"><span>03.01</span>General Disclosure</a>
+          <a href="#d02"><span>03.02</span>Investment Risk</a>
+          <a href="#d03"><span>03.03</span>Fractional Shares</a>
+          <a href="#d04"><span>03.04</span>Market Volatility</a>
+          <a href="#d05"><span>03.05</span>Stablecoin Risk</a>
+          <a href="#d06"><span>03.06</span>Currency and Conversion Risk</a>
+          <a href="#d07"><span>03.07</span>Brokerage Services</a>
+          <a href="#d08"><span>03.08</span>Market Data</a>
+          <a href="#d09"><span>03.09</span>Third-Party Services</a>
+          <a href="#d10"><span>03.10</span>No Investment Advice</a>
+          <a href="#d11"><span>03.11</span>Execution and Order Risks</a>
+          <a href="#d12"><span>03.12</span>Liquidity and Transfer Considerations</a>
+          <a href="#d13"><span>03.13</span>Technology and Operational Risks</a>
+          <a href="#d14"><span>03.14</span>Regulatory Considerations</a>
+          <a href="#d15"><span>03.15</span>Additional Information</a>
+            </nav>
+          </div>
+        </aside>
+
+        <div class="legal-main">
+          <div class="eyebrow">DISCLOSURES</div>
+          <h2>Important Disclosures</h2>
+          <p class="legal-section-intro">The disclosures below highlight risks and considerations specific to Zoey Wallet's stablecoin-native investing platform — investment risk, stablecoin and conversion risk, and the role of Zoey Wallet's third-party brokerage partner — alongside the general risks of investing.</p>
+          <div class="legal-articles">
+        <article class="legal-article" id="d01">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.01</span>
+              <h3>General Disclosure</h3>
+            </div>
+            <p>The following disclosures are provided to help you understand important risks and considerations associated with Zoey Wallet and the investment services accessible through it. They are not exhaustive and do not constitute legal, tax or investment advice.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d02">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.02</span>
+              <h3>Investment Risk</h3>
+            </div>
+            <p>Investing involves risk, including the possible loss of the principal invested. The value of investments can go down as well as up, and past performance is not a reliable indicator of future results. You should only invest amounts you can afford to lose.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d03">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.03</span>
+              <h3>Fractional Shares</h3>
+            </div>
+            <p>Fractional shares may have restrictions on transfer and trading that do not apply to whole shares, including limitations on transferring fractional positions to an external brokerage account. These restrictions are determined by our brokerage partner and the relevant exchanges.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d04">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.04</span>
+              <h3>Market Volatility</h3>
+            </div>
+            <p>Global equity markets can be volatile, and prices can change rapidly in response to economic, political or company-specific developments. Market volatility can affect the price at which your orders are executed.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d05">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.05</span>
+              <h3>Stablecoin Risk</h3>
+            </div>
+            <p>Funding your account using stablecoins such as USDT or USDC carries risk in addition to ordinary investment risk, including the risk that a stablecoin may deviate from its intended peg to the underlying reference currency, and risks associated with the issuer, custody and redemption of the stablecoin itself.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d06">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.06</span>
+              <h3>Currency and Conversion Risk</h3>
+            </div>
+            <p>Where funding involves converting stablecoins or other currencies, the rate and timing of conversion may affect the amount ultimately available for investment. Conversion terms will be disclosed to you at the time of the transaction.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d07">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.07</span>
+              <h3>Brokerage Services</h3>
+            </div>
+            <p>Brokerage, execution and custody services made available through Zoey Wallet are provided by a third-party, independently regulated broker-dealer, and not by Zoey Wallet. Zoey Wallet is a technology platform and does not itself hold or custody customer securities.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d08">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.08</span>
+              <h3>Market Data</h3>
+            </div>
+            <p>Market data displayed on Zoey Wallet, including prices, charts and screener information, may be sourced from third parties, may be delayed, and is provided for informational purposes only. It should not be relied upon as the sole basis for an investment decision.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d09">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.09</span>
+              <h3>Third-Party Services</h3>
+            </div>
+            <p>Certain features of Zoey Wallet rely on third-party service providers, including our brokerage partner, identity-verification providers and market-data providers. Zoey Wallet is not responsible for the acts or omissions of these independent third parties.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d10">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.10</span>
+              <h3>No Investment Advice</h3>
+            </div>
+            <p>Nothing on Zoey Wallet constitutes investment, legal or tax advice, or a recommendation or solicitation to buy or sell any security. You are solely responsible for your investment decisions, and you should consult a qualified professional where appropriate.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d11">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.11</span>
+              <h3>Execution and Order Risks</h3>
+            </div>
+            <p>Orders placed through Zoey Wallet are subject to execution by our brokerage partner and are not guaranteed to be filled, or to be filled at a particular price, particularly during periods of high volatility, low liquidity, or system or market disruption.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d12">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.12</span>
+              <h3>Liquidity and Transfer Considerations</h3>
+            </div>
+            <p>Some positions, particularly fractional shares, may be less liquid or more difficult to transfer than whole-share positions. You should review the transfer and liquidity terms applicable to your account before investing.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d13">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.13</span>
+              <h3>Technology and Operational Risks</h3>
+            </div>
+            <p>As a technology platform, Zoey Wallet depends on the continued operation of its own systems, its brokerage partner's systems, and underlying network and blockchain infrastructure. Outages, interruptions or errors in any of these systems could affect your ability to access the platform or execute transactions.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d14">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.14</span>
+              <h3>Regulatory Considerations</h3>
+            </div>
+            <p>Zoey Wallet's investment services are made available through a third-party regulated broker-dealer, as referenced in the site footer. Specific licensing, registration and jurisdictional information for Zoey Wallet and its brokerage partner will be published here following legal review, and this section should be treated as draft pending that review.</p>
+          </div>
+        </article>
+        <article class="legal-article" id="d15">
+          <div class="legal-article-inner reveal">
+            <div class="legal-article-head">
+              <span class="legal-article-num">03.15</span>
+              <h3>Additional Information</h3>
+            </div>
+            <p>Additional risk disclosures specific to particular products or features may be presented to you at the relevant point in the Zoey Wallet application, and should be read in conjunction with this page.</p>
+          </div>
+        </article>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg viewBox="165 84 10256 1671" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoIconGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5B7CFF"/><stop offset="55%" stop-color="#3A5CFF"/><stop offset="100%" stop-color="#2540D6"/></linearGradient></defs><g fill="url(#logoIconGrad)"><path d="M 166,1024 L 172,1026 L 182,1020 L 195,1019 L 285,983 L 296,982 L 405,941 L 459,925 L 669,848 L 725,832 L 894,769 L 930,760 L 1103,698 L 1117,696 L 1204,662 L 1264,646 L 1316,626 L 1357,618 L 1502,562 L 1516,560 L 1524,550 L 1449,521 L 1394,505 L 1236,448 L 1223,447 L 1217,442 L 1182,433 L 1097,400 L 1053,388 L 1010,370 L 851,319 L 804,299 L 656,248 L 562,219 L 411,163 L 395,161 L 329,135 L 169,84 L 165,89 Z"/><path d="M 1520,1752 L 1520,811 L 1517,807 L 1412,847 L 1396,849 L 1354,867 L 1208,914 L 1183,926 L 1105,949 L 1096,955 L 914,1019 L 896,1022 L 788,1062 L 776,1063 L 605,1127 L 409,1192 L 301,1233 L 262,1243 L 197,1269 L 183,1271 L 172,1278 L 177,1285 L 244,1306 L 290,1326 L 303,1327 L 330,1339 L 344,1341 L 390,1361 L 403,1362 L 509,1403 L 709,1469 L 756,1489 L 1012,1576 L 1162,1632 L 1176,1634 L 1203,1646 L 1218,1648 L 1325,1688 L 1382,1705 L 1410,1718 L 1502,1748 L 1510,1754 Z"/></g><path d="M 2285,690 L 2281,699 L 2281,772 L 2287,778 L 2597,778 L 2606,784 L 2590,809 L 2486,935 L 2440,997 L 2326,1138 L 2286,1182 L 2280,1201 L 2283,1256 L 2289,1259 L 2736,1259 L 2746,1256 L 2751,1248 L 2751,1168 L 2744,1162 L 2447,1163 L 2437,1157 L 2601,950 L 2652,891 L 2664,870 L 2747,771 L 2751,754 L 2751,703 L 2747,691 L 2732,687 L 2300,687 Z" fill="#F7F6F3"/><path d="M 3343,683 L 3290,699 L 3249,719 L 3196,760 L 3160,800 L 3125,863 L 3107,925 L 3106,1013 L 3115,1057 L 3134,1105 L 3169,1158 L 3217,1204 L 3276,1240 L 3318,1257 L 3344,1260 L 3357,1266 L 3465,1267 L 3516,1257 L 3559,1239 L 3614,1205 L 3663,1157 L 3697,1105 L 3715,1059 L 3725,1016 L 3725,922 L 3715,885 L 3697,837 L 3659,781 L 3623,745 L 3587,720 L 3520,691 L 3498,688 L 3485,682 L 3411,679 Z M 3389,770 L 3427,769 L 3482,779 L 3506,788 L 3538,807 L 3576,842 L 3593,863 L 3619,917 L 3625,953 L 3625,990 L 3619,1023 L 3599,1070 L 3574,1104 L 3530,1141 L 3493,1160 L 3456,1170 L 3369,1169 L 3335,1160 L 3301,1142 L 3277,1125 L 3248,1094 L 3222,1050 L 3219,1032 L 3212,1020 L 3212,927 L 3219,913 L 3221,897 L 3248,853 L 3276,822 L 3310,797 L 3349,780 Z" fill-rule="evenodd" fill="#F7F6F3"/><path d="M 4071,925 L 4067,997 L 4067,1247 L 4073,1258 L 4483,1259 L 4486,1256 L 4489,1177 L 4483,1163 L 4180,1163 L 4166,1157 L 4165,1017 L 4170,1010 L 4445,1008 L 4452,1000 L 4453,938 L 4450,923 L 4076,921 Z M 4070,698 L 4069,765 L 4076,777 L 4483,777 L 4488,768 L 4487,694 L 4484,688 L 4477,686 L 4096,686 L 4076,688 Z" fill="#F7F6F3"/><path d="M 4861,688 L 4858,699 L 4862,711 L 4885,740 L 5031,970 L 5071,1023 L 5079,1039 L 5079,1253 L 5086,1259 L 5172,1258 L 5178,1251 L 5180,1032 L 5398,704 L 5398,689 L 5292,688 L 5283,693 L 5252,736 L 5128,931 L 5117,922 L 5105,897 L 4973,689 Z" fill="#F7F6F3"/><path d="M 5996,690 L 5995,704 L 6001,714 L 6003,730 L 6046,851 L 6057,894 L 6072,929 L 6083,976 L 6135,1127 L 6154,1195 L 6178,1257 L 6183,1260 L 6253,1259 L 6265,1247 L 6295,1149 L 6302,1138 L 6312,1099 L 6320,1084 L 6321,1070 L 6346,1003 L 6348,985 L 6364,945 L 6366,930 L 6384,878 L 6394,867 L 6401,872 L 6403,891 L 6427,956 L 6429,971 L 6436,983 L 6438,998 L 6462,1065 L 6464,1082 L 6472,1098 L 6473,1111 L 6498,1177 L 6501,1194 L 6506,1200 L 6509,1222 L 6520,1251 L 6529,1259 L 6601,1259 L 6610,1254 L 6632,1177 L 6692,1003 L 6693,990 L 6709,951 L 6711,937 L 6718,926 L 6729,883 L 6790,701 L 6787,690 L 6771,687 L 6697,688 L 6687,696 L 6660,779 L 6658,795 L 6642,836 L 6631,883 L 6615,924 L 6613,941 L 6597,982 L 6595,997 L 6589,1006 L 6578,1052 L 6564,1079 L 6552,1059 L 6550,1042 L 6534,1001 L 6532,984 L 6525,971 L 6497,871 L 6490,859 L 6488,843 L 6473,804 L 6470,781 L 6443,697 L 6435,690 L 6417,687 L 6361,687 L 6350,691 L 6287,885 L 6286,897 L 6261,963 L 6259,980 L 6234,1050 L 6232,1069 L 6224,1080 L 6216,1078 L 6213,1051 L 6207,1043 L 6205,1025 L 6188,984 L 6187,970 L 6180,957 L 6160,881 L 6145,844 L 6133,796 L 6126,784 L 6125,770 L 6118,756 L 6105,702 L 6096,690 L 6003,687 Z" fill="#F7F6F3"/><path d="M 7177,690 L 7020,1069 L 6943,1243 L 6944,1256 L 6950,1259 L 7043,1259 L 7053,1252 L 7066,1210 L 7090,1159 L 7109,1105 L 7117,1093 L 7128,1057 L 7153,1003 L 7163,972 L 7178,943 L 7181,925 L 7196,897 L 7216,843 L 7230,822 L 7241,836 L 7271,917 L 7278,925 L 7315,1024 L 7321,1031 L 7342,1088 L 7366,1138 L 7377,1174 L 7413,1255 L 7420,1259 L 7517,1258 L 7523,1251 L 7456,1105 L 7444,1068 L 7332,814 L 7285,695 L 7271,688 L 7195,687 Z" fill="#F7F6F3"/><path d="M 7796,688 L 7791,697 L 7790,1241 L 7794,1256 L 7801,1259 L 8196,1257 L 8199,1251 L 8200,1170 L 8196,1163 L 7902,1163 L 7889,1157 L 7888,695 L 7877,687 Z" fill="#F7F6F3"/><path d="M 8516,690 L 8512,697 L 8512,1245 L 8516,1256 L 8522,1259 L 8922,1257 L 8925,1252 L 8925,1171 L 8920,1163 L 8621,1162 L 8614,1157 L 8614,696 L 8610,689 L 8596,687 Z" fill="#F7F6F3"/><path d="M 9202,924 L 9200,1222 L 9204,1257 L 9605,1259 L 9613,1255 L 9616,1246 L 9616,1175 L 9611,1163 L 9303,1162 L 9297,1152 L 9297,1017 L 9301,1010 L 9578,1008 L 9584,992 L 9585,937 L 9580,922 L 9210,921 Z M 9201,695 L 9201,766 L 9203,773 L 9209,776 L 9605,777 L 9613,772 L 9615,766 L 9615,696 L 9610,688 L 9213,686 L 9204,688 Z" fill="#F7F6F3"/><path d="M 9931,686 L 9927,696 L 9927,771 L 9931,778 L 10105,778 L 10120,785 L 10120,1248 L 10129,1258 L 10215,1258 L 10220,1251 L 10220,784 L 10233,778 L 10415,777 L 10421,770 L 10420,695 L 10412,688 Z" fill="#F7F6F3"/></svg>
+        <p>Global markets. One wallet. Direct, regulated access to global equities, funded with stablecoins and built for Africa.</p>
+        <div class="footer-social">
+          <div class="footer-social-label">Follow us on</div>
+          <div class="footer-social-icons">
+            <a href="https://x.com/zoeywallet_io?s=11" target="_blank" rel="noopener noreferrer" aria-label="Zoey Wallet on X">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <a href="https://www.instagram.com/zoeywallet.io?stkn=NGE4M2dmM29sb25x&amp;utm_source=qr" target="_blank" rel="noopener noreferrer" aria-label="Zoey Wallet on Instagram">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 0C8.74 0 8.333.014 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.014 8.333 0 8.74 0 12s.014 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.986 8.74 24 12 24s3.667-.014 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.336 1.384-2.126.296-.765.499-1.636.558-2.913.058-1.28.072-1.687.072-4.947s-.014-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.65.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.014 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.898 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.898-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.86.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.795.646-1.439 1.44-1.439.793 0 1.44.644 1.44 1.44z"/></svg>
+            </a>
+            <a href="https://www.linkedin.com/in/zoey-wallet-759493437" target="_blank" rel="noopener noreferrer" aria-label="Zoey Wallet on LinkedIn">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            </a>
+            <a href="https://www.tiktok.com/@zoeywallet.io?_r=1&amp;_t=ZS-99lLNF3S49Q" target="_blank" rel="noopener noreferrer" aria-label="Zoey Wallet on TikTok">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16.6 5.82c-1.007-1.02-1.552-2.394-1.523-3.82h-3.44v13.615c-.026 1.53-1.284 2.762-2.822 2.762-1.549 0-2.822-1.24-2.822-2.775 0-1.815 1.75-3.176 3.554-2.614V9.406c-3.79-.518-7.124 2.42-7.124 6.148 0 3.626 3.006 6.194 6.062 6.194 3.279 0 6.033-2.65 6.033-6.194V9.6a9.096 9.096 0 0 0 5.31 1.7v-3.44c-1.505 0-3.02-.583-4.228-1.836z"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-col"><h4>Product</h4><a href="index.html#solution">How it works</a><a href="index.html#markets">Markets</a><a href="index.html#security">Security</a></div>
+      <div class="footer-col"><h4>Company</h4><a href="index.html#about">About</a><a href="#">Careers</a><a href="contact.html">Contact</a></div>
+      <div class="footer-col"><h4>Resources</h4><a href="index.html#market-data">Market Data</a><a href="#">Blog</a></div>
+      <div class="footer-col"><h4>Legal</h4><a href="legal.html#terms">Terms</a><a href="legal.html#privacy">Privacy</a><a href="legal.html#disclosures">Disclosures</a></div>
+    </div>
+    <div class="footer-bottom">
+      <p>Zoey Wallet is a technology platform. Brokerage services are provided by a third-party regulated broker-dealer, member FINRA/SIPC. Investing involves risk, including possible loss of principal. Fractional shares may have restrictions on transfer and trading. Stablecoin conversions carry additional risk, including peg deviation risk.</p>
+      <div class="footer-legal">&copy; 2026 Zoey Wallet</div>
+    </div>
+
+    <div class="footer-giant-mark" aria-hidden="true">
+      <svg viewBox="2260 655 8181 632" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"><path d="M 2285,690 L 2281,699 L 2281,772 L 2287,778 L 2597,778 L 2606,784 L 2590,809 L 2486,935 L 2440,997 L 2326,1138 L 2286,1182 L 2280,1201 L 2283,1256 L 2289,1259 L 2736,1259 L 2746,1256 L 2751,1248 L 2751,1168 L 2744,1162 L 2447,1163 L 2437,1157 L 2601,950 L 2652,891 L 2664,870 L 2747,771 L 2751,754 L 2751,703 L 2747,691 L 2732,687 L 2300,687 Z" fill="currentColor"/><path d="M 3343,683 L 3290,699 L 3249,719 L 3196,760 L 3160,800 L 3125,863 L 3107,925 L 3106,1013 L 3115,1057 L 3134,1105 L 3169,1158 L 3217,1204 L 3276,1240 L 3318,1257 L 3344,1260 L 3357,1266 L 3465,1267 L 3516,1257 L 3559,1239 L 3614,1205 L 3663,1157 L 3697,1105 L 3715,1059 L 3725,1016 L 3725,922 L 3715,885 L 3697,837 L 3659,781 L 3623,745 L 3587,720 L 3520,691 L 3498,688 L 3485,682 L 3411,679 Z M 3389,770 L 3427,769 L 3482,779 L 3506,788 L 3538,807 L 3576,842 L 3593,863 L 3619,917 L 3625,953 L 3625,990 L 3619,1023 L 3599,1070 L 3574,1104 L 3530,1141 L 3493,1160 L 3456,1170 L 3369,1169 L 3335,1160 L 3301,1142 L 3277,1125 L 3248,1094 L 3222,1050 L 3219,1032 L 3212,1020 L 3212,927 L 3219,913 L 3221,897 L 3248,853 L 3276,822 L 3310,797 L 3349,780 Z" fill-rule="evenodd" fill="currentColor"/><path d="M 4071,925 L 4067,997 L 4067,1247 L 4073,1258 L 4483,1259 L 4486,1256 L 4489,1177 L 4483,1163 L 4180,1163 L 4166,1157 L 4165,1017 L 4170,1010 L 4445,1008 L 4452,1000 L 4453,938 L 4450,923 L 4076,921 Z M 4070,698 L 4069,765 L 4076,777 L 4483,777 L 4488,768 L 4487,694 L 4484,688 L 4477,686 L 4096,686 L 4076,688 Z" fill="currentColor"/><path d="M 4861,688 L 4858,699 L 4862,711 L 4885,740 L 5031,970 L 5071,1023 L 5079,1039 L 5079,1253 L 5086,1259 L 5172,1258 L 5178,1251 L 5180,1032 L 5398,704 L 5398,689 L 5292,688 L 5283,693 L 5252,736 L 5128,931 L 5117,922 L 5105,897 L 4973,689 Z" fill="currentColor"/><path d="M 5996,690 L 5995,704 L 6001,714 L 6003,730 L 6046,851 L 6057,894 L 6072,929 L 6083,976 L 6135,1127 L 6154,1195 L 6178,1257 L 6183,1260 L 6253,1259 L 6265,1247 L 6295,1149 L 6302,1138 L 6312,1099 L 6320,1084 L 6321,1070 L 6346,1003 L 6348,985 L 6364,945 L 6366,930 L 6384,878 L 6394,867 L 6401,872 L 6403,891 L 6427,956 L 6429,971 L 6436,983 L 6438,998 L 6462,1065 L 6464,1082 L 6472,1098 L 6473,1111 L 6498,1177 L 6501,1194 L 6506,1200 L 6509,1222 L 6520,1251 L 6529,1259 L 6601,1259 L 6610,1254 L 6632,1177 L 6692,1003 L 6693,990 L 6709,951 L 6711,937 L 6718,926 L 6729,883 L 6790,701 L 6787,690 L 6771,687 L 6697,688 L 6687,696 L 6660,779 L 6658,795 L 6642,836 L 6631,883 L 6615,924 L 6613,941 L 6597,982 L 6595,997 L 6589,1006 L 6578,1052 L 6564,1079 L 6552,1059 L 6550,1042 L 6534,1001 L 6532,984 L 6525,971 L 6497,871 L 6490,859 L 6488,843 L 6473,804 L 6470,781 L 6443,697 L 6435,690 L 6417,687 L 6361,687 L 6350,691 L 6287,885 L 6286,897 L 6261,963 L 6259,980 L 6234,1050 L 6232,1069 L 6224,1080 L 6216,1078 L 6213,1051 L 6207,1043 L 6205,1025 L 6188,984 L 6187,970 L 6180,957 L 6160,881 L 6145,844 L 6133,796 L 6126,784 L 6125,770 L 6118,756 L 6105,702 L 6096,690 L 6003,687 Z" fill="currentColor"/><path d="M 7177,690 L 7020,1069 L 6943,1243 L 6944,1256 L 6950,1259 L 7043,1259 L 7053,1252 L 7066,1210 L 7090,1159 L 7109,1105 L 7117,1093 L 7128,1057 L 7153,1003 L 7163,972 L 7178,943 L 7181,925 L 7196,897 L 7216,843 L 7230,822 L 7241,836 L 7271,917 L 7278,925 L 7315,1024 L 7321,1031 L 7342,1088 L 7366,1138 L 7377,1174 L 7413,1255 L 7420,1259 L 7517,1258 L 7523,1251 L 7456,1105 L 7444,1068 L 7332,814 L 7285,695 L 7271,688 L 7195,687 Z" fill="currentColor"/><path d="M 7796,688 L 7791,697 L 7790,1241 L 7794,1256 L 7801,1259 L 8196,1257 L 8199,1251 L 8200,1170 L 8196,1163 L 7902,1163 L 7889,1157 L 7888,695 L 7877,687 Z" fill="currentColor"/><path d="M 8516,690 L 8512,697 L 8512,1245 L 8516,1256 L 8522,1259 L 8922,1257 L 8925,1252 L 8925,1171 L 8920,1163 L 8621,1162 L 8614,1157 L 8614,696 L 8610,689 L 8596,687 Z" fill="currentColor"/><path d="M 9202,924 L 9200,1222 L 9204,1257 L 9605,1259 L 9613,1255 L 9616,1246 L 9616,1175 L 9611,1163 L 9303,1162 L 9297,1152 L 9297,1017 L 9301,1010 L 9578,1008 L 9584,992 L 9585,937 L 9580,922 L 9210,921 Z M 9201,695 L 9201,766 L 9203,773 L 9209,776 L 9605,777 L 9613,772 L 9615,766 L 9615,696 L 9610,688 L 9213,686 L 9204,688 Z" fill="currentColor"/><path d="M 9931,686 L 9927,696 L 9927,771 L 9931,778 L 10105,778 L 10120,785 L 10120,1248 L 10129,1258 L 10215,1258 L 10220,1251 L 10220,784 L 10233,778 L 10415,777 L 10421,770 L 10420,695 L 10412,688 Z" fill="currentColor"/></svg>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ---- Mobile menu ----
+  const navToggle = document.getElementById('navToggle');
+  const mobileMenu = document.getElementById('mobileMenu');
+  navToggle.addEventListener('click', () => {
+    const open = mobileMenu.classList.toggle('open');
+    navToggle.setAttribute('aria-expanded', String(open));
+    document.getElementById('toggleIcon').setAttribute('d', open ? 'M3 3 L15 15 M15 3 L3 15' : 'M2 5 H16 M2 9 H16 M2 13 H16');
+  });
+  mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+    mobileMenu.classList.remove('open');
+    navToggle.setAttribute('aria-expanded', 'false');
+    document.getElementById('toggleIcon').setAttribute('d', 'M2 5 H16 M2 9 H16 M2 13 H16');
+  }));
+
+  // ---- Scroll reveal ----
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // ---- HEADER + LEGAL SUB-NAV HEIGHT SYNC ----
+  // Keeps --header-h and --legal-nav-h equal to the real, live-measured
+  // heights of the fixed header and the sticky legal sub-nav, so the
+  // #terms/#privacy/#disclosures scroll-margin-top (set in the CSS above)
+  // and the sub-nav's own `top` offset stay correct at every breakpoint,
+  // rather than relying on guessed constants.
+  function syncChromeHeights(){
+    const header = document.querySelector('header');
+    const subnav = document.querySelector('.legal-subnav');
+    if (header) document.documentElement.style.setProperty('--header-h', header.getBoundingClientRect().height + 'px');
+    if (subnav) document.documentElement.style.setProperty('--legal-nav-h', subnav.getBoundingClientRect().height + 'px');
+  }
+  syncChromeHeights();
+  window.addEventListener('resize', syncChromeHeights);
+  window.addEventListener('load', syncChromeHeights);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncChromeHeights);
+
+  // ---- Legal sub-nav: active-section highlighting ----
+  const subnavLinks = Array.from(document.querySelectorAll('.legal-subnav-inner a'));
+  const legalSections = ['terms', 'privacy', 'disclosures'].map(id => document.getElementById(id)).filter(Boolean);
+  function setActive(id){
+    subnavLinks.forEach(a => a.classList.toggle('active', a.dataset.section === id));
+  }
+  if (legalSections.length){
+    const sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) setActive(entry.target.id);
+      });
+    }, { rootMargin: '-45% 0px -50% 0px', threshold: 0 });
+    legalSections.forEach(sec => sectionObserver.observe(sec));
+  }
+
+  // ---- Hash navigation on load / back-forward: browsers already jump to
+  // the target id on initial load and on hash changes, and scroll-margin-top
+  // above keeps that landing correct; this just keeps the sub-nav's active
+  // pill in sync when the hash changes without a full navigation (e.g.
+  // clicking between Terms/Privacy/Disclosures while already on this page). ----
+  window.addEventListener('hashchange', () => {
+    const id = window.location.hash.replace('#', '');
+    if (['terms','privacy','disclosures'].includes(id)) setActive(id);
+  });
+  if (window.location.hash){
+    const id = window.location.hash.replace('#', '');
+    if (['terms','privacy','disclosures'].includes(id)) setActive(id);
+  }
+</script>
+</body>
+</html>

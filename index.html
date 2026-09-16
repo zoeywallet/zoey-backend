@@ -32,6 +32,12 @@
     --font-body: 'Inter', 'Liberation Sans', sans-serif;
     --font-mono: 'IBM Plex Mono', 'Liberation Mono', monospace;
     --max: 1320px;
+    /* Fallback header height for scroll-margin-top below, used only until
+       the measurement script (near the page-router script at the bottom of
+       the document) runs and overwrites it with the header's real, live
+       height -- which varies by breakpoint and can even change if the nav
+       wraps onto two lines at very narrow widths. */
+    --header-h: 90px;
   }
   *{ margin:0; padding:0; box-sizing:border-box; }
   html{ scroll-behavior:smooth; }
@@ -66,12 +72,24 @@
   .btn-cobalt:hover{ transform: translateY(-1px); background:#151D2C; }
   .btn-outline{ border-color: var(--ink); color: var(--ink); background:none; }
   .btn-outline:hover{ background: var(--ink); color: var(--off-white); }
+  .hero-ctas .btn-outline{ background: var(--ink); color: var(--off-white); border-color: var(--ink); transition: background .2s ease, color .2s ease, border-color .2s ease; }
+  .hero-ctas .btn-outline:hover{ background: var(--off-white); color: var(--ink); border-color: var(--ink); }
   .btn-outline.on-dark{ border-color: rgba(247,246,243,0.4); color: var(--off-white); }
   .btn-outline.on-dark:hover{ background: var(--off-white); color: var(--navy); }
   .btn-sm{ padding:10px 20px; font-size:13.5px; }
 
   /* ============ NAV ============ */
   header{ position:fixed; top:0; left:0; right:0; z-index:100; background: rgba(247,246,243,0.86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom:1px solid var(--border); }
+  /* The header is fixed (always overlaying the viewport's top edge), but
+     el.scrollIntoView() -- used by the nav's hash router below -- has no
+     built-in awareness of that: without this, a section's own top edge
+     lands at y=0, sliding part of it (or, for a bottom-aligned section
+     like #solution, ALL of its visible content) underneath the header.
+     scroll-margin-top is honored automatically by scrollIntoView() in
+     every modern browser, so this is the actual fix, not a JS workaround --
+     the JS below only keeps --header-h accurate to the header's real,
+     live-measured height instead of a guessed constant. */
+  #trust, #cta, #solution, #markets, #security, #market-data{ scroll-margin-top: var(--header-h); }
   nav{ display:flex; align-items:center; justify-content:space-between; max-width: var(--max); margin:0 auto; padding:20px 48px; gap:20px; }
   .nav-logo svg{ height:24px; width:auto; }
   .nav-links{ display:flex; align-items:center; gap:40px; }
@@ -86,7 +104,7 @@
   .mobile-menu a:last-of-type{ border-bottom:none; }
 
   /* ============ HERO ============ */
-  .hero{ padding:186px 0 90px; overflow:visible; }
+  .hero{ padding:186px 0 90px; overflow:visible; position:relative; }
 
   /* ============ FLOATING MARKET TICKER ============ */
   .ticker-section{ position:relative; margin-top:-42px; margin-bottom:28px; z-index:3; }
@@ -190,6 +208,94 @@
   .pf-actions{ display:flex; gap:10px; }
   .pf-actions button{ flex:1; font-family:var(--font-body); font-weight:600; font-size:13px; padding:11px; border-radius:9px; border:1px solid var(--border-on-dark); background:none; color: var(--off-white); }
   .pf-actions button.primary{ background: var(--cobalt); border-color: var(--cobalt); }
+
+  /* ---- hero visual: the phone is a genuinely transparent cutout
+     (assets/hero-visual-cutout.webp -- the source photo's white backdrop
+     was removed at the pixel level, not faked with a CSS blend mode), so
+     it sits directly on the page's own off-white background with no
+     card, no panel, no visible rectangle -- it reads as part of the
+     hero's background layer, the same way .about-hero-media-img is a
+     photo layered behind real content further down this stylesheet.
+       - top/right/bottom are real offsets (not inset:0), so the visual
+         is ALWAYS held clear of the fixed header above and the floating
+         ticker below, at every viewport size and scroll position --
+         scrolling can never make it larger or move it, since it's a
+         plain absolutely-positioned box in normal flow, not fixed/sticky.
+       - height is intentionally left unset: with both top and bottom
+         given, the box is simply "whatever fits between them", computed
+         directly by the browser -- no aspect-ratio math and no
+         percentage-of-an-auto-height-ancestor chain that could ever
+         produce a taller-than-intended box.
+       - width scales fluidly with clamp() between breakpoint-tuned
+         min/max bounds instead of jumping at hard breakpoints.
+       - object-fit:contain on the image (not cover): the phone's own
+         aspect ratio is always preserved in full -- it scales down to
+         fit the safe area, never stretches, never distorts, and is
+         never arbitrarily cropped by a box edge. Because the asset is
+         transparent, any extra space inside the box is invisible, so a
+         generous box only ever makes the phone larger, never boxier. */
+  .hero-media{
+    position:absolute;
+    top: 86px;
+    right: 6px;
+    bottom: 50px;
+    width: 499px;
+    z-index:0;
+    overflow:hidden;
+    pointer-events:none;
+  }
+  .hero-media-img{
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:contain; object-position:100% 50%; display:block;
+  }
+  .hero .hero-grid{ position:relative; z-index:1; }
+  /* desktop only (>1280px): the phone is rendered as a background-image on
+     .hero-media instead of via the <img> + object-fit above -- a plain
+     object-fit:contain/cover always shows the WHOLE cutout (phone + the
+     thin transparent margin above/below it), wasting ~12% of the available
+     height on empty space. Sizing the background explicitly (background-size,
+     computed so the PHONE's own pixels -- not the full image canvas -- fill
+     this box) reclaims that margin, so the phone itself grows to fill the
+     full safe vertical envelope between the header and the ticker, with no
+     visible crop of the phone body (only the empty canvas margin and some of
+     the decorative swirl are trimmed). This is scoped with min-width:1281px
+     (rather than living in the base rule) and the <img> is explicitly hidden
+     here -- the cutout has real alpha transparency, so leaving both a
+     background-image AND the <img> active on the same box at once let the
+     two different crops show through each other as a ghosted double-image;
+     tablet/mobile keep using the plain <img>+object-fit:cover approach
+     further down this stylesheet, untouched. */
+  @media (min-width:1281px){
+    .hero-media{
+      background-image: url('assets/hero-visual-cutout.webp');
+      background-repeat: no-repeat;
+      background-position: 72% 7%;
+      background-size: 1036px auto;
+    }
+    .hero-media-img{ display:none; }
+    /* "Fractional Shares." (with the trailing period) is a touch wider than
+       the text column at every desktop width from 1281px up -- not a phone
+       clearance issue, just this one line's own width. Sized down only this
+       phrase (not the rest of the headline) by the smallest amount that
+       keeps it on one line even at the column's narrowest point (588px,
+       at exactly 1281px); "Global markets." and "Built for Africans" keep
+       their existing size untouched. */
+    .hero h1 .h1-frac-line{ font-size:82px; }
+  }
+  /* narrow sliver right above the 1280px breakpoint: at 1281-1320px the
+     headline wraps an extra line, making the hero section itself taller,
+     so the phone's safe vertical envelope (and the background-size that
+     fills it) both need to grow to match -- otherwise the background
+     would be too short to cover the taller box, leaving a blank gap. */
+  @media (min-width:1281px) and (max-width:1320px){
+    .hero-media{ background-size: 1157px auto; background-position: 70% 7%; }
+    /* the text column itself is narrower in this sliver (588px, vs the
+       598px "Fractional Shares" needs at the base 88px) -- not a phone
+       clearance issue, there's plenty of gap to the phone here, it's the
+       grid column's own width. A 3px reduction is the smallest size that
+       keeps the phrase on one line, as requested. */
+    .hero h1{ font-size:85px; }
+  }
 
   /* ============ SECTION SHARED ============ */
   .section{ padding:140px 0; }
@@ -783,6 +889,86 @@
   .footer-bottom p{ font-size:11.5px; color: rgba(247,246,243,0.35); line-height:1.7; max-width:760px; }
   .footer-legal{ font-size:12px; color: rgba(247,246,243,0.4); white-space:nowrap; }
 
+  /* -- social links: sits under the brand blurb in .footer-brand, stacked
+     (label above icons) rather than inline, because that column is narrow at
+     every breakpoint (~260px on desktop, down to ~150px once the footer grid
+     is 2-up on mobile) -- inline "Follow us on" plus four icons doesn't fit
+     that width reliably, stacked always does. Reuses the same institutional
+     visual language already established elsewhere in the footer/site: the
+     label matches .footer-col h4 (font-mono, uppercase, tracked, faint), and
+     the icon "container" borrows the subtle bordered-tag treatment already
+     used for .pf-stable-pill / .tc-tag rather than inventing a new one. */
+  .footer-social{ margin-top:26px; }
+  .footer-social-label{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:1.5px; color: rgba(247,246,243,0.4); text-transform:uppercase; margin-bottom:14px; }
+  .footer-social-icons{ display:flex; align-items:center; gap:12px; }
+  /* -- Glass treatment: a soft two-stop gradient (rather than a flat tint)
+     plus an inset top/bottom hairline stands in for a lit top edge and a
+     shadowed underside -- the two things that read as "glass" -- while a
+     diagonal sheen on ::before adds one restrained highlight without any
+     glow/blur animation. backdrop-filter is layered on top for a touch of
+     real depth-of-field where supported; everything above still looks
+     correct without it, so the effect degrades gracefully. The button is a
+     flex container with both axes centered, so every glyph sits perfectly
+     centered with even breathing room on all sides by construction, not by
+     manual offsets; each icon's own width/height (below) is tuned so it
+     lands at roughly 60-70% of the box with ~15-20% clearance from the
+     border on every side. */
+  .footer-social-icons a{
+    position:relative; overflow:hidden; box-sizing:border-box;
+    display:inline-flex; align-items:center; justify-content:center;
+    width:40px; height:40px; border-radius:11px;
+    color: rgba(247,246,243,0.68);
+    background: linear-gradient(165deg, rgba(247,246,243,0.13), rgba(247,246,243,0.03) 55%, rgba(247,246,243,0.06));
+    border:1px solid rgba(247,246,243,0.15);
+    box-shadow:
+      inset 0 1px 0 rgba(247,246,243,0.16),
+      inset 0 -1px 0 rgba(5,7,12,0.35),
+      0 6px 14px -10px rgba(5,7,12,0.7);
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    transition: color .22s ease, border-color .22s ease, background .22s ease, box-shadow .22s ease, transform .22s ease;
+  }
+  .footer-social-icons a::before{
+    content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background: linear-gradient(135deg, rgba(247,246,243,0.12) 0%, rgba(247,246,243,0) 45%);
+  }
+  /* Centering is anchored to the button's own box (.footer-social-icons a
+     is position:relative) via inset:0 + margin:auto on both axes -- this
+     centers the svg's margin box exactly on both the horizontal and
+     vertical center of the button regardless of the svg's own width/height,
+     so each icon can have its own size (below) while staying perfectly,
+     independently centered with even clearance on every side; no per-icon
+     offset math is needed. */
+  .footer-social-icons a svg{
+    position:absolute; inset:0; margin:auto; z-index:1;
+    width:24px; height:24px; display:block; fill:currentColor;
+  }
+  /* Explicit per-mark size (not a shared base + transform:scale) so each
+     glyph's rendered footprint -- not just its 24x24 viewBox -- lands in
+     the same optical-size band. Instagram and LinkedIn draw edge to edge
+     in their viewBox; X's glyph fills only ~73% of its own canvas and
+     TikTok's ~60% (both measured via each path's real getBBox()), so left
+     at a uniform pixel size those two would read visibly smaller/lighter
+     next to Instagram and LinkedIn. Every value here stays inside 24-28px
+     against the 40px box, which keeps all four simultaneously within the
+     60-70% fill / 15-20% breathing-room targets while still compensating
+     for the density difference. */
+  .footer-social-icons a[aria-label$="Instagram"] svg{ width:24px; height:24px; }
+  .footer-social-icons a[aria-label$="LinkedIn"] svg{ width:23px; height:23px; }
+  .footer-social-icons a[aria-label$="X"] svg{ width:26px; height:26px; }
+  .footer-social-icons a[aria-label$="TikTok"] svg{ width:28px; height:28px; }
+  .footer-social-icons a:hover, .footer-social-icons a:focus-visible{
+    color: var(--off-white);
+    border-color: rgba(247,246,243,0.3);
+    background: linear-gradient(165deg, rgba(247,246,243,0.2), rgba(247,246,243,0.05) 55%, rgba(247,246,243,0.09));
+    box-shadow:
+      inset 0 1px 0 rgba(247,246,243,0.24),
+      inset 0 -1px 0 rgba(5,7,12,0.35),
+      0 10px 20px -12px rgba(5,7,12,0.75);
+    transform: translateY(-1px);
+  }
+  .footer-social-icons a:focus-visible{ outline:2px solid rgba(247,246,243,0.55); outline-offset:3px; }
+
   /* -- monumental closing wordmark: reuses the exact logo letterforms (same SVG
      paths as the header/footer-brand mark) at full-bleed scale, recolored to a
      single restrained off-white tone rather than the brand-blue icon gradient. -- */
@@ -807,9 +993,34 @@
   .reveal.in{ opacity:1; transform:none; }
 
   /* ============ RESPONSIVE ============ */
+  /* Hero-only intermediate breakpoint: the hero grid stays two-column at
+     every width (so the background photo is always beside the text, never
+     behind/under it), but the base 88px headline only has room once the
+     text column is wide enough -- below ~1280px it needs to step down. */
+  @media (max-width: 1280px){
+    .hero-grid{ grid-template-columns:1.3fr 1fr; gap:36px; }
+    .hero .eyebrow{ font-size:11px; }
+    .hero h1{ font-size:44px; line-height:1.05; margin-bottom:20px; }
+    .hero .lede{ font-size:15px; margin-bottom:28px; }
+    .hero-proof{ gap:20px; flex-wrap:wrap; }
+    .hero-proof .stat:last-child{ flex-basis:100%; }
+    .hero-media{
+      top: 92px;
+      right: 8px;
+      bottom: 56px;
+      width: clamp(275px, 43.8vw, 565px);
+    }
+    /* narrower than desktop: the safe box is taller/narrower than the
+       cutout's own composition, so switch from contain to cover (still
+       never stretches or distorts -- cover always preserves the image's
+       aspect ratio, it only crops the overflow) and re-anchor on the
+       phone itself, cropping into the empty margin/decorative-line side
+       rather than leaving the phone looking small and adrift. */
+    .hero-media-img{ object-fit:cover; object-position:68% 42%; }
+    .hero-proof .stat b{ font-size:17px; }
+    .hero-proof .stat span{ font-size:10px; }
+  }
   @media (max-width: 1080px){
-    .hero-grid{ grid-template-columns:1fr; }
-    .hero .float-wrap{ max-width:460px; }
     .problem-layout, .frac-layout{ grid-template-columns:1fr; gap:40px; }
     .connectivity-inner{ grid-template-columns:1fr; }
     .connectivity-copy{ padding:70px 48px 30px; max-width:none; }
@@ -833,21 +1044,73 @@
     .wrap{ padding:0 22px; }
     nav{ padding:16px 22px; }
     .hero{ padding:150px 0 74px; }
-    .hero h1{ font-size:38px; }
-    .hero .lede{ font-size:17px; }
+    /* Stacked mobile composition: the phone no longer shares this row with
+       the typography, so the grid collapses to a single full-width column
+       (it was 1fr 1fr before, squeezing the text into only half the
+       available width -- that was the source of the cramped headline). */
+    .hero-grid{ grid-template-columns:1fr; gap:0; }
+    .hero .eyebrow{ font-size:9.5px; letter-spacing:1.2px; }
+    /* Headline needs real presence on mobile, closer to the desktop/tablet
+       scale, now that it has the full column width to itself (previously
+       22px flat, sized for the cramped half-width column). clamp() scales
+       it smoothly across the mobile range instead of jumping straight to
+       the desktop size, which would risk overflow/awkward wraps on the
+       narrowest phones. */
+    .hero h1{ font-size: clamp(32px, 9vw, 46px); line-height:1.08; margin-bottom:18px; }
+    .hero .lede{ font-size:14px; line-height:1.5; margin-bottom:18px; }
+    .hero-ctas{ margin-bottom:22px; }
+    .hero-ctas .btn{ font-size:12px; padding:10px 16px; }
+
+    /* Force the three stats to stay in one horizontal row on mobile (a
+       tablet-tier rule above sets .stat:last-child{flex-basis:100%} to push
+       "USDT / USDC" onto its own line, which was also leaking into mobile).
+       A 3-column grid guarantees the row never collapses regardless of
+       content width -- each stat's own text wraps within its column
+       instead of the whole column dropping to a new row. */
+    .hero-proof{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding-top:18px; }
+    .hero-proof .stat:last-child{ flex-basis:auto; }
+    .hero-proof .stat b{ font-size:12.5px; line-height:1.25; }
+    .hero-proof .stat span{ font-size:7.5px; letter-spacing:0.2px; }
     .ticker-section{ margin-top:-30px; margin-bottom:24px; }
     .ticker-card{ width:150px; height:76px; padding:10px 14px 8px; border-radius:16px; }
     .tc-sym{ font-size:13px; }
     .tc-name{ font-size:10px; }
     .tc-spark{ width:66px; height:19px; }
     .ticker-cta{ height:44px; padding:0 20px; font-size:13px; }
-    .hero-proof{ gap:24px; flex-wrap:wrap; }
+    /* Phone becomes a normal-flow block stacked BELOW the typography/stats
+       (previously absolutely positioned beside them, which is what forced
+       the headline into a cramped half-width column). Sized to a container
+       aspect-ratio wide enough that the full phone silhouette -- including
+       a safety margin, not just the tight edges -- always fits with no
+       cropping: at this ratio the image's full HEIGHT always fits inside
+       the box exactly (no vertical crop is even possible), and only ~44%
+       of the image's width is kept, comfortably wider than the phone's own
+       36.6%-of-image width, so real-world rendering differences can't
+       shave into the phone itself the way the previous, tighter crop did. */
+    .hero-media{
+      position: relative;
+      left:auto; right:auto; top:auto; bottom:auto;
+      width: 100%;
+      max-width: 400px;
+      margin: 36px auto 0;
+      aspect-ratio: 0.557;
+      transform:none;
+    }
+    .hero-media-img{ object-fit:cover; object-position:70% 50%; }
     .section{ padding:88px 0; }
     .section-head h2{ font-size:34px; }
     .stock-grid{ grid-template-columns:1fr; }
     .frac-number{ font-size:64px; }
     .final-cta h2{ font-size:42px; }
     .footer-grid{ grid-template-columns:1fr 1fr; gap:32px; }
+    .footer-social{ margin-top:20px; }
+    .footer-social-icons{ gap:9px; }
+    .footer-social-icons a{ width:34px; height:34px; border-radius:9px; }
+    .footer-social-icons a svg{ width:20px; height:20px; }
+    .footer-social-icons a[aria-label$="Instagram"] svg{ width:20px; height:20px; }
+    .footer-social-icons a[aria-label$="LinkedIn"] svg{ width:19px; height:19px; }
+    .footer-social-icons a[aria-label$="X"] svg{ width:22px; height:22px; }
+    .footer-social-icons a[aria-label$="TikTok"] svg{ width:24px; height:24px; }
     .connectivity-copy h2{ font-size:32px; }
     .connectivity-copy{ padding:56px 22px 20px; }
     .chart-frame{ height:380px; }
@@ -870,7 +1133,13 @@
     .wrap{ padding:0 18px; }
     .portfolio-card{ padding:22px; }
     .pf-value{ font-size:32px; }
-    .hero h1{ font-size:40px; }
+    /* The h1 font-size and .hero-media top-offset overrides that used to
+       live here were both compensating for the phone sitting beside the
+       headline (absolutely positioned, narrow column, risk of overlap).
+       Now that the phone is a normal-flow block stacked below all the
+       typography/stats at every mobile width, neither compensation is
+       needed: the headline has the full column width to itself, and the
+       phone's position simply follows the content above it in flow. */
   }
 
   /* ============================================================
@@ -981,7 +1250,25 @@
     transition: border-color .18s, background .18s;
   }
   .zw-country-btn:hover{ background: var(--white); border-color: rgba(10,14,20,0.2); }
-  .zw-country-flag{ font-size:16px; line-height:1; }
+  /* -- Flags: real per-country SVG artwork (sourced by ISO alpha-2 code,
+     already present in ZW_COUNTRIES -- no new dataset) rather than Unicode
+     regional-indicator emoji. Emoji flags don't render as flags on every
+     platform -- notably many Windows browser/font combinations render the
+     two-letter code instead of a colored flag -- so an image guarantees a
+     consistent, sharp result everywhere. Fixed-box + object-fit:cover keeps
+     every flag the same visual size without stretching/distorting any of
+     them; a hairline shadow-ring keeps light-colored flags (e.g. Japan)
+     visible against the white dropdown background. If the image can't load
+     (offline, blocked resource) the shared error handler below just hides
+     it -- the ISO code text next to every flag already identifies the
+     country on its own, so nothing goes blank or broken-looking. */
+  .zw-flag-img{
+    display:inline-block; flex:0 0 auto; object-fit:cover; border-radius:2px;
+    box-shadow: 0 0 0 1px rgba(10,14,20,0.10); background: var(--off-white);
+    vertical-align:middle;
+  }
+  .zw-country-flag{ width:18px; height:13px; }
+  .zw-country-code{ font-family: var(--font-mono); font-size:12.5px; font-weight:600; color: var(--ink); }
   .zw-country-chevron{ opacity:0.5; transition: transform .18s; }
   .zw-country-btn[aria-expanded="true"] .zw-country-chevron{ transform: rotate(180deg); }
   .zw-phone-row .zw-input{ flex:1 1 auto; min-width:0; }
@@ -1008,6 +1295,8 @@
     font-family: var(--font-body); font-size:13.5px; color: var(--ink);
   }
   .zw-country-option:hover, .zw-country-option.active{ background: var(--off-white); }
+  .zw-country-option-flag{ width:20px; height:15px; }
+  .zw-country-option-code{ flex:0 0 auto; width:24px; font-family: var(--font-mono); font-size:12px; font-weight:600; color: var(--ink-faint); }
   .zw-country-option-name{ flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .zw-country-option-dial{
     font-family: var(--font-mono); font-size:12px; color: var(--ink-faint); flex:0 0 auto;
@@ -1355,11 +1644,11 @@
   <nav>
     <a href="#" class="nav-logo"><svg viewBox="165 84 10256 1671" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoIconGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5B7CFF"/><stop offset="55%" stop-color="#3A5CFF"/><stop offset="100%" stop-color="#2540D6"/></linearGradient></defs><g fill="url(#logoIconGrad)"><path d="M 166,1024 L 172,1026 L 182,1020 L 195,1019 L 285,983 L 296,982 L 405,941 L 459,925 L 669,848 L 725,832 L 894,769 L 930,760 L 1103,698 L 1117,696 L 1204,662 L 1264,646 L 1316,626 L 1357,618 L 1502,562 L 1516,560 L 1524,550 L 1449,521 L 1394,505 L 1236,448 L 1223,447 L 1217,442 L 1182,433 L 1097,400 L 1053,388 L 1010,370 L 851,319 L 804,299 L 656,248 L 562,219 L 411,163 L 395,161 L 329,135 L 169,84 L 165,89 Z"/><path d="M 1520,1752 L 1520,811 L 1517,807 L 1412,847 L 1396,849 L 1354,867 L 1208,914 L 1183,926 L 1105,949 L 1096,955 L 914,1019 L 896,1022 L 788,1062 L 776,1063 L 605,1127 L 409,1192 L 301,1233 L 262,1243 L 197,1269 L 183,1271 L 172,1278 L 177,1285 L 244,1306 L 290,1326 L 303,1327 L 330,1339 L 344,1341 L 390,1361 L 403,1362 L 509,1403 L 709,1469 L 756,1489 L 1012,1576 L 1162,1632 L 1176,1634 L 1203,1646 L 1218,1648 L 1325,1688 L 1382,1705 L 1410,1718 L 1502,1748 L 1510,1754 Z"/></g><path d="M 2285,690 L 2281,699 L 2281,772 L 2287,778 L 2597,778 L 2606,784 L 2590,809 L 2486,935 L 2440,997 L 2326,1138 L 2286,1182 L 2280,1201 L 2283,1256 L 2289,1259 L 2736,1259 L 2746,1256 L 2751,1248 L 2751,1168 L 2744,1162 L 2447,1163 L 2437,1157 L 2601,950 L 2652,891 L 2664,870 L 2747,771 L 2751,754 L 2751,703 L 2747,691 L 2732,687 L 2300,687 Z" fill="#0A0E14"/><path d="M 3343,683 L 3290,699 L 3249,719 L 3196,760 L 3160,800 L 3125,863 L 3107,925 L 3106,1013 L 3115,1057 L 3134,1105 L 3169,1158 L 3217,1204 L 3276,1240 L 3318,1257 L 3344,1260 L 3357,1266 L 3465,1267 L 3516,1257 L 3559,1239 L 3614,1205 L 3663,1157 L 3697,1105 L 3715,1059 L 3725,1016 L 3725,922 L 3715,885 L 3697,837 L 3659,781 L 3623,745 L 3587,720 L 3520,691 L 3498,688 L 3485,682 L 3411,679 Z M 3389,770 L 3427,769 L 3482,779 L 3506,788 L 3538,807 L 3576,842 L 3593,863 L 3619,917 L 3625,953 L 3625,990 L 3619,1023 L 3599,1070 L 3574,1104 L 3530,1141 L 3493,1160 L 3456,1170 L 3369,1169 L 3335,1160 L 3301,1142 L 3277,1125 L 3248,1094 L 3222,1050 L 3219,1032 L 3212,1020 L 3212,927 L 3219,913 L 3221,897 L 3248,853 L 3276,822 L 3310,797 L 3349,780 Z" fill-rule="evenodd" fill="#0A0E14"/><path d="M 4071,925 L 4067,997 L 4067,1247 L 4073,1258 L 4483,1259 L 4486,1256 L 4489,1177 L 4483,1163 L 4180,1163 L 4166,1157 L 4165,1017 L 4170,1010 L 4445,1008 L 4452,1000 L 4453,938 L 4450,923 L 4076,921 Z M 4070,698 L 4069,765 L 4076,777 L 4483,777 L 4488,768 L 4487,694 L 4484,688 L 4477,686 L 4096,686 L 4076,688 Z" fill="#0A0E14"/><path d="M 4861,688 L 4858,699 L 4862,711 L 4885,740 L 5031,970 L 5071,1023 L 5079,1039 L 5079,1253 L 5086,1259 L 5172,1258 L 5178,1251 L 5180,1032 L 5398,704 L 5398,689 L 5292,688 L 5283,693 L 5252,736 L 5128,931 L 5117,922 L 5105,897 L 4973,689 Z" fill="#0A0E14"/><path d="M 5996,690 L 5995,704 L 6001,714 L 6003,730 L 6046,851 L 6057,894 L 6072,929 L 6083,976 L 6135,1127 L 6154,1195 L 6178,1257 L 6183,1260 L 6253,1259 L 6265,1247 L 6295,1149 L 6302,1138 L 6312,1099 L 6320,1084 L 6321,1070 L 6346,1003 L 6348,985 L 6364,945 L 6366,930 L 6384,878 L 6394,867 L 6401,872 L 6403,891 L 6427,956 L 6429,971 L 6436,983 L 6438,998 L 6462,1065 L 6464,1082 L 6472,1098 L 6473,1111 L 6498,1177 L 6501,1194 L 6506,1200 L 6509,1222 L 6520,1251 L 6529,1259 L 6601,1259 L 6610,1254 L 6632,1177 L 6692,1003 L 6693,990 L 6709,951 L 6711,937 L 6718,926 L 6729,883 L 6790,701 L 6787,690 L 6771,687 L 6697,688 L 6687,696 L 6660,779 L 6658,795 L 6642,836 L 6631,883 L 6615,924 L 6613,941 L 6597,982 L 6595,997 L 6589,1006 L 6578,1052 L 6564,1079 L 6552,1059 L 6550,1042 L 6534,1001 L 6532,984 L 6525,971 L 6497,871 L 6490,859 L 6488,843 L 6473,804 L 6470,781 L 6443,697 L 6435,690 L 6417,687 L 6361,687 L 6350,691 L 6287,885 L 6286,897 L 6261,963 L 6259,980 L 6234,1050 L 6232,1069 L 6224,1080 L 6216,1078 L 6213,1051 L 6207,1043 L 6205,1025 L 6188,984 L 6187,970 L 6180,957 L 6160,881 L 6145,844 L 6133,796 L 6126,784 L 6125,770 L 6118,756 L 6105,702 L 6096,690 L 6003,687 Z" fill="#0A0E14"/><path d="M 7177,690 L 7020,1069 L 6943,1243 L 6944,1256 L 6950,1259 L 7043,1259 L 7053,1252 L 7066,1210 L 7090,1159 L 7109,1105 L 7117,1093 L 7128,1057 L 7153,1003 L 7163,972 L 7178,943 L 7181,925 L 7196,897 L 7216,843 L 7230,822 L 7241,836 L 7271,917 L 7278,925 L 7315,1024 L 7321,1031 L 7342,1088 L 7366,1138 L 7377,1174 L 7413,1255 L 7420,1259 L 7517,1258 L 7523,1251 L 7456,1105 L 7444,1068 L 7332,814 L 7285,695 L 7271,688 L 7195,687 Z" fill="#0A0E14"/><path d="M 7796,688 L 7791,697 L 7790,1241 L 7794,1256 L 7801,1259 L 8196,1257 L 8199,1251 L 8200,1170 L 8196,1163 L 7902,1163 L 7889,1157 L 7888,695 L 7877,687 Z" fill="#0A0E14"/><path d="M 8516,690 L 8512,697 L 8512,1245 L 8516,1256 L 8522,1259 L 8922,1257 L 8925,1252 L 8925,1171 L 8920,1163 L 8621,1162 L 8614,1157 L 8614,696 L 8610,689 L 8596,687 Z" fill="#0A0E14"/><path d="M 9202,924 L 9200,1222 L 9204,1257 L 9605,1259 L 9613,1255 L 9616,1246 L 9616,1175 L 9611,1163 L 9303,1162 L 9297,1152 L 9297,1017 L 9301,1010 L 9578,1008 L 9584,992 L 9585,937 L 9580,922 L 9210,921 Z M 9201,695 L 9201,766 L 9203,773 L 9209,776 L 9605,777 L 9613,772 L 9615,766 L 9615,696 L 9610,688 L 9213,686 L 9204,688 Z" fill="#0A0E14"/><path d="M 9931,686 L 9927,696 L 9927,771 L 9931,778 L 10105,778 L 10120,785 L 10120,1248 L 10129,1258 L 10215,1258 L 10220,1251 L 10220,784 L 10233,778 L 10415,777 L 10421,770 L 10420,695 L 10412,688 Z" fill="#0A0E14"/></svg></a>
     <ul class="nav-links">
-      <li><a href="#cta">Invest</a></li>
+      <li><a href="#trust">Invest</a></li>
       <li><a href="#solution">How It Works</a></li>
       <li><a href="#markets">Markets</a></li>
       <li><a href="#security">Security</a></li>
-      <li><a href="#about">About</a></li>
+      <li><a href="#about">About us</a></li>
     </ul>
     <div class="nav-actions">
       <a href="/login" class="ghost-link">Log In</a>
@@ -1370,11 +1659,11 @@
     </button>
   </nav>
   <div class="mobile-menu" id="mobileMenu">
-    <a href="#cta">Invest</a>
+    <a href="#trust">Invest</a>
     <a href="#solution">How It Works</a>
     <a href="#markets">Markets</a>
     <a href="#security">Security</a>
-    <a href="#about">About</a>
+    <a href="#about">About us</a>
     <a href="/login">Log In</a>
     <a href="#cta" class="btn btn-cobalt" style="margin-top:12px; text-align:center;">Sign Up</a>
   </div>
@@ -1387,7 +1676,7 @@
     <div class="wrap hero-grid">
       <div>
         <div class="eyebrow">STABLECOIN-NATIVE GLOBAL INVESTING</div>
-        <h1>Global markets. One wallet.<br>Built for Africans</h1>
+        <h1>Global markets.<br><span class="h1-frac-line">Fractional Shares.</span><br>Built for Africans</h1>
         <p class="lede">Invest in your favourite shares and US stocks for as little as <span class="dollar-emphasis">$1</span> with your USDT &amp; USDC</p>
         <div class="hero-ctas">
           <a href="#markets" class="btn btn-outline">Explore markets</a>
@@ -1398,41 +1687,14 @@
           <div class="stat"><b>USDT / USDC</b><span>FUNDING RAILS</span></div>
         </div>
       </div>
-
-      <div class="float-wrap reveal">
-        <div class="portfolio-card">
-          <div class="pf-head">
-            <div>
-              <div class="pf-label">PORTFOLIO VALUE</div>
-              <div class="pf-value" id="pfValue">$0.00</div>
-              <div class="pf-change">+$184.20 &middot; +1.51% today</div>
-            </div>
-            <div class="pf-badge"><svg class="badge-mark" viewBox="165 84 1359 1671" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="pfBadgeGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#8C9AFF"/><stop offset="55%" stop-color="#6E7EFF"/><stop offset="100%" stop-color="#4A55FF"/></linearGradient></defs><g fill="url(#pfBadgeGrad)"><path d="M 166,1024 L 172,1026 L 182,1020 L 195,1019 L 285,983 L 296,982 L 405,941 L 459,925 L 669,848 L 725,832 L 894,769 L 930,760 L 1103,698 L 1117,696 L 1204,662 L 1264,646 L 1316,626 L 1357,618 L 1502,562 L 1516,560 L 1524,550 L 1449,521 L 1394,505 L 1236,448 L 1223,447 L 1217,442 L 1182,433 L 1097,400 L 1053,388 L 1010,370 L 851,319 L 804,299 L 656,248 L 562,219 L 411,163 L 395,161 L 329,135 L 169,84 L 165,89 Z"/><path d="M 1520,1752 L 1520,811 L 1517,807 L 1412,847 L 1396,849 L 1354,867 L 1208,914 L 1183,926 L 1105,949 L 1096,955 L 914,1019 L 896,1022 L 788,1062 L 776,1063 L 605,1127 L 409,1192 L 301,1233 L 262,1243 L 197,1269 L 183,1271 L 172,1278 L 177,1285 L 244,1306 L 290,1326 L 303,1327 L 330,1339 L 344,1341 L 390,1361 L 403,1362 L 509,1403 L 709,1469 L 756,1489 L 1012,1576 L 1162,1632 L 1176,1634 L 1203,1646 L 1218,1648 L 1325,1688 L 1382,1705 L 1410,1718 L 1502,1748 L 1510,1754 Z"/></g></svg></div>
-          </div>
-          <div class="pf-chart">
-            <svg viewBox="0 0 320 90" width="100%" height="90">
-              <defs><linearGradient id="pfArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3355FF" stop-opacity="0.35"/><stop offset="100%" stop-color="#3355FF" stop-opacity="0"/></linearGradient></defs>
-              <path id="pfAreaPath" d="M0,70 L0,70 Z" fill="url(#pfArea)"/>
-              <path id="pfLinePath" d="M0,70" fill="none" stroke="#5B7CFF" stroke-width="2.4" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="pf-holdings">
-            <div class="pf-row"><div><div class="pf-sym">NVDA</div><div class="pf-name">NVIDIA Corp.</div></div><div><div class="pf-px">$201.30</div><div class="pf-chg up">+2.05%</div></div></div>
-            <div class="pf-row"><div><div class="pf-sym">TSLA</div><div class="pf-name">Tesla Inc.</div></div><div><div class="pf-px">$256.90</div><div class="pf-chg up">+1.48%</div></div></div>
-            <div class="pf-row"><div><div class="pf-sym">PLTR</div><div class="pf-name">Palantir Tech.</div></div><div><div class="pf-px">$168.44</div><div class="pf-chg down">&minus;0.62%</div></div></div>
-            <div class="pf-row"><div><div class="pf-sym">AMD</div><div class="pf-name">Advanced Micro</div></div><div><div class="pf-px">$142.18</div><div class="pf-chg up">+0.94%</div></div></div>
-          </div>
-          <div class="pf-stable">
-            <div class="pf-stable-pill"><div class="lbl">USDT BALANCE</div><div class="val">1,240.00</div></div>
-            <div class="pf-stable-pill"><div class="lbl">USDC BALANCE</div><div class="val">860.50</div></div>
-          </div>
-          <div class="pf-actions">
-            <button class="primary">Buy</button>
-            <button>Sell</button>
-            <button>Deposit</button>
-          </div>
-        </div>
-      </div>
+    </div>
+    <!-- On desktop/tablet this stays absolutely positioned (out of flow) via
+         .hero-media's base/tablet CSS, so moving it after .hero-grid in the
+         DOM has zero effect there. On mobile (<=640px) it switches to a
+         normal-flow block below, so its DOM position here is what makes it
+         render AFTER the typography/stats instead of beside them. -->
+    <div class="hero-media" aria-hidden="true">
+      <img class="hero-media-img" src="assets/hero-visual-cutout.webp" alt="" loading="eager" fetchpriority="high">
     </div>
   </section>
 
@@ -1719,6 +1981,17 @@
         <tv-ticker-tape symbols="FOREXCOM:SPXUSD,FOREXCOM:NSXUSD,FOREXCOM:DJI,NASDAQ:NVDA,NASDAQ:TSLA,NASDAQ:SPCX,NASDAQ:META,NASDAQ:PLTR,NASDAQ:MSFT,NASDAQ:AMZN,NASDAQ:GOOG,NASDAQ:NFLX,NASDAQ:AMD"></tv-ticker-tape>
       </div>
 
+      <!-- Market Data / Stock Screener anchor target. This wrapper carries the
+           #market-data id (and its scroll-margin-top, in the CSS above) instead
+           of putting the id directly on .screener-intro, because .screener-intro
+           and .screener-panel both have the .reveal scroll-animation class
+           (opacity:0; transform:translateY(28px) until an IntersectionObserver
+           adds .in) -- an id on an element that's still mid-transform when
+           scrollIntoView() runs lands 28px off from its resting position. This
+           plain wrapper has no styling of its own, so it changes nothing
+           visually; it just gives the existing screener intro + panel a stable,
+           untransformed anchor point. -->
+      <div id="market-data">
       <!-- Stock Screener: introduction -->
       <div class="screener-intro reveal">
         <div class="eyebrow">STOCK SCREENER</div>
@@ -1765,6 +2038,7 @@
           </div>
           <!-- TradingView Widget END -->
         </div>
+      </div>
       </div>
     </div>
   </section>
@@ -2144,11 +2418,28 @@
       <div class="footer-brand">
         <svg viewBox="165 84 10256 1671" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoIconGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5B7CFF"/><stop offset="55%" stop-color="#3A5CFF"/><stop offset="100%" stop-color="#2540D6"/></linearGradient></defs><g fill="url(#logoIconGrad)"><path d="M 166,1024 L 172,1026 L 182,1020 L 195,1019 L 285,983 L 296,982 L 405,941 L 459,925 L 669,848 L 725,832 L 894,769 L 930,760 L 1103,698 L 1117,696 L 1204,662 L 1264,646 L 1316,626 L 1357,618 L 1502,562 L 1516,560 L 1524,550 L 1449,521 L 1394,505 L 1236,448 L 1223,447 L 1217,442 L 1182,433 L 1097,400 L 1053,388 L 1010,370 L 851,319 L 804,299 L 656,248 L 562,219 L 411,163 L 395,161 L 329,135 L 169,84 L 165,89 Z"/><path d="M 1520,1752 L 1520,811 L 1517,807 L 1412,847 L 1396,849 L 1354,867 L 1208,914 L 1183,926 L 1105,949 L 1096,955 L 914,1019 L 896,1022 L 788,1062 L 776,1063 L 605,1127 L 409,1192 L 301,1233 L 262,1243 L 197,1269 L 183,1271 L 172,1278 L 177,1285 L 244,1306 L 290,1326 L 303,1327 L 330,1339 L 344,1341 L 390,1361 L 403,1362 L 509,1403 L 709,1469 L 756,1489 L 1012,1576 L 1162,1632 L 1176,1634 L 1203,1646 L 1218,1648 L 1325,1688 L 1382,1705 L 1410,1718 L 1502,1748 L 1510,1754 Z"/></g><path d="M 2285,690 L 2281,699 L 2281,772 L 2287,778 L 2597,778 L 2606,784 L 2590,809 L 2486,935 L 2440,997 L 2326,1138 L 2286,1182 L 2280,1201 L 2283,1256 L 2289,1259 L 2736,1259 L 2746,1256 L 2751,1248 L 2751,1168 L 2744,1162 L 2447,1163 L 2437,1157 L 2601,950 L 2652,891 L 2664,870 L 2747,771 L 2751,754 L 2751,703 L 2747,691 L 2732,687 L 2300,687 Z" fill="#F7F6F3"/><path d="M 3343,683 L 3290,699 L 3249,719 L 3196,760 L 3160,800 L 3125,863 L 3107,925 L 3106,1013 L 3115,1057 L 3134,1105 L 3169,1158 L 3217,1204 L 3276,1240 L 3318,1257 L 3344,1260 L 3357,1266 L 3465,1267 L 3516,1257 L 3559,1239 L 3614,1205 L 3663,1157 L 3697,1105 L 3715,1059 L 3725,1016 L 3725,922 L 3715,885 L 3697,837 L 3659,781 L 3623,745 L 3587,720 L 3520,691 L 3498,688 L 3485,682 L 3411,679 Z M 3389,770 L 3427,769 L 3482,779 L 3506,788 L 3538,807 L 3576,842 L 3593,863 L 3619,917 L 3625,953 L 3625,990 L 3619,1023 L 3599,1070 L 3574,1104 L 3530,1141 L 3493,1160 L 3456,1170 L 3369,1169 L 3335,1160 L 3301,1142 L 3277,1125 L 3248,1094 L 3222,1050 L 3219,1032 L 3212,1020 L 3212,927 L 3219,913 L 3221,897 L 3248,853 L 3276,822 L 3310,797 L 3349,780 Z" fill-rule="evenodd" fill="#F7F6F3"/><path d="M 4071,925 L 4067,997 L 4067,1247 L 4073,1258 L 4483,1259 L 4486,1256 L 4489,1177 L 4483,1163 L 4180,1163 L 4166,1157 L 4165,1017 L 4170,1010 L 4445,1008 L 4452,1000 L 4453,938 L 4450,923 L 4076,921 Z M 4070,698 L 4069,765 L 4076,777 L 4483,777 L 4488,768 L 4487,694 L 4484,688 L 4477,686 L 4096,686 L 4076,688 Z" fill="#F7F6F3"/><path d="M 4861,688 L 4858,699 L 4862,711 L 4885,740 L 5031,970 L 5071,1023 L 5079,1039 L 5079,1253 L 5086,1259 L 5172,1258 L 5178,1251 L 5180,1032 L 5398,704 L 5398,689 L 5292,688 L 5283,693 L 5252,736 L 5128,931 L 5117,922 L 5105,897 L 4973,689 Z" fill="#F7F6F3"/><path d="M 5996,690 L 5995,704 L 6001,714 L 6003,730 L 6046,851 L 6057,894 L 6072,929 L 6083,976 L 6135,1127 L 6154,1195 L 6178,1257 L 6183,1260 L 6253,1259 L 6265,1247 L 6295,1149 L 6302,1138 L 6312,1099 L 6320,1084 L 6321,1070 L 6346,1003 L 6348,985 L 6364,945 L 6366,930 L 6384,878 L 6394,867 L 6401,872 L 6403,891 L 6427,956 L 6429,971 L 6436,983 L 6438,998 L 6462,1065 L 6464,1082 L 6472,1098 L 6473,1111 L 6498,1177 L 6501,1194 L 6506,1200 L 6509,1222 L 6520,1251 L 6529,1259 L 6601,1259 L 6610,1254 L 6632,1177 L 6692,1003 L 6693,990 L 6709,951 L 6711,937 L 6718,926 L 6729,883 L 6790,701 L 6787,690 L 6771,687 L 6697,688 L 6687,696 L 6660,779 L 6658,795 L 6642,836 L 6631,883 L 6615,924 L 6613,941 L 6597,982 L 6595,997 L 6589,1006 L 6578,1052 L 6564,1079 L 6552,1059 L 6550,1042 L 6534,1001 L 6532,984 L 6525,971 L 6497,871 L 6490,859 L 6488,843 L 6473,804 L 6470,781 L 6443,697 L 6435,690 L 6417,687 L 6361,687 L 6350,691 L 6287,885 L 6286,897 L 6261,963 L 6259,980 L 6234,1050 L 6232,1069 L 6224,1080 L 6216,1078 L 6213,1051 L 6207,1043 L 6205,1025 L 6188,984 L 6187,970 L 6180,957 L 6160,881 L 6145,844 L 6133,796 L 6126,784 L 6125,770 L 6118,756 L 6105,702 L 6096,690 L 6003,687 Z" fill="#F7F6F3"/><path d="M 7177,690 L 7020,1069 L 6943,1243 L 6944,1256 L 6950,1259 L 7043,1259 L 7053,1252 L 7066,1210 L 7090,1159 L 7109,1105 L 7117,1093 L 7128,1057 L 7153,1003 L 7163,972 L 7178,943 L 7181,925 L 7196,897 L 7216,843 L 7230,822 L 7241,836 L 7271,917 L 7278,925 L 7315,1024 L 7321,1031 L 7342,1088 L 7366,1138 L 7377,1174 L 7413,1255 L 7420,1259 L 7517,1258 L 7523,1251 L 7456,1105 L 7444,1068 L 7332,814 L 7285,695 L 7271,688 L 7195,687 Z" fill="#F7F6F3"/><path d="M 7796,688 L 7791,697 L 7790,1241 L 7794,1256 L 7801,1259 L 8196,1257 L 8199,1251 L 8200,1170 L 8196,1163 L 7902,1163 L 7889,1157 L 7888,695 L 7877,687 Z" fill="#F7F6F3"/><path d="M 8516,690 L 8512,697 L 8512,1245 L 8516,1256 L 8522,1259 L 8922,1257 L 8925,1252 L 8925,1171 L 8920,1163 L 8621,1162 L 8614,1157 L 8614,696 L 8610,689 L 8596,687 Z" fill="#F7F6F3"/><path d="M 9202,924 L 9200,1222 L 9204,1257 L 9605,1259 L 9613,1255 L 9616,1246 L 9616,1175 L 9611,1163 L 9303,1162 L 9297,1152 L 9297,1017 L 9301,1010 L 9578,1008 L 9584,992 L 9585,937 L 9580,922 L 9210,921 Z M 9201,695 L 9201,766 L 9203,773 L 9209,776 L 9605,777 L 9613,772 L 9615,766 L 9615,696 L 9610,688 L 9213,686 L 9204,688 Z" fill="#F7F6F3"/><path d="M 9931,686 L 9927,696 L 9927,771 L 9931,778 L 10105,778 L 10120,785 L 10120,1248 L 10129,1258 L 10215,1258 L 10220,1251 L 10220,784 L 10233,778 L 10415,777 L 10421,770 L 10420,695 L 10412,688 Z" fill="#F7F6F3"/></svg>
         <p>Global markets. One wallet. Direct, regulated access to global equities, funded with stablecoins and built for Africa.</p>
+        <div class="footer-social">
+          <div class="footer-social-label">Follow us on</div>
+          <div class="footer-social-icons">
+            <a href="https://x.com/zoeywallet_io?s=11" target="_blank" rel="noopener noreferrer" aria-label="Zoey Wallet on X">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <a href="https://www.instagram.com/zoeywallet.io?stkn=NGE4M2dmM29sb25x&amp;utm_source=qr" target="_blank" rel="noopener noreferrer" aria-label="Zoey Wallet on Instagram">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 0C8.74 0 8.333.014 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.014 8.333 0 8.74 0 12s.014 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.986 8.74 24 12 24s3.667-.014 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.336 1.384-2.126.296-.765.499-1.636.558-2.913.058-1.28.072-1.687.072-4.947s-.014-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.65.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.014 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.898 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.898-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.86.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.795.646-1.439 1.44-1.439.793 0 1.44.644 1.44 1.44z"/></svg>
+            </a>
+            <a href="https://www.linkedin.com/in/zoey-wallet-759493437" target="_blank" rel="noopener noreferrer" aria-label="Zoey Wallet on LinkedIn">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            </a>
+            <a href="https://www.tiktok.com/@zoeywallet.io?_r=1&amp;_t=ZS-99lLNF3S49Q" target="_blank" rel="noopener noreferrer" aria-label="Zoey Wallet on TikTok">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16.6 5.82c-1.007-1.02-1.552-2.394-1.523-3.82h-3.44v13.615c-.026 1.53-1.284 2.762-2.822 2.762-1.549 0-2.822-1.24-2.822-2.775 0-1.815 1.75-3.176 3.554-2.614V9.406c-3.79-.518-7.124 2.42-7.124 6.148 0 3.626 3.006 6.194 6.062 6.194 3.279 0 6.033-2.65 6.033-6.194V9.6a9.096 9.096 0 0 0 5.31 1.7v-3.44c-1.505 0-3.02-.583-4.228-1.836z"/></svg>
+            </a>
+          </div>
+        </div>
       </div>
       <div class="footer-col"><h4>Product</h4><a href="#solution">How it works</a><a href="#markets">Markets</a><a href="#security">Security</a></div>
-      <div class="footer-col"><h4>Company</h4><a href="#about">About</a><a href="#">Careers</a><a href="#">Contact</a></div>
-      <div class="footer-col"><h4>Resources</h4><a href="#">Help Center</a><a href="#">Market Data</a><a href="#">Status</a></div>
-      <div class="footer-col"><h4>Legal</h4><a href="#">Terms</a><a href="#">Privacy</a><a href="#">Disclosures</a></div>
+      <div class="footer-col"><h4>Company</h4><a href="#about">About</a><a href="#">Careers</a><a href="contact.html">Contact</a></div>
+      <div class="footer-col"><h4>Resources</h4><a href="#market-data">Market Data</a><a href="#">Blog</a></div>
+      <div class="footer-col"><h4>Legal</h4><a href="legal.html#terms">Terms</a><a href="legal.html#privacy">Privacy</a><a href="legal.html#disclosures">Disclosures</a></div>
     </div>
     <div class="footer-bottom">
       <p>Zoey Wallet is a technology platform. Brokerage services are provided by a third-party regulated broker-dealer, member FINRA/SIPC. Investing involves risk, including possible loss of principal. Fractional shares may have restrictions on transfer and trading. Stablecoin conversions carry additional risk, including peg deviation risk.</p>
@@ -2208,7 +2499,8 @@
           <label class="zw-label" for="zwPhone">Phone number</label>
           <div class="zw-phone-row">
             <button type="button" class="zw-country-btn" id="zwCountryBtn" aria-haspopup="listbox" aria-expanded="false">
-              <span class="zw-country-flag" id="zwCountryFlag">🇳🇬</span>
+              <img class="zw-flag-img zw-country-flag" id="zwCountryFlag" src="https://flagcdn.com/ng.svg" width="18" height="13" alt="" aria-hidden="true" loading="lazy">
+              <span class="zw-country-code" id="zwCountryCode">NG</span>
               <span id="zwCountryDial">+234</span>
               <svg class="zw-country-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -2378,49 +2670,6 @@
       });
     });
   }
-
-  // ---- Portfolio value count-up + chart draw ----
-  const pfPoints = [40,52,44,60,55,72,64,80,74,90,82,96];
-  function buildPath(points, w, h){
-    const max = Math.max(...points), min = Math.min(...points);
-    const step = w / (points.length - 1);
-    const coords = points.map((p,i) => {
-      const x = i * step;
-      const y = h - ((p - min) / (max - min)) * (h - 10) - 5;
-      return [x,y];
-    });
-    // Smooth natural curve through every point (Catmull-Rom -> cubic Bezier),
-    // rather than straight-line zigzag segments.
-    let d = `M${coords[0][0]},${coords[0][1]}`;
-    for (let i = 0; i < coords.length - 1; i++){
-      const p0 = coords[i === 0 ? 0 : i - 1];
-      const p1 = coords[i];
-      const p2 = coords[i + 1];
-      const p3 = coords[i + 2 < coords.length ? i + 2 : i + 1];
-      const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
-      const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
-      const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
-      const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
-      d += ` C${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2[0]},${p2[1]}`;
-    }
-    return { d, coords };
-  }
-  const { d: lineD, coords } = buildPath(pfPoints, 320, 90);
-  const areaD = lineD + ` L${coords[coords.length-1][0]},90 L0,90 Z`;
-  document.getElementById('pfLinePath').setAttribute('d', lineD);
-  document.getElementById('pfAreaPath').setAttribute('d', areaD);
-
-  function countUp(el, target, prefix='$', decimals=2, duration=1400){
-    const start = performance.now();
-    function tick(now){
-      const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      el.textContent = prefix + (target * eased).toLocaleString('en-US', {minimumFractionDigits:decimals, maximumFractionDigits:decimals});
-      if (t < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }
-  countUp(document.getElementById('pfValue'), 12450.82);
 
   // ============================================================
   // MARKETS SECTION: real TradingView integration
@@ -2678,6 +2927,26 @@
       }, 2600);
     });
   }
+
+  // ============================================================
+  // HEADER HEIGHT SYNC — keeps the --header-h custom property (used by
+  // scroll-margin-top on the nav's anchor-target sections, in the CSS
+  // above) equal to the fixed header's actual live height, rather than a
+  // guessed constant. The header's height is not a fixed breakpoint value:
+  // it changes with nav padding at different widths and can grow further
+  // if the nav wraps onto a second line at very narrow widths, so this is
+  // measured, not hardcoded. Re-measured on resize and once more after
+  // full page load (fonts/images can shift its height after first paint).
+  // ============================================================
+  function syncHeaderHeight(){
+    const header = document.querySelector('header');
+    if (!header) return;
+    document.documentElement.style.setProperty('--header-h', header.getBoundingClientRect().height + 'px');
+  }
+  syncHeaderHeight();
+  window.addEventListener('resize', syncHeaderHeight);
+  window.addEventListener('load', syncHeaderHeight);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncHeaderHeight);
 
   // ============================================================
   // PAGE ROUTER — single-file "About" view.
@@ -2973,9 +3242,28 @@
 ["ZM","Zambia","260"],
 ["ZW","Zimbabwe","263"]];
 
-    function zwFlag(code){
-      return String.fromCodePoint(...code.toUpperCase().split('').map(c => 127397 + c.charCodeAt(0)));
+    // Builds the <img> markup for a country's flag, sourced by its existing
+    // ISO alpha-2 code from ZW_COUNTRIES (flagcdn.com serves accurate,
+    // correctly-proportioned SVG flag artwork keyed by that same code -- no
+    // separate flag dataset to maintain). decorative (alt="" + aria-hidden)
+    // because the ISO code and country name are always shown right next to
+    // it as real text, so nothing depends on the image for meaning.
+    function zwFlagHTML(code, cls){
+      return '<img class="zw-flag-img ' + cls + '" src="https://flagcdn.com/' + code.toLowerCase() + '.svg" ' +
+        'width="' + (cls === 'zw-country-option-flag' ? 20 : 18) + '" height="' + (cls === 'zw-country-option-flag' ? 15 : 13) + '" ' +
+        'alt="" aria-hidden="true" loading="lazy">';
     }
+    // Shared fallback for every flag image on the page: if one can't load
+    // (offline, a blocked resource, an unrecognized code) just hide that
+    // image rather than showing the browser's broken-image glyph. The
+    // country's ISO code and name are always rendered as separate text
+    // alongside it, so the country is still clearly identified either way.
+    // Capture phase is required here because the 'error' event on <img>
+    // does not bubble.
+    document.addEventListener('error', (e) => {
+      const t = e.target;
+      if (t && t.classList && t.classList.contains('zw-flag-img')) t.style.display = 'none';
+    }, true);
 
     const overlay = document.getElementById('zwOverlay');
     const openBtns = document.querySelectorAll('.js-open-register');
@@ -3012,6 +3300,7 @@
     const countrySearch = document.getElementById('zwCountrySearch');
     const countryList = document.getElementById('zwCountryList');
     const countryFlagEl = document.getElementById('zwCountryFlag');
+    const countryCodeEl = document.getElementById('zwCountryCode');
     const countryDialEl = document.getElementById('zwCountryDial');
 
     function renderCountryList(filter){
@@ -3032,7 +3321,8 @@
         const opt = document.createElement('div');
         opt.className = 'zw-country-option';
         opt.setAttribute('role', 'option');
-        opt.innerHTML = '<span class="zw-country-flag">' + zwFlag(c[0]) + '</span>' +
+        opt.innerHTML = zwFlagHTML(c[0], 'zw-country-option-flag') +
+          '<span class="zw-country-option-code">' + c[0] + '</span>' +
           '<span class="zw-country-option-name">' + c[1] + '</span>' +
           '<span class="zw-country-option-dial">+' + c[2] + '</span>';
         opt.addEventListener('click', () => selectCountry(c));
@@ -3042,7 +3332,9 @@
 
     function selectCountry(c){
       selectedCountry = c;
-      countryFlagEl.textContent = zwFlag(c[0]);
+      countryFlagEl.style.display = '';
+      countryFlagEl.src = 'https://flagcdn.com/' + c[0].toLowerCase() + '.svg';
+      countryCodeEl.textContent = c[0];
       countryDialEl.textContent = '+' + c[2];
       closeCountryDropdown();
       document.getElementById('zwPhone').focus();
