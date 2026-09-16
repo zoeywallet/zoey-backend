@@ -881,9 +881,33 @@
   /* ============ TRUST ============ */
   .trust-row{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:32px; padding:44px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
   .trust-mark{ font-family: var(--font-mono); font-size:13px; letter-spacing:1.5px; color: var(--ink-faint); text-transform:uppercase; }
+  /* #trust (the "Invest" nav target) shares the generic .section-tight
+     class (padding:110px 0, above) with three other, unrelated sections
+     -- #principles on the About view among them -- so its own padding is
+     tightened here via the ID instead, which leaves every other
+     .section-tight user completely untouched. #trust sits directly
+     before #cta with nothing else between them, so its own top/bottom
+     padding plus .trust-row's internal 44px and #cta's own top padding
+     (below) were combining into ~310px of unexplained empty space
+     between the trust row and the "Get Started" heading. Tightening only
+     this section's padding (not .trust-row's own spacing, borders, or
+     content) keeps the row's existing look intact while closing that gap
+     into something that reads as deliberate rather than accidental. */
+  #trust{ padding-top:64px; padding-bottom:56px; }
 
   /* ============ FINAL CTA ============ */
   .final-cta{ text-align:center; padding:160px 0; }
+  /* #cta is the one .final-cta section that sits directly after #trust
+     (it's also this page's closing section, right before the footer --
+     the same physical element, not a duplicate). Its shared 160px top
+     padding was the other half of the trust-row/CTA gap above. Overriding
+     padding-top only, by ID rather than editing .final-cta itself, keeps
+     #about-cta (the About view's own final CTA, same shared class) at its
+     original spacing -- this only affects the Invest/landing-page CTA.
+     padding-bottom is untouched here: it already carries the mobile-only
+     footer-clearance fix from earlier (see the @media block below) and
+     was never part of this section's problem on desktop. */
+  #cta{ padding-top:96px; }
   .final-cta h2{ font-size:76px; line-height:1; margin-bottom:24px; }
   .final-cta .lede{ margin:0 auto 44px; max-width:520px; font-size:19px; }
   .final-actions{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
@@ -1113,6 +1137,17 @@
     .stock-grid{ grid-template-columns:1fr; }
     .frac-number{ font-size:64px; }
     .final-cta h2{ font-size:42px; }
+    /* #trust has no other mobile override anywhere in this file, so without
+       this rule it keeps inheriting .section-tight's desktop-sized
+       padding:110px 0 unchanged at every mobile width -- the same "giant
+       blank area" complaint, just carried straight over from desktop
+       instead of stacking naturally. Scoped to the ID for the same reason
+       as the desktop override above (three other .section-tight sections,
+       including the About page's #principles, must stay untouched). Values
+       are tightened further than the desktop 64px/56px since mobile has
+       far less vertical real estate to spare and the trust statements may
+       already wrap to multiple lines here, adding their own height. */
+    #trust{ padding-top:48px; padding-bottom:40px; }
     /* .final-cta's own padding:160px 0 (desktop, above) and .wrap's
        padding:0 22px (this same mobile breakpoint, earlier in this block)
        both set the full `padding` shorthand on this section (it carries
@@ -1126,12 +1161,13 @@
        value is untouched) fixes that without any negative margins,
        fixed heights, or position changes -- the section still sizes
        itself automatically to its content. padding-bottom is tuned to
-       leave a deliberate ~64px of visible white space below the buttons
-       before the footer begins; padding-top is kept at 88px (matching
-       the same mobile vertical rhythm the general .section rule uses
-       elsewhere) since the top spacing was never part of the reported
-       issue. */
-    .final-cta{ padding-top:88px; padding-bottom:64px; }
+       leave a deliberate ~80px of visible white space below the buttons
+       before the footer begins (raised from 64px after visual review --
+       64px measured correctly but read as too tight against the navy
+       boundary); padding-top is kept at 88px (matching the same mobile
+       vertical rhythm the general .section rule uses elsewhere) since
+       the top spacing was never part of the reported issue. */
+    .final-cta{ padding-top:88px; padding-bottom:80px; }
     .footer-grid{ grid-template-columns:1fr 1fr; gap:32px; }
     .footer-social{ margin-top:20px; }
     .footer-social-icons{ gap:9px; }
