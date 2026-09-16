@@ -400,7 +400,18 @@
   .sc-funding-note b{ color:rgba(247,246,243,0.75); font-weight:600; }
 
   @media (max-width: 640px){
-    #stocks{ padding-top:70px; }
+    /* Was a hardcoded 70px, tuned by eye to roughly clear the fixed
+       header -- but the header's real height on mobile (measured live,
+       see --header-h below) can be 71px+, so that guess occasionally left
+       zero (or negative) clearance and let this section's "STOCKS" eyebrow
+       start underneath the header. Deriving it from --header-h (the same
+       live-measured value scroll-margin-top already uses elsewhere in this
+       file) instead of a guessed constant keeps this section's clearance
+       correct regardless of the header's actual rendered height, with a
+       small fixed buffer on top to preserve the original tight spacing
+       intent right after the ticker strip above it. Mobile-only change --
+       the desktop rule (#stocks{padding-top:76px} above) is untouched. */
+    #stocks{ padding-top: calc(var(--header-h) + 6px); }
     .stock-card{ padding:26px 22px 22px; }
     .sc-price{ font-size:28px; }
     .sc-amounts{ flex-wrap:wrap; }
@@ -1102,6 +1113,25 @@
     .stock-grid{ grid-template-columns:1fr; }
     .frac-number{ font-size:64px; }
     .final-cta h2{ font-size:42px; }
+    /* .final-cta's own padding:160px 0 (desktop, above) and .wrap's
+       padding:0 22px (this same mobile breakpoint, earlier in this block)
+       both set the full `padding` shorthand on this section (it carries
+       both classes: class="final-cta wrap"). At equal specificity the
+       later rule wins outright, including axes the earlier rule alone
+       owned -- so .wrap's mobile rule was silently zeroing out this
+       section's top/bottom padding on mobile only, leaving the CTA
+       buttons with no bottom breathing room before the footer that
+       follows in normal flow. Restoring only padding-top/padding-bottom
+       here (never touching padding shorthand, so .wrap's 22px horizontal
+       value is untouched) fixes that without any negative margins,
+       fixed heights, or position changes -- the section still sizes
+       itself automatically to its content. padding-bottom is tuned to
+       leave a deliberate ~64px of visible white space below the buttons
+       before the footer begins; padding-top is kept at 88px (matching
+       the same mobile vertical rhythm the general .section rule uses
+       elsewhere) since the top spacing was never part of the reported
+       issue. */
+    .final-cta{ padding-top:88px; padding-bottom:64px; }
     .footer-grid{ grid-template-columns:1fr 1fr; gap:32px; }
     .footer-social{ margin-top:20px; }
     .footer-social-icons{ gap:9px; }
