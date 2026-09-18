@@ -65,3 +65,14 @@ python-dotenv==1.0.1
 # fails with a clear, caught error (GoogleAuthError) rather than crashing —
 # see that module's docstring.
 google-auth==2.36.0
+
+# Required by google.auth.transport.requests (backend/google_auth.py's
+# verify_google_id_token) -- google-auth's *base* install does NOT pull
+# this in on its own. The requests-based transport is only available via
+# the "google-auth[requests]" extra, and a bare `google-auth==2.36.0`
+# above installs cleanly without it -- which is exactly why Vercel's build
+# can report "Build Completed" while the deployed function still fails at
+# runtime with "ImportError: The requests library is not installed" the
+# first time verify_google_id_token() actually runs. Pinned to a current
+# stable release with no known conflicts against this file's other pins.
+requests==2.32.3
