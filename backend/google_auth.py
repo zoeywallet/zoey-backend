@@ -105,8 +105,15 @@ def verify_google_id_token(credential: str) -> GoogleIdentity:
         # sandbox limitation noted in this project's implementation
         # report) -- fail with a clear, actionable message rather than a
         # bare ImportError traceback reaching the HTTP layer.
+        #
+        # Preserve the *actual* ImportError text (exc) rather than always
+        # emitting the same generic sentence -- this is what actually
+        # distinguishes "google-auth itself is absent" from "google-auth is
+        # present but one of its own transitive dependencies (cachetools,
+        # pyasn1, pyasn1-modules, rsa) failed to import", which otherwise
+        # look identical in the logs.
         raise GoogleAuthError(
-            "The google-auth package is not installed in this environment. "
+            f"google-auth import failed ({exc.__class__.__name__}: {exc}). "
             "Install project dependencies with: pip install -r requirements.txt"
         ) from exc
 
