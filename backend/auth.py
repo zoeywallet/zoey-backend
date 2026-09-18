@@ -74,10 +74,17 @@ def hash_password(password: str) -> str:
     return f"scrypt:{_SCRYPT_N}:{_SCRYPT_R}:{_SCRYPT_P}:{salt.hex()}:{derived.hex()}"
 
 
-def verify_password(password: str, stored_hash: str) -> bool:
+def verify_password(password: str, stored_hash: str | None) -> bool:
     """Re-derives the hash using the SAME salt and cost parameters recorded
     inside stored_hash, then compares in constant time (hmac.compare_digest)
-    so that how-many-bytes-matched can't leak through response timing."""
+    so that how-many-bytes-matched can't leak through response timing.
+
+    stored_hash is None for a Google-only account (see backend/models.py's
+    User.password_hash) -- there's no password to check, so this cleanly
+    returns False (a normal "wrong credentials" outcome) instead of raising.
+    """
+    if stored_hash is None:
+        return False
     try:
         scheme, n, r, p, salt_hex, hash_hex = stored_hash.split(":")
         if scheme != "scrypt":

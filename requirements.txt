@@ -53,3 +53,15 @@ pyjwt==2.10.1
 # variables directly, so this has nothing to do on Vercel — it only
 # matters when running `uvicorn` on your own machine.
 python-dotenv==1.0.1
+
+# "Continue with Google" identity verification (backend/google_auth.py).
+# This is the ONE maintained library used for auth in this project — it
+# verifies a Google ID token's signature (against Google's own current
+# public keys), issuer, audience (GOOGLE_CLIENT_ID), and expiry, so this
+# app never hand-rolls JWT/JWKS verification for a third-party identity
+# provider. Only used for sign-in — nothing here requests Gmail/Drive/
+# Calendar/Contacts access. Pinned to a recent stable release; if your local
+# environment cannot reach PyPI to install this, backend/google_auth.py
+# fails with a clear, caught error (GoogleAuthError) rather than crashing —
+# see that module's docstring.
+google-auth==2.36.0

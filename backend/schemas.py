@@ -193,3 +193,33 @@ class LoginIn(BaseModel):
         if not v:
             raise ValueError("Please enter your password.")
         return v
+
+
+class GoogleAuthIn(BaseModel):
+    """POST /api/auth/google request body -- sent by the "Continue with
+    Google" button on both index.html's signup modal and login.html, right
+    after Google's own Identity Services JS library hands the frontend a
+    signed credential (see google.accounts.id.initialize()'s callback in
+    both files). This is the ONLY thing the frontend sends for Google
+    sign-in -- the credential itself is verified server-side in
+    backend/google_auth.py; nothing about the user's identity is trusted
+    from this request body directly."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    credential: str
+
+    @field_validator("credential")
+    @classmethod
+    def _credential_present(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Missing Google credential.")
+        return v
+
+
+class ResendVerificationIn(BaseModel):
+    """POST /api/auth/resend-verification request body."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    email: EmailStr

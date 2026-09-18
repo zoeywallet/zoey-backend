@@ -25,7 +25,7 @@ needed, which is exactly what a serverless deployment wants.
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -59,7 +59,17 @@ class User(Base):
     # Stored as "scrypt:N:r:p:<salt-hex>:<hash-hex>", same design as before,
     # just implemented with Python's stdlib hashlib.scrypt instead of Node's
     # crypto.scryptSync.
-    password_hash: Mapped[str] = mapped_column(String(300), nullable=False)
+    #
+    # Nullable as of the Google sign-in addition: an account created via
+    # "Continue with Google" never sets a Zoey password at all (see
+    # backend/google_auth.py + POST /api/auth/google in api/index.py) --
+    # there's nothing wrong to hash, so this column is simply empty for
+    # that account until/unless the person later sets one. Every
+    # password-login code path (backend/auth.verify_password via
+    # POST /api/login) already treats "no usable hash" as a clean
+    # authentication failure rather than a crash -- see verify_password's
+    # None handling.
+    password_hash: Mapped[str | None] = mapped_column(String(300), nullable=True)
     # Both optional -- the signup form's phone/interest fields are optional,
     # same as the existing Lead model just below. Added alongside the
     # self-serve signup flow; see backend/database.py's `_ensure_user_columns`
@@ -67,6 +77,59 @@ class User(Base):
     # without dropping or recreating it.
     phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
     interests: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+    # ---- Google sign-in + email verification (added together; see
+    # backend/database.py's `_ensure_user_columns` for how these land on an
+    # ALREADY-DEPLOYED `users` table in Neon without dropping or recreating
+    # it, and how existing rows are safely defaulted so nobody already using
+    # the app gets locked out) ----
+    #
+    # The Google *subject* (`sub` claim) is the stable, permanent identity
+    # Google guarantees for an account -- unlike an email address, it can
+    # never be changed, reused, or reassigned to someone else, which is
+    # exactly why it's the join key here instead of email. unique=True
+    # because at most one Zoey user may ever be linked to a given Google
+    # account. Nullable because most rows (plain email/password accounts
+    # that never used Google) will never have one.
+    google_sub: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    # Which method created this account -- "email" or "google". Informational
+    # only (support/analytics); every actual authorization decision in this
+    # file is made from password_hash/google_sub being present or absent, not
+    # from this field, so a wrong/legacy value here can never make an account
+    # more or less able to authenticate than it actually is.
+    auth_provider: Mapped[str] = mapped_column(String(20), nullable=False, default="email")
+    # True once this address is confirmed to actually belong to the person
+    # who created the account. New email/password signups start False (see
+    # POST /api/auth/signup) until they click the emailed verification link
+    # (POST /api/auth/verify-email); Google signups start True immediately,
+    # since Google's own verified `email_verified` claim already established
+    # that from the identity provider itself (see backend/google_auth.py).
+    #
+    # IMPORTANT: this column GATES email/password login -- POST /api/login
+    # (api/index.py) refuses to authenticate ("Please verify your email
+    # before signing in.") when this is False, checked only after the
+    # password itself has already been confirmed correct (so the check
+    # itself can't be used to enumerate accounts). This does NOT apply to
+    # "Continue with Google" at all -- a Google-authenticated account
+    # always starts (or becomes, if linked) email_verified=True the moment
+    # it's created/linked, since Google's own verified claim already
+    # established ownership of the address; see backend/google_auth.py and
+    # backend/database.py's create_google_user / link_google_identity.
+    # POST /api/auth/signup also does NOT auto-authenticate the new
+    # account, for the same reason -- see that endpoint's own docstring.
+    # Existing pre-migration accounts are grandfathered to True by
+    # backend/database.py's migration specifically so this gate never
+    # locks out someone who was already using the app.
+    email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # A verification link's token is only ever stored here as a SHA-256
+    # hash (see backend/email_verification.py) -- never in plaintext -- so
+    # that reading this column out of a database backup/leak can't be used
+    # to mint a working verification link, the same reasoning as
+    # password_hash above. Cleared (set back to None) the moment the token
+    # is used or superseded by a newer one (resend).
+    email_verify_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    email_verify_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=False

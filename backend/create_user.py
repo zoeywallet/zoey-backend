@@ -67,7 +67,15 @@ def main() -> int:
             update_user_password(db, existing.id, password_hash)
             print(f"Updated password for existing account: {email} (id {existing.id})")
         else:
-            user = create_user(db, email=email, name=name, password_hash=password_hash)
+            # email_verified=True: this account is being created directly
+            # against the database by the app's own owner running this
+            # script -- a deliberate, trusted action, not the public
+            # self-serve signup form (which starts accounts unverified and
+            # emails a link -- see api/index.py's POST /api/auth/signup).
+            # Since POST /api/login now refuses to authenticate an
+            # unverified email/password account, leaving this False would
+            # create an account nobody could ever actually log into.
+            user = create_user(db, email=email, name=name, password_hash=password_hash, email_verified=True)
             print(f'Created account: {user.email} (id {user.id}, name "{user.name}")')
     finally:
         db.close()

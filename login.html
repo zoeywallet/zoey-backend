@@ -112,6 +112,36 @@
 
   .login-form{ display:flex; flex-direction:column; gap:18px; }
 
+  /* Google sign-in -- same visual language as the homepage's "Create your
+     Zoey account" modal (index.html), so this page reads as the same
+     product. See that file's own copy of these rules. */
+  .zw-google-btn{
+    display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
+    height:48px; border-radius:12px; border:1px solid var(--border);
+    background: var(--white); font-family: var(--font-body); font-size:14.5px; font-weight:600; color: var(--ink);
+    cursor:pointer; transition: background .2s, border-color .2s;
+  }
+  .zw-google-btn:hover{ background: var(--off-white); border-color: rgba(10,14,20,0.2); }
+  .zw-google-btn svg{ flex:0 0 auto; }
+  #zwGoogleMount{ display:flex; justify-content:center; }
+  .zw-divider{
+    display:flex; align-items:center; gap:14px; margin:4px 0;
+    font-family: var(--font-mono); font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color: var(--ink-faint);
+  }
+  .zw-divider::before, .zw-divider::after{ content:""; flex:1; height:1px; background: var(--border); }
+
+  /* Small, non-blocking banner for the verify-email redirect
+     (?verified=1 / ?verify_error=...) -- does not change this page's
+     layout, just an optional line above the form when the query param is
+     present. */
+  .login-banner{
+    display:none; margin-bottom:20px; padding:11px 14px; border-radius:10px;
+    font-family: var(--font-body); font-size:13.5px; line-height:1.5;
+  }
+  .login-banner.show{ display:block; }
+  .login-banner.success{ background: rgba(26,154,99,0.1); color: var(--green); }
+  .login-banner.error{ background: rgba(194,58,58,0.08); color: var(--red); }
+
   .login-password-wrap{ position:relative; }
   .login-password-wrap .zw-input{ padding-right:44px; }
   .login-password-toggle{
@@ -236,6 +266,21 @@
       <p class="lede login-sub">Access your Zoey Wallet account.</p>
 
       <div id="loginFormState">
+        <p class="login-banner" id="loginBanner"></p>
+
+        <!-- Google sign-in mount point. Loads the official Google Identity
+             Services button when a client ID is configured (see GET
+             /api/auth/config in api/index.py); falls back to a clearly
+             labeled static button (disabled real auth) if none is present
+             yet. Same pattern as index.html's signup modal. -->
+        <div id="zwGoogleMount"></div>
+        <button type="button" class="zw-google-btn" id="zwGoogleFallback" style="display:none;">
+          <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.85 2.09-1.8 2.73v2.27h2.92c1.7-1.57 2.68-3.88 2.68-6.64z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.27c-.81.54-1.85.86-3.04.86-2.34 0-4.32-1.58-5.03-3.71H.96v2.34C2.44 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.97 10.7A5.4 5.4 0 0 1 3.68 9c0-.59.1-1.17.29-1.7V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l3.01-2.34z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.59-2.59C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l3.01 2.34C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
+          <span>Continue with Google</span>
+        </button>
+
+        <div class="zw-divider">or continue with email</div>
+
         <form class="login-form" id="loginForm" novalidate>
           <div class="zw-field" id="loginEmailField">
             <label class="zw-label" for="loginEmail">Email address</label>
@@ -331,6 +376,37 @@
     // form as normal.
   });
 
+  // ---- Banner for the GET /api/auth/verify-email redirect ----
+  // That endpoint (api/index.py) never returns a page itself -- it
+  // redirects here with a query param instead, and this is the only place
+  // that copy lives. Doesn't touch this page's layout otherwise.
+  (function showVerifyBanner(){
+    const params = new URLSearchParams(window.location.search);
+    const banner = document.getElementById('loginBanner');
+    if (!banner) return;
+
+    let text = null;
+    let kind = 'success';
+    if (params.has('verified')) {
+      text = 'Your email is verified. Log in below.';
+      kind = 'success';
+    } else if (params.get('verify_error') === 'expired') {
+      text = 'Your verification link has expired. Log in, then request a new one from your dashboard.';
+      kind = 'error';
+    } else if (params.get('verify_error') === 'used_or_invalid') {
+      text = 'Your email is already verified.';
+      kind = 'success';
+    } else if (params.get('verify_error') === 'rate_limited') {
+      text = 'Too many attempts. Please try again in a few minutes.';
+      kind = 'error';
+    }
+
+    if (text) {
+      banner.textContent = text;
+      banner.classList.add('show', kind);
+    }
+  })();
+
   const form = document.getElementById('loginForm');
   const emailInput = document.getElementById('loginEmail');
   const passwordInput = document.getElementById('loginPassword');
@@ -419,6 +495,98 @@
         formError.classList.add('show');
       });
   });
+
+  // ============================================================
+  // GOOGLE IDENTITY SERVICES — same real, server-verified sign-in as the
+  // homepage's "Create your Zoey account" modal (index.html). The client
+  // ID is fetched from GET /api/auth/config rather than hardcoded here --
+  // see that endpoint (api/index.py) and index.html's matching comment.
+  // ============================================================
+
+  async function submitGoogleAuth(credential){
+    let res, data;
+    try {
+      res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential }),
+      });
+      data = await res.json();
+    } catch (err) {
+      throw new Error("We couldn't reach our servers. Please try again shortly.");
+    }
+
+    if (!res.ok || !data.ok) {
+      if (res.status === 429) {
+        throw new Error('Too many attempts. Please try again in a few minutes.');
+      }
+      throw new Error((data && data.message) || "We couldn't complete Google sign-in. Please try again.");
+    }
+    return data;
+  }
+
+  function handleGoogleCredential(response){
+    formError.classList.remove('show');
+
+    submitGoogleAuth(response.credential).then(() => {
+      formState.style.display = 'none';
+      successState.classList.add('show');
+      setTimeout(() => { window.location.href = '/dashboard'; }, 500);
+    }).catch((err) => {
+      // Covers the spec's "Google auth failed" state. Note: if someone
+      // closes Google's own account-chooser popup without picking an
+      // account, Google's Identity Services library never calls this
+      // callback at all -- there is no error event for that in the button
+      // flow, so a "Google sign-in was cancelled." message has nowhere to
+      // attach to here; the button simply becomes clickable again.
+      formError.textContent = err.message;
+      formError.classList.add('show');
+    });
+  }
+  window.handleGoogleCredential = handleGoogleCredential;
+
+  function showGoogleFallback(){
+    const fallback = document.getElementById('zwGoogleFallback');
+    fallback.style.display = 'flex';
+    fallback.addEventListener('click', () => {
+      fallback.insertAdjacentHTML('afterend',
+        '<p style="margin-top:10px;font-family:var(--font-body);font-size:12px;color:var(--ink-faint);text-align:center;">Google sign-in isn\'t connected yet — please continue with email below.</p>');
+      fallback.disabled = true;
+      fallback.style.opacity = '0.6';
+      fallback.style.cursor = 'default';
+    }, { once: true });
+  }
+
+  fetch('/api/auth/config')
+    .then((res) => (res.ok ? res.json() : { googleClientId: '' }))
+    .catch(() => ({ googleClientId: '' }))
+    .then((config) => {
+      const clientId = (config && config.googleClientId) || '';
+      if (!clientId) {
+        showGoogleFallback();
+        return;
+      }
+      const gsiScript = document.createElement('script');
+      gsiScript.src = 'https://accounts.google.com/gsi/client';
+      gsiScript.async = true;
+      gsiScript.defer = true;
+      gsiScript.onload = function(){
+        try {
+          google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleGoogleCredential
+          });
+          google.accounts.id.renderButton(document.getElementById('zwGoogleMount'), {
+            theme: 'outline', size: 'large', width: 340, text: 'continue_with', shape: 'rectangular'
+          });
+        } catch (err) {
+          console.error('Google Identity Services failed to initialize', err);
+          showGoogleFallback();
+        }
+      };
+      gsiScript.onerror = showGoogleFallback;
+      document.head.appendChild(gsiScript);
+    });
 })();
 </script>
 </body>

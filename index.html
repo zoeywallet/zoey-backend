@@ -3624,7 +3624,16 @@
         const title = document.getElementById('zwSuccessTitle');
         const copy = document.getElementById('zwSuccessCopy');
         if (title) title.textContent = 'Account created.';
-        if (copy) copy.textContent = "You're all set — taking you to your dashboard...";
+        // The backend creates the account as unverified and emails a
+        // verification link (see api/index.py's POST /api/auth/signup) --
+        // reflect whichever actually happened rather than always claiming
+        // an email was sent. Verification doesn't block dashboard access
+        // today (see backend/models.py), so the redirect below is unchanged.
+        if (copy) {
+          copy.textContent = data && data.verification_email_sent
+            ? "You're all set — we've sent a verification link to your email. Taking you to your dashboard..."
+            : "You're all set — taking you to your dashboard...";
+        }
         formState.style.display = 'none';
         successState.classList.add('show');
         // Already authenticated (the signup response set the session
@@ -3662,33 +3671,71 @@
 
     // ============================================================
     // GOOGLE IDENTITY SERVICES — official "Sign in with Google" pattern.
-    // Set GOOGLE_CLIENT_ID to a real OAuth Web Client ID (Google Cloud Console →
-    // APIs & Services → Credentials) to enable real account selection. Until a
-    // client ID is configured, a clearly-labeled static Google button is shown
-    // instead — it does not fake a login.
+    // The credential Google hands back here is verified SERVER-SIDE
+    // (backend/google_auth.py) against a real Zoey session -- this is no
+    // longer the old lead-capture stand-in. The client ID itself is fetched
+    // from GET /api/auth/config (see api/index.py) instead of hardcoded in
+    // this file, so the same deployed page works correctly in local dev,
+    // Vercel previews, and production without a manual per-environment
+    // HTML edit. Until that endpoint reports a configured client ID, the
+    // existing clearly-labeled static fallback button is shown instead —
+    // it does not fake a login.
     // ============================================================
-    const GOOGLE_CLIENT_ID = ''; // TODO: set your Google OAuth Web Client ID here
+
+    // Real Google sign-in -> POST /api/auth/google (see api/index.py).
+    // On success the backend verifies the credential, finds-or-creates the
+    // matching Zoey account, and sets the SAME session cookie
+    // /api/login and /api/auth/signup already set -- there is no separate
+    // "Google session" system.
+    async function submitGoogleAuth(credential){
+      let res, data;
+      try {
+        res = await fetch(`${ZOEY_LEADS_API_BASE}/api/auth/google`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential }),
+        });
+        data = await res.json();
+      } catch (err) {
+        throw { message: "We couldn't reach our servers. Please try again shortly." };
+      }
+
+      if (!res.ok || !data.ok){
+        if (res.status === 429){
+          throw { message: 'Too many attempts. Please try again in a few minutes.' };
+        }
+        throw { message: (data && data.message) || "We couldn't complete Google sign-in. Please try again." };
+      }
+
+      return data; // { ok, success, message, user }
+    }
 
     function handleGoogleCredential(response){
-      try {
-        const payloadJson = JSON.parse(atob(response.credential.split('.')[1]));
-        const lead = {
-          name: payloadJson.name || '',
-          email: payloadJson.email || '',
-          phone_e164: null,
-          country: null,
-          country_code: null,
-          interest: selectedInterest,
-          source: 'website_google_signup',
-          submitted_at: new Date().toISOString()
-        };
-        submitLead(lead).then(() => {
-          formState.style.display = 'none';
-          successState.classList.add('show');
-        });
-      } catch (err) {
-        console.error('Google credential could not be parsed', err);
-      }
+      const formError = document.getElementById('zwFormError');
+      if (formError){ formError.style.display = 'none'; }
+
+      submitGoogleAuth(response.credential).then(() => {
+        const title = document.getElementById('zwSuccessTitle');
+        const copy = document.getElementById('zwSuccessCopy');
+        if (title) title.textContent = "You're in.";
+        if (copy) copy.textContent = "Signed in with Google — taking you to your dashboard...";
+        formState.style.display = 'none';
+        successState.classList.add('show');
+        // Already authenticated (the response set the session cookie) --
+        // go straight to the dashboard, same as email/password signup.
+        setTimeout(() => { window.location.href = '/dashboard'; }, 700);
+      }).catch((err) => {
+        // Covers the spec's "Google auth failed" state. Note: when someone
+        // closes Google's own account-chooser popup without picking an
+        // account, Google's Identity Services library never calls this
+        // callback at all (there is no error event for that in the button
+        // flow) -- so a "Google sign-in was cancelled." message has nowhere
+        // to attach to here; the button simply becomes clickable again.
+        if (formError){
+          formError.textContent = (err && err.message) || "We couldn't complete Google sign-in. Please try again.";
+          formError.style.display = 'block';
+        }
+      });
     }
     window.handleGoogleCredential = handleGoogleCredential;
 
@@ -3704,30 +3751,36 @@
       }, { once: true });
     }
 
-    if (!GOOGLE_CLIENT_ID){
-      showGoogleFallback();
-    } else {
-      const gsiScript = document.createElement('script');
-      gsiScript.src = 'https://accounts.google.com/gsi/client';
-      gsiScript.async = true;
-      gsiScript.defer = true;
-      gsiScript.onload = function(){
-        try {
-          google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: handleGoogleCredential
-          });
-          google.accounts.id.renderButton(document.getElementById('zwGoogleMount'), {
-            theme: 'outline', size: 'large', width: 368, text: 'continue_with', shape: 'rectangular'
-          });
-        } catch (err) {
-          console.error('Google Identity Services failed to initialize', err);
+    fetch(`${ZOEY_LEADS_API_BASE}/api/auth/config`)
+      .then((res) => (res.ok ? res.json() : { googleClientId: '' }))
+      .catch(() => ({ googleClientId: '' }))
+      .then((config) => {
+        const clientId = (config && config.googleClientId) || '';
+        if (!clientId){
           showGoogleFallback();
+          return;
         }
-      };
-      gsiScript.onerror = showGoogleFallback;
-      document.head.appendChild(gsiScript);
-    }
+        const gsiScript = document.createElement('script');
+        gsiScript.src = 'https://accounts.google.com/gsi/client';
+        gsiScript.async = true;
+        gsiScript.defer = true;
+        gsiScript.onload = function(){
+          try {
+            google.accounts.id.initialize({
+              client_id: clientId,
+              callback: handleGoogleCredential
+            });
+            google.accounts.id.renderButton(document.getElementById('zwGoogleMount'), {
+              theme: 'outline', size: 'large', width: 368, text: 'continue_with', shape: 'rectangular'
+            });
+          } catch (err) {
+            console.error('Google Identity Services failed to initialize', err);
+            showGoogleFallback();
+          }
+        };
+        gsiScript.onerror = showGoogleFallback;
+        document.head.appendChild(gsiScript);
+      });
   })();
 </script>
 
