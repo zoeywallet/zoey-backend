@@ -20,7 +20,7 @@ Routes:
     POST /api/login                       email + password (must be verified) -> sets the session cookie
     POST /api/logout                      clears the session cookie
     GET  /api/me                           who's currently logged in (401 if nobody)
-    GET  /api/dashboard                    mock portfolio data (401 if not logged in)
+    GET  /api/dashboard                    the authenticated user's own account data from Neon (401 if not logged in)
 
 Local development also serves the static pages (index.html, login.html,
 dashboard.html) directly from this same app, purely for convenience so
@@ -664,10 +664,27 @@ def api_me(claims: dict | None = Depends(get_current_claims)):
 
 
 @app.get("/api/dashboard")
-def api_dashboard(claims: dict | None = Depends(get_current_claims)):
+def api_dashboard(claims: dict | None = Depends(get_current_claims), db: Session = Depends(get_db)):
+    """Returns the CURRENTLY AUTHENTICATED user's own dashboard data --
+    never a shared/demo fixture. Identity comes only from the signed
+    session cookie's claims (get_current_claims) -- never from anything
+    the browser could supply directly -- so this can never return one
+    user's data to a different user. See backend/dashboard_data.py for
+    why every financial figure here is either real (queried from Neon) or
+    honestly zero/empty; DriveWealth is not integrated yet, so nothing
+    here is invented.
+    """
     if claims is None:
         return JSONResponse(status_code=401, content={"ok": False, "message": "Not signed in."})
-    return {"ok": True, "data": get_dashboard_data()}
+    try:
+        user_id = int(claims["sub"])
+    except (KeyError, TypeError, ValueError):
+        # A validly-issued session token always has an integer `sub` (see
+        # backend/auth.py's create_access_token) -- this only guards
+        # against a malformed/foreign token slipping past decode_access_token,
+        # the same defensive posture as this app's other claims consumers.
+        return JSONResponse(status_code=401, content={"ok": False, "message": "Not signed in."})
+    return {"ok": True, "data": get_dashboard_data(db, user_id)}
 
 
 # ---------------------------------------------------------------------------

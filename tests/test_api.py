@@ -210,8 +210,13 @@ class TestSession:
         dash_resp = client.get("/api/dashboard")
         assert dash_resp.status_code == 200
         data = dash_resp.json()["data"]
+        # Honest empty state, not the old hard-coded mock -- see
+        # TestDashboardHonestData below for the full set of assertions
+        # around this (DriveWealth isn't integrated, so this user genuinely
+        # has no brokerage account yet).
         assert "portfolioValue" in data
-        assert "holdings" in data and len(data["holdings"]) == 5
+        assert data["hasBrokerageAccount"] is False
+        assert data["holdings"] == []
 
     def test_logout_clears_session(self, client, db_session):
         _create_test_user(db_session, email="jane@example.com", password="correct-horse-battery")
@@ -811,3 +816,154 @@ class TestFrontendSignupRedirectRegression:
             content = self._read(name)
             assert "GMAIL_APP_PASSWORD" not in content
             assert "GMAIL_USER" not in content
+
+# ---------------------------------------------------------------------------
+# GET /api/dashboard: honest data, not the old hard-coded mock
+# ---------------------------------------------------------------------------
+#
+# DriveWealth is not integrated -- nothing creates a BrokerageAccount row
+# for any user today (see backend/models.py's BrokerageAccount docstring).
+# These tests confirm backend/dashboard_data.py reflects that honestly:
+# an authenticated user with no brokerage account gets a real empty state
+# (never the old fixed NVDA/TSLA/PLTR/AMD/MSFT + $12,450.82 fixture), a
+# user who DOES have real Neon rows gets THEIR real numbers back, and one
+# user can never see another user's brokerage data through this endpoint.
+
+_LEGACY_MOCK_SYMBOLS = ("NVDA", "TSLA", "PLTR", "AMD", "MSFT")
+
+
+class TestDashboardHonestData:
+    def _login(self, client, db_session, *, email, password="correct-horse-battery"):
+        _create_test_user(db_session, email=email, password=password)
+        resp = client.post("/api/login", json={"email": email, "password": password})
+        assert resp.status_code == 200
+
+    def test_empty_state_for_user_with_no_brokerage_account(self, client, db_session):
+        self._login(client, db_session, email="nobroker@example.com")
+        resp = client.get("/api/dashboard")
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+
+        assert data["hasBrokerageAccount"] is False
+        assert data["portfolioValue"] == 0.0
+        assert data["todayChangeAbs"] == 0.0
+        assert data["todayChangePct"] == 0.0
+        assert data["chartPoints"] == []
+        assert data["holdings"] == []
+        assert data["stablecoins"] == {"USDT": 0.0, "USDC": 0.0}
+
+    def test_response_contains_no_legacy_mock_values(self, client, db_session):
+        """The exact fixed numbers/symbols the old backend/dashboard_data.py
+        used to return for EVERY user, regardless of who they were --
+        must never appear in a real response again."""
+        self._login(client, db_session, email="honest@example.com")
+        resp = client.get("/api/dashboard")
+        body_text = resp.text
+
+        for symbol in _LEGACY_MOCK_SYMBOLS:
+            assert symbol not in body_text
+        data = resp.json()["data"]
+        assert data["portfolioValue"] != 12450.82
+        assert data["stablecoins"] != {"USDT": 1240.00, "USDC": 860.50}
+
+    def test_reflects_real_cash_balance_and_position_from_neon(self, client, db_session):
+        """Once a user genuinely has brokerage rows (not possible through
+        any route today, but exercised here directly against the DB the
+        same way TestBrokerageDataFoundation does), the dashboard must
+        return THEIR real figures -- not fabricate different ones."""
+        from decimal import Decimal
+
+        from backend.models import BrokerageAccount, CashBalance, Position
+
+        self._login(client, db_session, email="realdata@example.com")
+        from backend.database import find_user_by_email
+
+        user = find_user_by_email(db_session, "realdata@example.com")
+        account = BrokerageAccount(
+            user_id=user.id, provider="drivewealth", external_account_id="dw-acct-real", status="active"
+        )
+        db_session.add(account)
+        db_session.commit()
+        db_session.refresh(account)
+        db_session.add(
+            CashBalance(
+                brokerage_account_id=account.id,
+                currency="USDT",
+                available_balance=Decimal("500.25"),
+                total_balance=Decimal("500.25"),
+            )
+        )
+        db_session.add(
+            Position(
+                brokerage_account_id=account.id,
+                symbol="AAPL",
+                quantity=Decimal("2.5"),
+                average_cost=Decimal("150.00"),
+                market_value=Decimal("320.50"),
+            )
+        )
+        db_session.commit()
+
+        resp = client.get("/api/dashboard")
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+
+        assert data["hasBrokerageAccount"] is True
+        assert data["stablecoins"]["USDT"] == 500.25
+        assert data["stablecoins"]["USDC"] == 0.0  # no USDC row was ever created
+        assert data["portfolioValue"] == 320.50
+        assert len(data["holdings"]) == 1
+        assert data["holdings"][0]["symbol"] == "AAPL"
+
+    def test_one_user_cannot_see_another_users_brokerage_data(self, client, db_session):
+        from decimal import Decimal
+
+        from backend.database import find_user_by_email
+        from backend.models import BrokerageAccount, CashBalance
+
+        _create_test_user(db_session, email="owner@example.com", password="correct-horse-battery")
+        owner = find_user_by_email(db_session, "owner@example.com")
+        owner_account = BrokerageAccount(
+            user_id=owner.id, provider="drivewealth", external_account_id="dw-acct-owner", status="active"
+        )
+        db_session.add(owner_account)
+        db_session.commit()
+        db_session.refresh(owner_account)
+        db_session.add(
+            CashBalance(
+                brokerage_account_id=owner_account.id,
+                currency="USDT",
+                available_balance=Decimal("9999.99"),
+                total_balance=Decimal("9999.99"),
+            )
+        )
+        db_session.commit()
+
+        # A completely different user logs in -- must see THEIR OWN (empty)
+        # state, never owner@example.com's balance.
+        self._login(client, db_session, email="other@example.com")
+        resp = client.get("/api/dashboard")
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+
+        assert data["hasBrokerageAccount"] is False
+        assert data["stablecoins"]["USDT"] == 0.0
+        assert data["stablecoins"]["USDT"] != 9999.99
+
+
+class TestDashboardDataModuleRegression:
+    """Static guard on backend/dashboard_data.py's own source: the old
+    module-level fixture (fixed portfolio value, fixed holdings, fixed
+    stablecoin balances) must never be reintroduced."""
+
+    def test_no_hardcoded_mock_values_in_source(self):
+        from pathlib import Path
+
+        source = (Path(__file__).resolve().parent.parent / "backend" / "dashboard_data.py").read_text(
+            encoding="utf-8"
+        )
+        for symbol in _LEGACY_MOCK_SYMBOLS:
+            assert symbol not in source
+        assert "12450.82" not in source
+        assert "1240.00" not in source
+        assert "860.50" not in source

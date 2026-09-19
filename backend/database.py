@@ -28,6 +28,9 @@ Functions defined here:
     create_lead(db, name, email, phone, interest, country, country_code, source)
     list_leads(db, limit, offset)
     count_leads(db)
+    get_brokerage_account_for_user(db, user_id)
+    list_cash_balances(db, brokerage_account_id)
+    list_positions(db, brokerage_account_id)
 
 Every one of these takes a SQLAlchemy `Session` as its first argument
 (conventionally named `db`) — see get_db() below for where that comes from.
@@ -45,7 +48,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
-from backend.models import Base, Lead, User
+from backend.models import Base, BrokerageAccount, CashBalance, Lead, Position, User
 
 # ---------------------------------------------------------------------------
 # Engine setup
@@ -583,3 +586,42 @@ def list_leads(db: Session, *, limit: int = 500, offset: int = 0) -> list[Lead]:
 
 def count_leads(db: Session) -> int:
     return db.execute(select(func.count()).select_from(Lead)).scalar_one()
+
+
+# ---------------------------------------------------------------------------
+# Brokerage data foundation (read-only helpers -- see backend/models.py's
+# BrokerageAccount/CashBalance/Position docstrings)
+# ---------------------------------------------------------------------------
+#
+# Nothing writes to these three tables yet (no signup/onboarding flow
+# creates a BrokerageAccount row -- DriveWealth isn't integrated). These
+# read helpers exist so backend/dashboard_data.py has one honest place to
+# ask "does this authenticated user actually have brokerage data" instead
+# of ever fabricating an answer -- see that module for how the answer is
+# "no" for every user today, and will simply start being "yes" for a given
+# user the moment something real creates a row here, with no other code
+# needing to change.
+
+
+def get_brokerage_account_for_user(db: Session, user_id: int) -> Optional[BrokerageAccount]:
+    """The authenticated user's own brokerage account, if any. Scoped
+    strictly by user_id -- the same server-side-claims-derived id every
+    other authenticated lookup in this file uses -- so this can never
+    return a different user's account."""
+    stmt = select(BrokerageAccount).where(BrokerageAccount.user_id == user_id)
+    return db.execute(stmt).scalars().first()
+
+
+def list_cash_balances(db: Session, brokerage_account_id: int) -> list[CashBalance]:
+    """All currency balances for one brokerage account (e.g. its USDT and
+    USDC rows). Callers must have already checked that brokerage_account_id
+    belongs to the authenticated user -- see get_brokerage_account_for_user."""
+    stmt = select(CashBalance).where(CashBalance.brokerage_account_id == brokerage_account_id)
+    return list(db.execute(stmt).scalars().all())
+
+
+def list_positions(db: Session, brokerage_account_id: int) -> list[Position]:
+    """All held positions for one brokerage account. Same ownership
+    precondition as list_cash_balances above."""
+    stmt = select(Position).where(Position.brokerage_account_id == brokerage_account_id)
+    return list(db.execute(stmt).scalars().all())

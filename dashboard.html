@@ -126,6 +126,13 @@
   .dash-portfolio-grid{ display:grid; grid-template-columns: 1.5fr 1fr; gap:36px; align-items:start; }
   .dash-chart-label{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:1.2px; color: rgba(247,246,243,0.35); text-transform:uppercase; margin-bottom:10px; }
   .pf-chart svg{ width:100%; height:auto; }
+  .pf-chart{ position:relative; min-height:160px; }
+  .pf-chart-empty{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-mono); font-size:12.5px; letter-spacing:0.3px; text-align:center;
+    color: rgba(247,246,243,0.35); padding:0 20px;
+  }
+  .pf-empty{ font-size:13px; line-height:1.5; color: rgba(247,246,243,0.45); padding:16px 0; }
 
   .pf-holdings{ display:flex; flex-direction:column; gap:0; }
   .pf-row{ display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-top:1px solid var(--border-on-dark); }
@@ -390,25 +397,55 @@
     document.getElementById('dashAvatar').textContent = (user.name || '?').trim().charAt(0).toUpperCase();
     document.getElementById('dashWelcome').textContent = 'Welcome back, ' + user.name.split(' ')[0] + '.';
 
+    // hasBrokerageAccount comes straight from Neon via GET /api/dashboard
+    // (see backend/dashboard_data.py) -- DriveWealth isn't integrated yet,
+    // so this is False for every user today. Every branch below shows an
+    // honest empty state rather than ever fabricating a figure.
+    const hasAccount = !!data.hasBrokerageAccount;
+
     const changeEl = document.getElementById('dashPfChange');
-    const up = data.todayChangeAbs >= 0;
-    changeEl.className = 'pf-change ' + (up ? 'up' : 'down');
-    changeEl.textContent = (up ? '+' : '−') + '$' + Math.abs(data.todayChangeAbs).toFixed(2) + ' \u00b7 ' + (up ? '+' : '−') + Math.abs(data.todayChangePct).toFixed(2) + '% today';
+    if (hasAccount) {
+      const up = data.todayChangeAbs >= 0;
+      changeEl.className = 'pf-change ' + (up ? 'up' : 'down');
+      changeEl.textContent = (up ? '+' : '−') + '$' + Math.abs(data.todayChangeAbs).toFixed(2) + ' \u00b7 ' + (up ? '+' : '−') + Math.abs(data.todayChangePct).toFixed(2) + '% today';
+    } else {
+      changeEl.className = 'pf-change';
+      changeEl.textContent = 'No investments yet';
+    }
 
     animateValue(document.getElementById('dashPfValue'), data.portfolioValue, money, 900);
     animateValue(document.getElementById('dashUsdt'), data.stablecoins.USDT, plain, 700);
     animateValue(document.getElementById('dashUsdc'), data.stablecoins.USDC, plain, 700);
 
     const holdingsEl = document.getElementById('dashHoldings');
-    holdingsEl.innerHTML = data.holdings.map(h => {
-      const hUp = h.changePct >= 0;
-      return `<div class="pf-row">
-        <div><div class="pf-sym">${h.symbol}</div><div class="pf-name">${h.name}</div></div>
-        <div><div class="pf-px">$${h.price.toFixed(2)}</div><div class="pf-chg ${hUp ? 'up' : 'down'}">${hUp ? '+' : '−'}${Math.abs(h.changePct).toFixed(2)}%</div></div>
-      </div>`;
-    }).join('');
+    if (hasAccount && data.holdings.length){
+      holdingsEl.innerHTML = data.holdings.map(h => {
+        const px = h.marketValue !== null && h.marketValue !== undefined
+          ? '$' + h.marketValue.toFixed(2)
+          : '\u2014';
+        return `<div class="pf-row">
+          <div><div class="pf-sym">${h.symbol}</div><div class="pf-name">${h.quantity} shares</div></div>
+          <div><div class="pf-px">${px}</div></div>
+        </div>`;
+      }).join('');
+    } else {
+      holdingsEl.innerHTML = '<div class="pf-empty">Your portfolio will appear here once you start investing.</div>';
+    }
 
-    buildChart(data.chartPoints);
+    const chartSvg = document.getElementById('dashChartSvg');
+    const chartWrap = chartSvg.closest('.pf-chart');
+    const existingEmpty = chartWrap.querySelector('.pf-chart-empty');
+    if (existingEmpty) existingEmpty.remove();
+    if (hasAccount && Array.isArray(data.chartPoints) && data.chartPoints.length > 1) {
+      chartSvg.style.display = '';
+      buildChart(data.chartPoints);
+    } else {
+      chartSvg.style.display = 'none';
+      const empty = document.createElement('div');
+      empty.className = 'pf-chart-empty';
+      empty.textContent = 'No portfolio history yet';
+      chartWrap.appendChild(empty);
+    }
 
     loading.style.display = 'none';
     content.style.display = 'block';
