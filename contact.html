@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Contact — Zoey Wallet</title>
-<meta name="description" content="Get in touch with the Zoey Wallet team — questions about investing, funding, partnerships or getting started with global markets access.">
+<meta name="description" content="Get in touch with the Zoey Wallet team: questions about investing, funding, partnerships or getting started with global markets access.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -169,8 +169,8 @@
   .zw-success-copy{ margin-top:12px; font-family: var(--font-body); font-size:14.5px; line-height:1.6; color: var(--ink-soft); }
 
   /* ============ CONTACT HERO ============ */
-  .contact-hero{ padding:190px 0 110px; }
-  .contact-hero-grid{ display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1.05fr); gap:72px; align-items:start; }
+  .contact-hero{ padding:190px 0 130px; }
+  .contact-hero-grid{ display:grid; grid-template-columns: minmax(0,0.95fr) minmax(0,1.15fr); gap:64px; align-items:start; }
   .contact-hero-left h1{ font-size:52px; line-height:1.08; max-width:560px; margin-bottom:24px; }
   .contact-hero-left .lede{ max-width:500px; margin-bottom:48px; }
   .contact-proof-list{ display:flex; flex-direction:column; gap:22px; border-top:1px solid var(--border); padding-top:32px; max-width:460px; }
@@ -178,13 +178,58 @@
   .contact-proof-num{ font-family:var(--font-mono); font-size:13px; color:var(--ink-faint); flex:0 0 auto; width:22px; }
   .contact-proof-text{ font-family:var(--font-body); font-size:16px; font-weight:600; color:var(--ink); }
 
-  .contact-form-card{
-    background:var(--white); border:1px solid var(--border); border-radius:20px;
-    padding:44px 40px 40px; box-shadow:0 30px 70px -35px rgba(10,14,20,0.18);
+  /* ---- Right column: the photo is the dominant visual "environment";
+     the compact form floats over its left edge, editorial-style, rather
+     than sitting alone on a blank background. object-position keeps the
+     woman and her headset entirely in the right ~55-60% of the frame at
+     every height (her shoulders are wider than any crop window we use,
+     so this is a property of the crop, not a lucky guess), so the card
+     -- anchored to the panel's left edge -- can never land over her
+     face or headset regardless of exact viewport width. ---- */
+  .contact-hero-right{ position:relative; }
+  .contact-visual{
+    position:relative; border-radius:20px; overflow:hidden;
+    aspect-ratio: 4 / 5.1;
+    background: var(--navy-deep);
   }
-  .contact-form-title{ font-size:27px; margin-top:4px; margin-bottom:8px; }
-  .contact-form-sub{ font-family:var(--font-body); font-size:14px; color:var(--ink-soft); margin-bottom:28px; }
-  .contact-form-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .contact-visual img{
+    width:100%; height:100%; display:block; object-fit:cover; object-position: 15% 50%;
+  }
+  .contact-visual::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background: linear-gradient(180deg, rgba(5,7,12,0.14) 0%, rgba(5,7,12,0) 16%, rgba(5,7,12,0) 80%, rgba(5,7,12,0.2) 100%);
+  }
+
+  .contact-form-card{
+    position:absolute; z-index:2; left:-56px; top:50px; width:300px;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border:1px solid rgba(10,14,20,0.09); border-radius:16px;
+    padding:22px 22px 20px;
+    box-shadow: 0 30px 64px -26px rgba(5,7,12,0.42), 0 8px 22px -12px rgba(5,7,12,0.18);
+  }
+  .contact-form-title{ font-size:19px; margin-top:2px; margin-bottom:5px; }
+  .contact-form-sub{ font-family:var(--font-body); font-size:12px; color:var(--ink-soft); margin-bottom:16px; }
+  .contact-form-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .contact-form-card .eyebrow{ font-size:10px; letter-spacing:1.4px; margin-bottom:4px; }
+  .contact-form-card .zw-form{ gap:10px; }
+  .contact-form-card .zw-field{ gap:4px; }
+  .contact-form-card .zw-label{ font-size:10.5px; }
+  .contact-form-card .zw-input{ height:36px; padding:0 12px; font-size:13px; border-radius:9px; }
+  .contact-form-card select.zw-input{ background-position: right 11px center; padding-right:30px; }
+  .contact-form-card textarea.zw-input{ min-height:74px; padding:9px 12px; font-size:13px; line-height:1.45; }
+  .contact-form-card .zw-country-btn{ height:36px; padding:0 8px 0 10px; border-radius:9px; }
+  .contact-form-card .zc-country-code{ font-size:11.5px; }
+  .contact-form-card #zcCountryDial{ font-size:12px; }
+  .contact-form-card .zc-country-flag{ width:16px; height:12px; }
+  .contact-form-card .zw-submit-btn{ height:40px; font-size:13.5px; margin-top:4px; border-radius:9px; }
+  .contact-form-card .zw-legal{ font-size:10px; margin-top:10px; }
+  .contact-form-card .zw-field-error{ font-size:10.5px; }
+  .contact-form-card .zw-success{ padding:14px 2px; }
+  .contact-form-card .zw-success-icon{ width:44px; height:44px; margin:0 auto 14px; }
+  .contact-form-card .zw-success-title{ font-size:21px; margin-top:8px; }
+  .contact-form-card .zw-success-copy{ font-size:12.5px; margin-top:8px; }
 
   /* ============ HOW CAN WE HELP ============ */
   .contact-categories{ padding:100px 0 96px; border-top:1px solid var(--border); }
@@ -301,9 +346,10 @@
   /* ============ RESPONSIVE ============ */
   @media (max-width: 1080px){
     .footer-grid{ grid-template-columns:1fr 1fr; }
-    .contact-hero-grid{ grid-template-columns:1fr; gap:56px; }
+    .contact-hero-grid{ grid-template-columns:1fr; gap:44px; }
     .contact-hero-left h1, .contact-hero-left .lede, .contact-proof-list{ max-width:620px; }
-    .contact-form-card{ max-width:560px; }
+    .contact-visual{ position:static; aspect-ratio:16/10; border-radius:18px; }
+    .contact-form-card{ position:static; width:100%; max-width:560px; left:auto; top:auto; margin-top:24px; }
     .contact-cards-grid{ grid-template-columns:1fr 1fr; }
   }
   @media (max-width: 900px){
@@ -318,7 +364,8 @@
     .contact-hero-left h1{ font-size: clamp(30px, 8vw, 38px); }
     .contact-hero-left .lede{ font-size:16px; margin-bottom:36px; }
     .contact-proof-list{ padding-top:26px; gap:18px; }
-    .contact-form-card{ padding:28px 20px 26px; border-radius:16px; }
+    .contact-visual{ aspect-ratio:4/3.3; margin-top:8px; }
+    .contact-form-card{ padding:20px 18px 18px; border-radius:16px; margin-top:18px; }
     .contact-form-row{ grid-template-columns:1fr; }
     .contact-categories{ padding:72px 0 64px; }
     .contact-categories h2{ font-size:27px; }
@@ -384,16 +431,19 @@
 
       <div class="contact-hero-left reveal">
         <div class="eyebrow">CONTACT</div>
-        <h1>Let's build access to global markets.</h1>
-        <p class="lede">Tell us what you're building, what you want to invest in, or what you need help understanding. Our team is building the infrastructure for simpler, more direct access to global equities from Africa.</p>
+        <h1>We built your access to global markets.</h1>
+        <p class="lede">We built Zoey to give you simpler, more direct access to global equities from Africa. Tell us what you want to invest in, what you're building, or where you need help. We're here to help you use it.</p>
         <div class="contact-proof-list">
           <div class="contact-proof"><span class="contact-proof-num">01</span><span class="contact-proof-text">Access built around you</span></div>
-          <div class="contact-proof"><span class="contact-proof-num">02</span><span class="contact-proof-text">Global markets, simplified</span></div>
-          <div class="contact-proof"><span class="contact-proof-num">03</span><span class="contact-proof-text">A direct line to the Zoey team</span></div>
+          <div class="contact-proof"><span class="contact-proof-num">02</span><span class="contact-proof-text">Global markets without the usual friction</span></div>
+          <div class="contact-proof"><span class="contact-proof-num">03</span><span class="contact-proof-text">Real support when you need it</span></div>
         </div>
       </div>
 
       <div class="contact-hero-right reveal">
+        <div class="contact-visual">
+          <img src="assets/contact-support.jpg" alt="A Zoey Wallet support team member wearing a headset at the Zoey Wallet office, with the Zoey Wallet logo and the words People, Markets, Opportunities on the wall behind her." loading="lazy" width="1536" height="1024">
+        </div>
         <div class="contact-form-card">
 
           <div id="contactFormState">
@@ -562,7 +612,7 @@
             <span class="zc-faq-icon" aria-hidden="true"></span>
           </button>
           <div class="zc-faq-panel" id="faqPanel1" role="region" aria-labelledby="faqTrigger1">
-            <div class="zc-faq-panel-inner"><p>Zoey Wallet is a technology platform built to make access to global financial markets simpler for people across Africa. It's designed around a stablecoin-native model &mdash; funding and moving value using USDT and USDC &mdash; layered on top of access to U.S. equities and other global markets, rather than a traditional bank-account-first approach.</p></div>
+            <div class="zc-faq-panel-inner"><p>Zoey Wallet is a technology platform built to make access to global financial markets simpler for people across Africa. It's designed around a stablecoin-native model, funding and moving value using USDT and USDC, layered on top of access to U.S. equities and other global markets, rather than a traditional bank-account-first approach.</p></div>
           </div>
         </div>
         <div class="zc-faq-row reveal">
@@ -571,7 +621,7 @@
             <span class="zc-faq-icon" aria-hidden="true"></span>
           </button>
           <div class="zc-faq-panel" id="faqPanel2" role="region" aria-labelledby="faqTrigger2">
-            <div class="zc-faq-panel-inner"><p>Zoey is built around giving you access to U.S. equities and other global markets through our technology platform, with investment transactions executed by a third-party regulated brokerage partner. Some features described on this site are still being rolled out &mdash; where something isn't yet available in your account, the app will make that clear rather than leave you guessing.</p></div>
+            <div class="zc-faq-panel-inner"><p>Zoey is built around giving you access to U.S. equities and other global markets through our technology platform, with investment transactions executed by a third-party regulated brokerage partner. Some features described on this site are still being rolled out. Where something isn't yet available in your account, the app will make that clear rather than leave you guessing.</p></div>
           </div>
         </div>
         <div class="zc-faq-row reveal">
@@ -589,7 +639,7 @@
             <span class="zc-faq-icon" aria-hidden="true"></span>
           </button>
           <div class="zc-faq-panel" id="faqPanel4" role="region" aria-labelledby="faqTrigger4">
-            <div class="zc-faq-panel-inner"><p>Zoey is built around low-minimum, fractional investing &mdash; the platform is designed so you can start investing in global equities for as little as $1, funded with supported stablecoins.</p></div>
+            <div class="zc-faq-panel-inner"><p>Zoey is built around low-minimum, fractional investing: you can start investing in global equities for as little as $1, funded with supported stablecoins.</p></div>
           </div>
         </div>
         <div class="zc-faq-row reveal">
@@ -607,7 +657,7 @@
             <span class="zc-faq-icon" aria-hidden="true"></span>
           </button>
           <div class="zc-faq-panel" id="faqPanel6" role="region" aria-labelledby="faqTrigger6">
-            <div class="zc-faq-panel-inner"><p>No. Zoey Wallet is a technology platform, not a broker-dealer. Brokerage services &mdash; including the execution and custody of investments &mdash; are provided by a third-party regulated broker-dealer, member FINRA/SIPC. Zoey builds the interface and infrastructure that connects you to that regulated partner.</p></div>
+            <div class="zc-faq-panel-inner"><p>No. Zoey Wallet is a technology platform, not a broker-dealer. Brokerage services, including the execution and custody of investments, are provided by a third-party regulated broker-dealer, member FINRA/SIPC. Zoey builds the interface and infrastructure that connects you to that regulated partner.</p></div>
           </div>
         </div>
         <div class="zc-faq-row reveal">
@@ -616,7 +666,7 @@
             <span class="zc-faq-icon" aria-hidden="true"></span>
           </button>
           <div class="zc-faq-panel" id="faqPanel7" role="region" aria-labelledby="faqTrigger7">
-            <div class="zc-faq-panel-inner"><p>Investments made through Zoey are held and executed through our third-party regulated brokerage partner, a FINRA/SIPC member, which is subject to the regulatory protections that apply to accounts held there. As with any investing, the value of your investments can go up or down, and past performance doesn't guarantee future results &mdash; see our <a href="legal.html#disclosures">Important Disclosures</a> for more detail.</p></div>
+            <div class="zc-faq-panel-inner"><p>Investments made through Zoey are held and executed through our third-party regulated brokerage partner, a FINRA/SIPC member, which is subject to the regulatory protections that apply to accounts held there. As with any investing, the value of your investments can go up or down, and past performance doesn't guarantee future results. See our <a href="legal.html#disclosures">Important Disclosures</a> for more detail.</p></div>
           </div>
         </div>
         <div class="zc-faq-row reveal">
@@ -625,7 +675,7 @@
             <span class="zc-faq-icon" aria-hidden="true"></span>
           </button>
           <div class="zc-faq-panel" id="faqPanel8" role="region" aria-labelledby="faqTrigger8">
-            <div class="zc-faq-panel-inner"><p>Zoey is built with an Africa-first focus, and much of our design &mdash; from stablecoin funding to fractional access &mdash; reflects that. That said, availability can depend on your specific country, eligibility and onboarding requirements, so not every country is automatically supported yet. If you're unsure whether Zoey is available where you are, reach out using the form on this page and we'll let you know.</p></div>
+            <div class="zc-faq-panel-inner"><p>Zoey is built with an Africa-first focus, and much of our design, from stablecoin funding to fractional access, reflects that. That said, availability can depend on your specific country, eligibility and onboarding requirements, so not every country is automatically supported yet. If you're unsure whether Zoey is available where you are, reach out using the form on this page and we'll let you know.</p></div>
           </div>
         </div>
         <div class="zc-faq-row reveal">
@@ -634,7 +684,7 @@
             <span class="zc-faq-icon" aria-hidden="true"></span>
           </button>
           <div class="zc-faq-panel" id="faqPanel9" role="region" aria-labelledby="faqTrigger9">
-            <div class="zc-faq-panel-inner"><p>Security is built into the platform at every layer &mdash; from encrypted connections and secure authentication to controlled access to your account data and ongoing monitoring for suspicious activity. We don't publish the specifics of our internal security architecture, for the same reason a bank doesn't publish its vault combination, but protecting your information and access to your account is a core design principle, not an afterthought.</p></div>
+            <div class="zc-faq-panel-inner"><p>Security is built into the platform at every layer: encrypted connections, secure authentication, controlled access to your account data, and ongoing monitoring for suspicious activity. We don't publish the specifics of our internal security architecture, for the same reason a bank doesn't publish its vault combination. Protecting your information and access to your account is a core design principle.</p></div>
           </div>
         </div>
         <div class="zc-faq-row reveal">

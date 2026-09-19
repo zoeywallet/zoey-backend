@@ -76,12 +76,83 @@
   .mobile-menu a:last-of-type{ border-bottom:none; }
 
   /* ============ LEGAL PAGE ============ */
-  .legal-intro{ padding:186px 0 56px; }
-  .legal-intro h1{ font-size:56px; line-height:1.05; max-width:760px; margin-bottom:22px; }
-  .legal-intro .lede{ max-width:620px; }
+  .legal-intro{ padding:186px 0 64px; }
+
+  /* Asymmetric two-column hero: text column left, a generated institutional
+     visual right, so the wide desktop measure is used intentionally instead
+     of leaving the right half of the hero empty. The visual column is a
+     fixed, capped width (not a flexible fraction) so it reads as a
+     deliberately-sized panel rather than stretching to fill leftover
+     space; the text column takes the remaining width. Collapses to a
+     single column (see the 900px media query) well before the panel would
+     start cramping the headline. */
+  .legal-intro-grid{ display:grid; grid-template-columns: minmax(0,1fr) 400px; gap:72px; align-items:center; }
+  .legal-intro h1{ font-size:56px; line-height:1.05; max-width:600px; margin-bottom:22px; }
+  .legal-intro .lede{ max-width:520px; }
   .legal-intro-meta{ display:flex; gap:40px; margin-top:40px; flex-wrap:wrap; padding-top:32px; border-top:1px solid var(--border); }
   .legal-intro-meta div{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:1px; color:var(--ink-faint); text-transform:uppercase; }
   .legal-intro-meta b{ display:block; font-family:var(--font-body); font-size:14.5px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--ink); margin-top:7px; }
+
+  /* ---- Hero visual: "Legal Framework" map. An original, programmatically
+     -built information-architecture diagram (plain HTML + CSS -- no SVG
+     network, no raster image, no external asset) that shows the actual
+     shape of this document: Zoey Wallet at the top, the three documents
+     that govern it below, each carrying its real scope and subsection
+     count pulled straight from the sections beneath. It reads as a
+     document index / systems map rather than a decorative illustration --
+     every number and label here matches content that already exists on
+     this page (see the context cards in each .legal-block below). Rows
+     are real links to #terms/#privacy/#disclosures and share the same
+     active-section state as the sub-nav (see the JS at the bottom of this
+     file). ---- */
+  .legal-intro-visual{ width:100%; }
+  .lfm-panel{
+    border:1px solid var(--border); border-radius:6px;
+    background: linear-gradient(160deg, rgba(10,14,20,0.025), rgba(10,14,20,0) 60%), var(--off-white);
+    padding:26px 26px 22px;
+  }
+  .lfm-head{ display:flex; align-items:center; gap:11px; padding-bottom:18px; margin-bottom:2px; border-bottom:1px solid var(--border); }
+  .lfm-core{ width:11px; height:11px; border:1.3px solid var(--cobalt); border-radius:2px; background: rgba(51,85,255,0.08); flex:0 0 auto; transform:rotate(45deg); }
+  .lfm-head-text{ display:flex; flex-direction:column; gap:3px; }
+  .lfm-kicker{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:1.3px; color:var(--ink-faint); text-transform:uppercase; }
+  .lfm-title{ font-family:var(--font-mono); font-size:12.5px; letter-spacing:1.1px; color:var(--ink); text-transform:uppercase; font-weight:500; }
+
+  .lfm-index{ position:relative; }
+  .lfm-index::before{ content:''; position:absolute; left:15px; top:0; bottom:0; width:1px; background:var(--border); }
+  .lfm-row{
+    position:relative; display:block; padding:18px 2px 18px 36px;
+    border-bottom:1px solid var(--border);
+    transition: background .15s ease;
+  }
+  .lfm-row:last-child{ border-bottom:none; }
+  .lfm-row::before{
+    content:''; position:absolute; left:11px; top:23px; width:9px; height:9px;
+    border-radius:50%; background:var(--off-white); border:1.3px solid var(--ink-faint); box-sizing:border-box;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .lfm-row:hover{ background: rgba(10,14,20,0.03); }
+  .lfm-row.active{ background: rgba(51,85,255,0.035); }
+  .lfm-row.active::before{ border-color:var(--cobalt); background:var(--cobalt); }
+  .lfm-row-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:5px; }
+  .lfm-row-num{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.6px; color:var(--ink-faint); transition:color .15s ease; }
+  .lfm-row.active .lfm-row-num{ color:var(--cobalt); }
+  .lfm-row-title{ font-family:var(--font-body); font-weight:600; font-size:14.5px; letter-spacing:0.2px; color:var(--ink); text-transform:uppercase; }
+  .lfm-row-desc{ font-size:12.5px; line-height:1.55; color:var(--ink-soft); max-width:230px; margin-bottom:8px; }
+  .lfm-row-meta{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:0.8px; color:var(--ink-faint); text-transform:uppercase; }
+
+  .lfm-foot{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; padding-top:16px; margin-top:2px; border-top:1px solid var(--border); }
+  .lfm-foot-label{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:1.2px; color:var(--ink-faint); text-transform:uppercase; margin-bottom:5px; }
+  .lfm-foot-value{ font-family:var(--font-body); font-size:12.5px; font-weight:600; color:var(--ink); }
+  .lfm-foot-lines{ display:flex; flex-direction:column; gap:4px; align-items:flex-end; }
+  .lfm-foot-lines span{ display:block; height:1px; background:var(--border); }
+  .lfm-foot-lines span:nth-child(1){ width:34px; }
+  .lfm-foot-lines span:nth-child(2){ width:22px; }
+  .lfm-foot-lines span:nth-child(3){ width:28px; }
+
+  @media (prefers-reduced-motion: no-preference){
+    .lfm-row.active::before{ animation: lfmPulse 3.2s ease-in-out infinite; }
+    @keyframes lfmPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(51,85,255,0.35); } 50%{ box-shadow:0 0 0 4px rgba(51,85,255,0); } }
+  }
 
   /* This is a <nav> element for semantics, but the site's global bare
      `nav{...}` tag-selector rule (padding:20px 48px, display:flex,
@@ -278,6 +349,15 @@
     .legal-context-card{ padding:18px 18px 20px; }
     .legal-section-intro{ max-width:none; }
     .legal-articles{ max-width:none; }
+
+    /* Hero collapses to a single stacked column. Source order in the HTML
+       is text-then-visual, so the diagram naturally lands below the
+       headline/lede/meta rather than pushing legal content down the page.
+       The panel is capped to a sensible width (not full-bleed) so it still
+       reads as a framed diagram, not a giant filler graphic. */
+    .legal-intro-grid{ display:block; }
+    .legal-intro-visual{ max-width:440px; margin-top:40px; }
+    .legal-intro h1, .legal-intro .lede{ max-width:640px; }
   }
   @media (max-width: 640px){
     .wrap{ padding:0 22px; }
@@ -287,6 +367,11 @@
     .legal-intro h1{ font-size: clamp(32px, 9vw, 42px); }
     .legal-intro .lede{ font-size:16px; }
     .legal-intro-meta{ gap:22px; }
+    .legal-intro-visual{ max-width:none; margin-top:32px; }
+    .lfm-panel{ padding:20px 18px 16px; border-radius:4px; }
+    .lfm-row{ padding:15px 2px 15px 30px; }
+    .lfm-row-desc{ max-width:none; }
+    .lfm-head{ padding-bottom:14px; }
     .legal-block{ padding:56px 0 48px; }
     .legal-block-grid{ gap:22px; }
     .legal-num{ font-size:36px; }
@@ -349,13 +434,62 @@
 
   <section class="legal-intro">
     <div class="wrap">
-      <div class="eyebrow">LEGAL &amp; DISCLOSURES</div>
-      <h1>Terms, Privacy &amp; Disclosures</h1>
-      <p class="lede">Important information governing the use of Zoey Wallet and the stablecoin-native investing services made available through the platform, presented here as one structured reference document.</p>
-      <div class="legal-intro-meta">
-        <div>Last updated<b>September 2026</b></div>
-        <div>Applies to<b>zoeywallet.co &amp; app</b></div>
-        <div>Structure<b>3 sections, 51 subsections</b></div>
+      <div class="legal-intro-grid">
+        <div class="legal-intro-text">
+          <div class="eyebrow">LEGAL &amp; DISCLOSURES</div>
+          <h1>Clarity behind<br>every layer.</h1>
+          <p class="lede">These documents set out the terms, privacy practices and disclosures that govern the Zoey Wallet experience, organized here section by section.</p>
+          <div class="legal-intro-meta">
+            <div>Last updated<b>September 2026</b></div>
+            <div>Applies to<b>zoeywallet.co &amp; app</b></div>
+            <div>Structure<b>3 sections, 51 subsections</b></div>
+          </div>
+        </div>
+
+        <div class="legal-intro-visual">
+          <div class="lfm-panel">
+            <div class="lfm-head">
+              <span class="lfm-core" aria-hidden="true"></span>
+              <div class="lfm-head-text">
+                <div class="lfm-kicker">Zoey Wallet</div>
+                <div class="lfm-title">Legal Framework</div>
+              </div>
+            </div>
+            <div class="lfm-index" role="navigation" aria-label="Legal framework overview: jump to a section">
+              <a class="lfm-row" href="#terms" data-section="terms">
+                <div class="lfm-row-head">
+                  <span class="lfm-row-num">01</span>
+                  <span class="lfm-row-title">Terms</span>
+                </div>
+                <p class="lfm-row-desc">Governs access to Zoey Wallet and the investment services made available through the platform.</p>
+                <div class="lfm-row-meta">20 subsections</div>
+              </a>
+              <a class="lfm-row" href="#privacy" data-section="privacy">
+                <div class="lfm-row-head">
+                  <span class="lfm-row-num">02</span>
+                  <span class="lfm-row-title">Privacy</span>
+                </div>
+                <p class="lfm-row-desc">What information is collected, how it's used and shared, and the choices available to you.</p>
+                <div class="lfm-row-meta">16 subsections</div>
+              </a>
+              <a class="lfm-row" href="#disclosures" data-section="disclosures">
+                <div class="lfm-row-head">
+                  <span class="lfm-row-num">03</span>
+                  <span class="lfm-row-title">Disclosures</span>
+                </div>
+                <p class="lfm-row-desc">Risk and other important information specific to the investing experience.</p>
+                <div class="lfm-row-meta">15 subsections</div>
+              </a>
+            </div>
+            <div class="lfm-foot">
+              <div>
+                <div class="lfm-foot-label">Structure</div>
+                <div class="lfm-foot-value">3 sections — 51 subsections</div>
+              </div>
+              <div class="lfm-foot-lines" aria-hidden="true"><span></span><span></span><span></span></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -857,7 +991,7 @@
         <div class="legal-main">
           <div class="eyebrow">DISCLOSURES</div>
           <h2>Important Disclosures</h2>
-          <p class="legal-section-intro">The disclosures below highlight risks and considerations specific to Zoey Wallet's stablecoin-native investing platform — investment risk, stablecoin and conversion risk, and the role of Zoey Wallet's third-party brokerage partner — alongside the general risks of investing.</p>
+          <p class="legal-section-intro">The disclosures below highlight risks and considerations specific to Zoey Wallet's stablecoin-native investing platform: investment risk, stablecoin and conversion risk, and the role of Zoey Wallet's third-party brokerage partner, alongside the general risks of investing.</p>
           <div class="legal-articles">
         <article class="legal-article" id="d01">
           <div class="legal-article-inner reveal">
@@ -1082,7 +1216,7 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncChromeHeights);
 
   // ---- Legal sub-nav: active-section highlighting ----
-  const subnavLinks = Array.from(document.querySelectorAll('.legal-subnav-inner a'));
+  const subnavLinks = Array.from(document.querySelectorAll('.legal-subnav-inner a, .lfm-index a'));
   const legalSections = ['terms', 'privacy', 'disclosures'].map(id => document.getElementById(id)).filter(Boolean);
   function setActive(id){
     subnavLinks.forEach(a => a.classList.toggle('active', a.dataset.section === id));

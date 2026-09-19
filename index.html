@@ -306,6 +306,30 @@
   .section-head h2{ font-size:52px; line-height:1.08; }
   .rule{ border-top:1px solid var(--border); }
 
+  /* ============ SEE IT. OWN IT.: full-bleed skyline background ============ */
+  /* Background-only change -- the eyebrow/h2/lede/buttons underneath keep their
+     existing markup, sizing and spacing untouched. Typography colors reuse the
+     site's existing .on-dark convention (see line ~64) rather than inventing
+     new ones. The photo is a single background-image on the section itself, so
+     it runs full-bleed edge to edge while .wrap above still centers the text
+     column at the normal content width. A soft vertical gradient (using the
+     site's own --navy-deep) sits over the photo only to keep the centered
+     text/button band legible -- it's lightest at the very top and bottom of
+     the section so the skyline stays clearly visible there, and a touch
+     stronger through the middle where the copy sits. background-position is
+     re-aimed per breakpoint below so the tallest tower stays in frame instead
+     of being cropped off on narrower viewports. */
+  .section-skyline{
+    position:relative;
+    background:
+      linear-gradient(180deg, rgba(5,7,12,0.22) 0%, rgba(5,7,12,0.5) 38%, rgba(5,7,12,0.5) 66%, rgba(5,7,12,0.24) 100%),
+      url('assets/see-it-own-it-skyline.jpg') center 60% / cover no-repeat;
+    background-color: var(--navy-deep);
+  }
+  .section-skyline .eyebrow{ color: rgba(247,246,243,0.74); text-shadow: 0 1px 10px rgba(5,7,12,0.22); }
+  .section-skyline h2{ color: var(--off-white); text-shadow: 0 2px 18px rgba(5,7,12,0.28); }
+  .section-skyline .lede{ color: rgba(247,246,243,0.84); text-shadow: 0 1px 10px rgba(5,7,12,0.22); }
+
   /* ============ INFRASTRUCTURE: solid black canvas ============ */
   /* Background only — image, cards and copy below are untouched. Typography colors are
      adapted for contrast against black, reusing the site's existing on-dark treatment. */
@@ -327,93 +351,170 @@
   .friction-item:last-child{ border-bottom:1px solid var(--border); }
 
   /* ============ STOCKS / FRACTIONAL SHARES ============ */
-  #stocks{ padding-top:76px; padding-bottom:90px; }
+  /* Restructured composition: the text block sits alone in its own row,
+     pinned to the right (.stocks-head), so the left side of the section
+     stays clear for the trading-monitor photo behind it; a two-card row
+     (.stocks-cards) follows underneath with the fractional-ownership
+     card and the AAPL calculator side by side, equal width, equal
+     height, sharing one dark-glass visual language. Background follows
+     the same full-bleed-photo-on-the-section pattern used by
+     .section-skyline elsewhere on this page. */
+  #stocks{
+    position:relative;
+    padding-top:76px; padding-bottom:90px;
+    background:
+      linear-gradient(100deg, rgba(5,7,12,0.5) 0%, rgba(5,7,12,0.32) 40%, rgba(5,7,12,0.22) 62%, rgba(5,7,12,0.58) 100%),
+      url('assets/stocks-trading-monitor.jpg') 22% 30% / cover no-repeat;
+    background-color: var(--navy-deep);
+  }
+  #stocks .eyebrow{ color: rgba(247,246,243,0.6); text-shadow: 0 1px 10px rgba(5,7,12,0.3); }
+  #stocks h2{
+    color: var(--off-white);
+    font-size: clamp(28px, 2.5vw, 36px);
+    font-weight:600;
+    line-height:1.18;
+    letter-spacing:-0.015em;
+    margin-top:14px;
+    text-shadow: 0 2px 20px rgba(5,7,12,0.4);
+  }
+  #stocks .stocks-copy .lede{ font-size:16px; color: rgba(247,246,243,0.68); text-shadow: 0 1px 10px rgba(5,7,12,0.28); }
+  #stocks .stocks-copy .lede:first-child{ color: rgba(247,246,243,0.8); }
+  #stocks .stocks-copy-strong{ color: var(--off-white); font-weight:500; }
+
+  .stocks-head{ max-width:560px; margin-left:auto; margin-right:0; text-align:left; }
+  .stocks-cards{ display:grid; grid-template-columns:1fr 1fr; gap:28px; margin-top:56px; align-items:stretch; }
+  .stocks-card-col{ display:flex; }
+
+  /* Below the ~1080px breakpoint (where the cards stack -- see the
+     .stocks-cards override just below) the section's own width no longer
+     tracks the photo's aspect ratio, so a width-driven "100% auto" band
+     grows taller as the viewport gets wider (up to ~600px tall around
+     900-1080px) -- tall enough to run down into the headline/copy text
+     sitting right below it. Fixed via a dedicated ::before layer with a
+     capped height (clamp, never past ~280px) instead of scaling with
+     viewport width: it crops with `cover` (so the photo is never
+     distorted) inside that fixed band, and carries its own bottom fade
+     baked in (as a second background layer, sized to match the band's
+     own fixed height) so it always reaches solid navy by the band's own
+     bottom edge -- regardless of viewport width -- well clear of the
+     text underneath. The section itself keeps a plain solid-navy
+     background beneath the band. */
+  @media (max-width: 1080px){
+    #stocks{
+      background: var(--navy-deep);
+      /* Was a hardcoded 70px, tuned by eye to roughly clear the fixed
+         header -- but the header's real height on mobile (measured
+         live, see --header-h below) can be 71px+, so that guess
+         occasionally left zero (or negative) clearance and let this
+         section's "STOCKS" eyebrow start underneath the header.
+         Deriving it from --header-h (the same live-measured value
+         scroll-margin-top already uses elsewhere in this file) instead
+         of a guessed constant keeps this section's clearance correct
+         regardless of the header's actual rendered height, with a
+         small fixed buffer on top to preserve the original tight
+         spacing intent right after the ticker strip above it. */
+      padding-top: calc(var(--header-h) + 6px);
+    }
+    #stocks::before{
+      content:"";
+      position:absolute; top:0; left:0; right:0;
+      height: clamp(190px, 34vw, 280px);
+      background:
+        linear-gradient(180deg, rgba(5,7,12,0.2) 0%, rgba(5,7,12,0.55) 60%, var(--navy-deep) 100%),
+        url('assets/stocks-trading-monitor.jpg') center 28% / cover no-repeat;
+      pointer-events:none;
+      z-index:0;
+    }
+    .stocks-layout{ position:relative; z-index:1; }
+    /* Push the text block clear of the image band above (rather than
+       letting the headline start underneath it) so no line of text ever
+       runs into the monitor photo -- the band's own height is the same
+       clamp() used for #stocks::before just above, plus a small gap. */
+    .stocks-head{ max-width:none; margin-left:0; text-align:left; padding-top: calc(clamp(190px, 34vw, 280px) + 22px); }
+    .stocks-cards{ grid-template-columns:1fr; gap:20px; margin-top:36px; }
+  }
   .frac-emph{ font-weight:700; }
 
-  /* ============ ZERO COMMISSIONS GLASS SLIDE ============ */
+  /* ============ FRACTIONAL-OWNERSHIP CARD + AAPL CALCULATOR ============
+     A matched dark-glass pair: same corner radius, border, shadow and
+     blur across both .zero-comm-slide (fractional-ownership) and
+     .stock-card (calculator), same width (each fills its 1fr grid
+     column) and same height (CSS Grid's default row stretch). The
+     fractional-ownership card was previously a bright white/blue glass
+     panel tuned for a plain white section -- now dark, so it reads as
+     part of the same trading-interface system as the calculator next
+     to it, instead of a disconnected light card dropped onto a dark
+     photo. The coin/ring illustration inside it is a transparent-canvas
+     SVG with no baked-in background rectangle, so it now sits directly
+     on the dark surface with a soft blue/purple glow behind it for
+     depth, rather than showing through a white card. */
   .zero-comm-slide{
-    position:relative; margin-top:24px; border-radius:24px; overflow:hidden;
+    position:relative; border-radius: var(--radius); overflow:hidden;
     display:flex; flex-direction:column; justify-content:flex-start;
-    padding:26px 28px 22px;
-    background:
-      linear-gradient(165deg, rgba(255,255,255,0.7) 0%, rgba(236,242,252,0.5) 40%, rgba(210,224,248,0.4) 100%);
-    border:1px solid rgba(255,255,255,0.55);
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.85),
-      inset 0 -1px 0 rgba(180,195,220,0.3),
-      0 24px 48px -18px rgba(51,85,255,0.16),
-      0 8px 20px -10px rgba(10,14,20,0.08);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+    padding:28px 28px 24px;
+    background: linear-gradient(155deg, rgba(17,26,43,0.7) 0%, rgba(8,13,24,0.82) 100%);
+    border:1px solid rgba(247,246,243,0.16);
+    box-shadow: 0 24px 50px -20px rgba(5,7,12,0.55), inset 0 1px 0 rgba(247,246,243,0.07);
+    backdrop-filter: blur(22px) saturate(150%);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    width:100%;
   }
+  .zcs-label{ font-size:11px; margin-bottom:16px; }
   .zcs-glow{
-    position:absolute; left:50%; bottom:6%; width:280px; height:280px; transform:translateX(-50%);
-    background: radial-gradient(circle, rgba(96,132,255,0.26) 0%, rgba(96,132,255,0.10) 45%, transparent 72%);
-    filter: blur(8px); pointer-events:none;
+    position:absolute; left:50%; bottom:8%; width:280px; height:280px; transform:translateX(-50%);
+    background: radial-gradient(circle, rgba(91,124,255,0.3) 0%, rgba(124,91,255,0.13) 45%, transparent 72%);
+    filter: blur(10px); pointer-events:none;
   }
   .zcs-text{ position:relative; z-index:2; max-width:340px; }
-  .zcs-copy{ font-family: var(--font-display); font-size:24px; font-weight:500; letter-spacing:-0.01em; line-height:1.3; color: var(--ink); }
-  .zcs-visual{ position:relative; z-index:2; flex:1; display:flex; align-items:center; justify-content:center; min-height:190px; margin-top:20px; }
-  .zcs-visual svg{ width:210px; height:auto; max-width:100%; display:block; overflow:visible; }
+  .zcs-copy{ font-family: var(--font-display); font-size:22px; font-weight:500; letter-spacing:-0.01em; line-height:1.32; color: var(--off-white); }
+  .zcs-visual{ position:relative; z-index:2; flex:1; display:flex; align-items:center; justify-content:center; min-height:170px; margin-top:18px; }
+  .zcs-visual svg{ width:190px; height:auto; max-width:100%; display:block; overflow:visible; filter: drop-shadow(0 14px 26px rgba(5,7,12,0.45)); }
   .zcs-float{ animation: zcsFloat 6s ease-in-out infinite; transform-origin:center; }
   .zcs-coin-float{ animation: zcsCoinFloat 5s ease-in-out infinite; transform-origin:center; }
   @keyframes zcsFloat{ 0%,100%{ transform:translateY(0px); } 50%{ transform:translateY(-7px); } }
   @keyframes zcsCoinFloat{ 0%,100%{ transform:translateY(0px) rotate(0deg); } 50%{ transform:translateY(-10px) rotate(-4deg); } }
 
-  @media (max-width: 640px){
-    .zero-comm-slide{ padding:24px 22px 20px; }
-    .zcs-text{ max-width:none; }
-    .zcs-visual{ min-height:180px; }
-    .zcs-visual svg{ width:190px; }
-  }
   .stock-card{
-    background: linear-gradient(155deg, var(--navy-surface) 0%, var(--navy) 100%);
-    border-radius: var(--radius); border:1px solid rgba(247,246,243,0.08);
-    padding:32px 32px 28px; color:#fff;
-    box-shadow: 0 30px 60px -20px rgba(5,7,12,0.35);
-    height:100%; display:flex; flex-direction:column;
+    background: linear-gradient(155deg, rgba(17,26,43,0.68) 0%, rgba(8,13,24,0.78) 100%);
+    backdrop-filter: blur(22px) saturate(150%);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    border-radius: var(--radius); border:1px solid rgba(247,246,243,0.16);
+    padding:28px 28px 24px; color:#fff;
+    box-shadow: 0 24px 50px -20px rgba(5,7,12,0.55), inset 0 1px 0 rgba(247,246,243,0.07);
+    width:100%; display:flex; flex-direction:column;
   }
-  .sc-toprow{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:22px; }
-  .sc-microlabel{ font-family:var(--font-mono); font-size:11px; letter-spacing:1.5px; color:rgba(247,246,243,0.4); margin-bottom:6px; }
-  .sc-ticker{ font-family:var(--font-mono); font-weight:700; font-size:26px; letter-spacing:-0.3px; }
-  .sc-coname{ font-size:13px; color:rgba(247,246,243,0.55); margin-top:2px; }
-  .sc-demo-tag{ display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background: rgba(51,85,255,0.14); }
-  .sc-demo-tag .badge-mark{ width:13px; height:auto; display:block; }
-  .sc-pricerow{ display:flex; align-items:baseline; gap:12px; margin-bottom:16px; }
-  .sc-price{ font-family:var(--font-mono); font-weight:700; font-size:34px; }
-  .sc-chg{ font-family:var(--font-mono); font-size:14px; color: var(--green); }
-  .sc-chart{ margin-bottom:26px; }
-  .sc-divider{ height:1px; background:rgba(247,246,243,0.1); margin-bottom:24px; }
-  .sc-inv-label{ font-family:var(--font-mono); font-size:11px; letter-spacing:1.5px; color:rgba(247,246,243,0.45); margin-bottom:12px; }
-  .sc-amounts{ display:flex; gap:10px; margin-bottom:26px; }
+  .sc-toprow{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+  .sc-microlabel{ font-family:var(--font-mono); font-size:10px; letter-spacing:1.5px; color:rgba(247,246,243,0.4); margin-bottom:5px; }
+  .sc-ticker{ font-family:var(--font-mono); font-weight:700; font-size:21px; letter-spacing:-0.3px; }
+  .sc-coname{ font-size:12px; color:rgba(247,246,243,0.55); margin-top:2px; }
+  .sc-demo-tag{ display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:7px; background: rgba(51,85,255,0.18); }
+  .sc-demo-tag .badge-mark{ width:12px; height:auto; display:block; }
+  .sc-pricerow{ display:flex; align-items:baseline; gap:10px; margin-bottom:12px; }
+  .sc-price{ font-family:var(--font-mono); font-weight:700; font-size:26px; }
+  .sc-chg{ font-family:var(--font-mono); font-size:12px; color: var(--green); }
+  .sc-chart{ margin-bottom:18px; }
+  .sc-divider{ height:1px; background:rgba(247,246,243,0.12); margin-bottom:16px; }
+  .sc-inv-label{ font-family:var(--font-mono); font-size:10px; letter-spacing:1.4px; color:rgba(247,246,243,0.45); margin-bottom:10px; }
+  .sc-amounts{ display:flex; gap:8px; margin-bottom:18px; }
   .sc-amt-btn{
-    flex:1; font-family:var(--font-mono); font-weight:600; font-size:14px; color:rgba(247,246,243,0.7);
-    background:rgba(247,246,243,0.06); border:1px solid rgba(247,246,243,0.12); border-radius:10px;
-    padding:11px 0; transition: all .15s ease;
+    flex:1; font-family:var(--font-mono); font-weight:600; font-size:12.5px; color:rgba(247,246,243,0.7);
+    background:rgba(247,246,243,0.07); border:1px solid rgba(247,246,243,0.14); border-radius:8px;
+    padding:9px 0; transition: all .15s ease;
   }
-  .sc-amt-btn:hover{ background:rgba(247,246,243,0.1); color:#fff; }
+  .sc-amt-btn:hover{ background:rgba(247,246,243,0.12); color:#fff; }
   .sc-amt-btn.active{ background: var(--cobalt); border-color: var(--cobalt); color:#fff; }
-  .sc-result{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px; }
-  .sc-result-frac{ font-family:var(--font-mono); font-weight:700; font-size:30px; }
-  .sc-result-sub{ font-size:12.5px; color:rgba(247,246,243,0.45); margin-top:4px; }
-  .sc-funding-note{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.4px; color:rgba(247,246,243,0.4); border-top:1px solid rgba(247,246,243,0.08); padding-top:16px; }
-  .sc-funding-note b{ color:rgba(247,246,243,0.75); font-weight:600; }
+  .sc-result{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px; }
+  .sc-result-frac{ font-family:var(--font-mono); font-weight:700; font-size:23px; }
+  .sc-result-sub{ font-size:11.5px; color:rgba(247,246,243,0.45); margin-top:3px; }
+  .sc-funding-note{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.4px; color:rgba(247,246,243,0.42); border-top:1px solid rgba(247,246,243,0.1); padding-top:14px; }
+  .sc-funding-note b{ color:rgba(247,246,243,0.78); font-weight:600; }
 
   @media (max-width: 640px){
-    /* Was a hardcoded 70px, tuned by eye to roughly clear the fixed
-       header -- but the header's real height on mobile (measured live,
-       see --header-h below) can be 71px+, so that guess occasionally left
-       zero (or negative) clearance and let this section's "STOCKS" eyebrow
-       start underneath the header. Deriving it from --header-h (the same
-       live-measured value scroll-margin-top already uses elsewhere in this
-       file) instead of a guessed constant keeps this section's clearance
-       correct regardless of the header's actual rendered height, with a
-       small fixed buffer on top to preserve the original tight spacing
-       intent right after the ticker strip above it. Mobile-only change --
-       the desktop rule (#stocks{padding-top:76px} above) is untouched. */
-    #stocks{ padding-top: calc(var(--header-h) + 6px); }
-    .stock-card{ padding:26px 22px 22px; }
-    .sc-price{ font-size:28px; }
+    .zero-comm-slide{ padding:22px 22px 20px; }
+    .zcs-text{ max-width:none; }
+    .zcs-visual{ min-height:160px; margin-top:14px; }
+    .zcs-visual svg{ width:170px; }
+    .stock-card{ padding:22px 22px 18px; }
     .sc-amounts{ flex-wrap:wrap; }
   }
   .friction-index{ font-family: var(--font-mono); font-size:13px; color: var(--ink-faint); flex:0 0 28px; }
@@ -850,14 +951,40 @@
   /* ============ FRACTIONAL (big number moment) ============ */
   .frac-layout{ display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center; }
   .frac-visual{ background: var(--white); border:1px solid var(--border); border-radius: var(--radius); padding:44px; }
-  .frac-compare{ display:flex; align-items:center; gap:28px; }
-  .frac-whole{ text-align:center; }
-  .frac-whole .fw-box{ width:120px; height:120px; border-radius:16px; background: var(--ink); margin:0 auto 14px; }
-  .frac-whole .fw-label{ font-family:var(--font-mono); font-size:13px; color: var(--ink-faint); }
-  .frac-eq{ font-family: var(--font-display); font-size:32px; color: var(--ink-faint); }
-  .frac-parts{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
-  .fp-box{ width:52px; height:52px; border-radius:10px; background: var(--cobalt); opacity:0.9; }
-  .frac-parts .fp-label{ grid-column: span 4; text-align:center; font-family:var(--font-mono); font-size:13px; color: var(--ink-faint); margin-top:8px; }
+  /* ---- Fractional-ownership crystal visualization: a faceted "gem" gets
+     progressively smaller across four stages (1, 1/2, 1/4, 1/10 share) to
+     show fractional ownership at a glance. Pure inline SVG + CSS (no
+     images, no JS) so it stays crisp and responsive at any width. Colors
+     are drawn entirely from the site's existing --cobalt/--cobalt-light
+     tokens (just lighter/darker tints of them for facet shading), so the
+     palette matches the rest of the page rather than introducing a new
+     one. ---- */
+  /* min-width:0 on the card and its two inner rows: without it, a CSS Grid
+     item (.frac-visual is the single-column grid item on the stacked
+     layout below 1080px) defaults to a content-based minimum width, and
+     the "1/10 Share" nowrap label is just wide enough to push that
+     minimum past the available column width on narrow phones -- widening
+     the whole card past its container and getting silently clipped by
+     the page's overflow-x:hidden safety net. This override doesn't
+     change the card's own background/border/padding, only lets it (and
+     its flex rows) actually shrink to fit like every other element here. */
+  .frac-visual{ min-width:0; }
+  .fcv-brand{ display:flex; align-items:center; gap:7px; margin-bottom:26px; }
+  .fcv-brand svg{ height:13px; width:auto; flex:0 0 auto; }
+  .fcv-brand span{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:1.6px; color:var(--ink-faint); text-transform:uppercase; }
+  .fcv-row{ display:flex; align-items:stretch; min-width:0; }
+  .fcv-stage{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; }
+  .fcv-crystal-wrap{ height:100px; width:100%; display:flex; align-items:flex-end; justify-content:center; position:relative; }
+  .fcv-svg{ width:100%; max-width:var(--fcv-size); height:auto; display:block; filter: drop-shadow(0 6px 14px rgba(51,85,255,0.24)); }
+  .fcv-shadow{ width:56%; height:7px; margin:6px auto 0; border-radius:50%; background: radial-gradient(ellipse at center, rgba(51,85,255,0.32), rgba(51,85,255,0) 74%); }
+  .fcv-arrow-wrap{ flex:0 0 26px; display:flex; align-items:center; justify-content:center; height:100px; color: var(--ink-faint); opacity:0.55; }
+  .fcv-labels-row{ display:flex; align-items:flex-start; margin-top:14px; min-width:0; }
+  .fcv-label-col{ flex:1 1 0; min-width:0; text-align:center; }
+  .fcv-arrow-spacer{ flex:0 0 26px; }
+  .fcv-share{ font-family:var(--font-body); font-weight:600; font-size:14px; color:var(--ink); white-space:nowrap; }
+  .fcv-price{ font-family:var(--font-mono); font-size:12px; color:var(--ink-faint); margin-top:4px; }
+  .fcv-shelf{ height:1px; margin-top:2px; background:var(--border); position:relative; }
+  .fcv-shelf::after{ content:''; position:absolute; left:6%; right:6%; top:0; height:1px; background:linear-gradient(90deg, rgba(51,85,255,0), rgba(51,85,255,0.4), rgba(51,85,255,0)); }
   .frac-number{ font-family: var(--font-mono); font-size:120px; font-weight:600; line-height:1; letter-spacing:-3px; }
   .frac-number sup{ font-size:44px; top:-0.5em; }
 
@@ -1190,10 +1317,34 @@
     .screener-panel-head{ padding:16px 18px; }
     .screener-frame-wrap{ height:600px; }
     .frac-visual{ padding:24px; }
-    .frac-compare{ gap:14px; flex-wrap:wrap; justify-content:center; }
-    .frac-whole .fw-box{ width:80px; height:80px; }
-    .frac-parts{ gap:6px; }
-    .fp-box{ width:38px; height:38px; }
+    .fcv-brand{ margin-bottom:20px; }
+    /* The crystal's own aspect ratio (from its 100x130 viewBox) makes it
+       taller than it is wide -- at its capped desktop width (92px) it
+       renders ~120px tall. The wrap's height only defines where the
+       shared "shelf" baseline sits (crystals overflow above it by
+       design, same as on desktop), so it has to stay tall enough that
+       the largest crystal's overflow doesn't reach up into the brand
+       mark above. 104px keeps a comfortable margin across the whole
+       mobile width range. */
+    .fcv-crystal-wrap{ height:104px; }
+    .fcv-arrow-wrap{ flex-basis:16px; height:104px; }
+    .fcv-arrow-spacer{ flex-basis:16px; }
+    .fcv-share{ font-size:12px; }
+    .fcv-price{ font-size:10.5px; margin-top:3px; }
+    .fcv-labels-row{ margin-top:10px; }
+    /* Below ~640px the four stages no longer have room to each claim an
+       equal 1/4 of the row (that would force the two largest crystals to
+       clamp down to the same shrunk width, flattening the "1 share vs 1/2
+       share" size distinction). Instead give each stage/label column a
+       fixed share of the row proportional to its designed desktop size
+       (92:70:54:40), with the three fixed-width arrow gaps subtracted out
+       first -- so the four crystals keep shrinking in the same relative
+       proportions all the way down, and the label row (identical column
+       widths) stays perfectly aligned under them. */
+    .fcv-row > .fcv-stage:nth-child(1), .fcv-labels-row > .fcv-label-col:nth-child(1){ flex:0 0 calc((100% - 48px) * 0.359375); }
+    .fcv-row > .fcv-stage:nth-child(3), .fcv-labels-row > .fcv-label-col:nth-child(3){ flex:0 0 calc((100% - 48px) * 0.273438); }
+    .fcv-row > .fcv-stage:nth-child(5), .fcv-labels-row > .fcv-label-col:nth-child(5){ flex:0 0 calc((100% - 48px) * 0.210938); }
+    .fcv-row > .fcv-stage:nth-child(7), .fcv-labels-row > .fcv-label-col:nth-child(7){ flex:0 0 calc((100% - 48px) * 0.15625); }
   }
   @media (max-width: 360px){
     .wrap{ padding:0 18px; }
@@ -1792,18 +1943,20 @@
 
   <!-- ============ 2 / STOCKS: FRACTIONAL SHARES ============ -->
   <section class="section" id="stocks">
-    <div class="wrap problem-layout">
-      <div class="reveal">
+    <div class="wrap stocks-layout">
+      <div class="stocks-head reveal">
         <div class="eyebrow">STOCKS</div>
         <h2><span class="frac-emph">Fractional Shares</span> let you own exchange-listed U.S. Stocks with your budget, starting from $1.</h2>
         <div class="stocks-copy" style="margin-top:20px;">
           <p class="lede">You don't need the full amount to buy a whole share. With Zoey Wallet fractional investing, you can own a piece of the world's largest companies, starting with your budget.</p>
           <p class="lede stocks-copy-strong">Apple, Microsoft and Google stocks are at your fingertips. Access them with your stablecoins, USDT and USDC.</p>
         </div>
+      </div>
 
-        <div class="eyebrow" style="margin-top:26px; margin-bottom:12px;">ZERO COMMISSION</div>
-
-        <div class="zero-comm-slide">
+      <div class="stocks-cards">
+        <div class="stocks-card-col reveal">
+          <div class="zero-comm-slide">
+            <div class="eyebrow zcs-label">ZERO COMMISSION</div>
           <div class="zcs-glow"></div>
           <div class="zcs-text">
             <p class="zcs-copy">Invest in stocks reshaping the future with your USDT and USDC, all commission-free with no margin interest.</p>
@@ -1870,7 +2023,7 @@
         </div>
       </div>
 
-      <div class="reveal">
+      <div class="stocks-card-col reveal">
         <div class="stock-card">
           <div class="sc-toprow">
             <div>
@@ -1908,6 +2061,7 @@
           <div style="flex:1;"></div>
           <div class="sc-funding-note">FUND WITH <b>USDT</b> OR <b>USDC</b>, CONVERTED INSTANTLY INTO BUYING POWER.</div>
         </div>
+      </div>
       </div>
     </div>
   </section>
@@ -2126,7 +2280,7 @@
   </section>
 
   <!-- ============ PRODUCT CONNECTION ============ -->
-  <section class="section-tight rule">
+  <section class="section-tight section-skyline">
     <div class="wrap" style="text-align:center;">
       <div class="section-head center reveal" style="margin-left:auto; margin-right:auto; margin-bottom:36px;">
         <div class="eyebrow" style="text-align:center;">FROM MARKET TO PORTFOLIO</div>
@@ -2135,7 +2289,7 @@
       </div>
       <div class="final-actions reveal">
         <a href="#cta" class="btn btn-primary">Start Investing</a>
-        <a href="#markets" class="btn btn-outline">Explore Markets</a>
+        <a href="#markets" class="btn btn-outline on-dark">Explore Markets</a>
       </div>
     </div>
   </section>
@@ -2149,15 +2303,66 @@
         <p class="lede" style="margin-top:20px;">Own a precise slice of any company on the platform, priced and settled in dollars, down to the cent.</p>
       </div>
       <div class="frac-visual reveal">
-        <div class="frac-compare">
-          <div class="frac-whole"><div class="fw-box"></div><div class="fw-label">1 share &middot; $891</div></div>
-          <div class="frac-eq">=</div>
-          <div>
-            <div class="frac-parts">
-              <div class="fp-box"></div><div class="fp-box"></div><div class="fp-box"></div><div class="fp-box" style="opacity:0.35;"></div>
-              <div class="fp-label">0.75 shares &middot; $10 deployed</div>
+        <svg width="0" height="0" style="position:absolute;" aria-hidden="true">
+          <defs>
+            <linearGradient id="zwCrystalDark" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3355FF"/><stop offset="100%" stop-color="#1B2E99"/></linearGradient>
+            <linearGradient id="zwCrystalLight" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8FA8FF"/><stop offset="100%" stop-color="#5B7CFF"/></linearGradient>
+            <linearGradient id="zwCrystalDeep" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2540D6"/><stop offset="100%" stop-color="#12206E"/></linearGradient>
+            <linearGradient id="zwCrystalMid" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5B7CFF"/><stop offset="100%" stop-color="#3355FF"/></linearGradient>
+            <symbol id="zwCrystal" viewBox="0 0 100 130">
+              <polygon points="50,2 2,46 50,46" fill="url(#zwCrystalDark)"/>
+              <polygon points="50,2 50,46 98,46" fill="url(#zwCrystalLight)"/>
+              <polygon points="2,46 50,128 50,46" fill="url(#zwCrystalDeep)"/>
+              <polygon points="98,46 50,46 50,128" fill="url(#zwCrystalMid)"/>
+              <polygon points="50,2 50,46 73,23" fill="#ffffff" opacity="0.22"/>
+              <path d="M50,2 L50,128" stroke="rgba(255,255,255,0.45)" stroke-width="0.9" fill="none"/>
+              <path d="M2,46 L98,46" stroke="rgba(255,255,255,0.35)" stroke-width="0.8" fill="none"/>
+              <path d="M50,2 L2,46 M50,2 L98,46 M50,128 L2,46 M50,128 L98,46" stroke="rgba(10,14,20,0.14)" stroke-width="0.7" fill="none"/>
+            </symbol>
+          </defs>
+        </svg>
+        <div class="fcv-brand" aria-hidden="true">
+          <svg viewBox="165 84 1360 1671" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="fcvLogoGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5B7CFF"/><stop offset="55%" stop-color="#3A5CFF"/><stop offset="100%" stop-color="#2540D6"/></linearGradient></defs><g fill="url(#fcvLogoGrad)"><path d="M 166,1024 L 172,1026 L 182,1020 L 195,1019 L 285,983 L 296,982 L 405,941 L 459,925 L 669,848 L 725,832 L 894,769 L 930,760 L 1103,698 L 1117,696 L 1204,662 L 1264,646 L 1316,626 L 1357,618 L 1502,562 L 1516,560 L 1524,550 L 1449,521 L 1394,505 L 1236,448 L 1223,447 L 1217,442 L 1182,433 L 1097,400 L 1053,388 L 1010,370 L 851,319 L 804,299 L 656,248 L 562,219 L 411,163 L 395,161 L 329,135 L 169,84 L 165,89 Z"/><path d="M 1520,1752 L 1520,811 L 1517,807 L 1412,847 L 1396,849 L 1354,867 L 1208,914 L 1183,926 L 1105,949 L 1096,955 L 914,1019 L 896,1022 L 788,1062 L 776,1063 L 605,1127 L 409,1192 L 301,1233 L 262,1243 L 197,1269 L 183,1271 L 172,1278 L 177,1285 L 244,1306 L 290,1326 L 303,1327 L 330,1339 L 344,1341 L 390,1361 L 403,1362 L 509,1403 L 709,1469 L 756,1489 L 1012,1576 L 1162,1632 L 1176,1634 L 1203,1646 L 1218,1648 L 1325,1688 L 1382,1705 L 1410,1718 L 1502,1748 L 1510,1754 Z"/></g></svg>
+          <span>Zoey Wallet</span>
+        </div>
+        <div class="fcv-row">
+          <div class="fcv-stage" style="--fcv-size:92px;">
+            <div class="fcv-crystal-wrap">
+              <svg class="fcv-svg" viewBox="0 0 100 130"><use href="#zwCrystal" xlink:href="#zwCrystal"></use></svg>
             </div>
+            <div class="fcv-shadow"></div>
           </div>
+          <div class="fcv-arrow-wrap" aria-hidden="true"><svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M0.5 4.5H13M8.5 1L13 4.5L8.5 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="fcv-stage" style="--fcv-size:70px;">
+            <div class="fcv-crystal-wrap">
+              <svg class="fcv-svg" viewBox="0 0 100 130"><use href="#zwCrystal" xlink:href="#zwCrystal"></use></svg>
+            </div>
+            <div class="fcv-shadow"></div>
+          </div>
+          <div class="fcv-arrow-wrap" aria-hidden="true"><svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M0.5 4.5H13M8.5 1L13 4.5L8.5 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="fcv-stage" style="--fcv-size:54px;">
+            <div class="fcv-crystal-wrap">
+              <svg class="fcv-svg" viewBox="0 0 100 130"><use href="#zwCrystal" xlink:href="#zwCrystal"></use></svg>
+            </div>
+            <div class="fcv-shadow"></div>
+          </div>
+          <div class="fcv-arrow-wrap" aria-hidden="true"><svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M0.5 4.5H13M8.5 1L13 4.5L8.5 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="fcv-stage" style="--fcv-size:40px;">
+            <div class="fcv-crystal-wrap">
+              <svg class="fcv-svg" viewBox="0 0 100 130"><use href="#zwCrystal" xlink:href="#zwCrystal"></use></svg>
+            </div>
+            <div class="fcv-shadow"></div>
+          </div>
+        </div>
+        <div class="fcv-shelf" aria-hidden="true"></div>
+        <div class="fcv-labels-row">
+          <div class="fcv-label-col"><div class="fcv-share">1 Share</div><div class="fcv-price">$100</div></div>
+          <div class="fcv-arrow-spacer"></div>
+          <div class="fcv-label-col"><div class="fcv-share">1/2 Share</div><div class="fcv-price">$50</div></div>
+          <div class="fcv-arrow-spacer"></div>
+          <div class="fcv-label-col"><div class="fcv-share">1/4 Share</div><div class="fcv-price">$25</div></div>
+          <div class="fcv-arrow-spacer"></div>
+          <div class="fcv-label-col"><div class="fcv-share">1/10 Share</div><div class="fcv-price">$10</div></div>
         </div>
       </div>
     </div>
@@ -2170,7 +2375,7 @@
         <div class="section-head on-dark reveal" style="margin-bottom:48px;">
           <div class="eyebrow on-dark">STABLECOIN INFRASTRUCTURE</div>
           <h2>Your stablecoins can do more.</h2>
-          <p class="lede" style="margin-top:20px; max-width:560px;">USDT and USDC aren't just a store of value on Zoey. They're the funding rail for direct, real ownership of global public companies.</p>
+          <p class="lede" style="margin-top:20px; max-width:560px;">On Zoey, USDT and USDC are more than a store of value: they're the funding rail for direct, real ownership of global public companies.</p>
         </div>
         <div class="frac-number reveal" style="color:#fff;">$1<sup style="color:rgba(247,246,243,0.4); font-family:var(--font-body); font-weight:600;">.00 minimum</sup></div>
       </div>
@@ -2203,7 +2408,7 @@
         <div class="sec-item">
           <div class="si-mark">04 / COMPLIANCE</div>
           <h3>Compliant onboarding</h3>
-          <p>KYC and AML checks are part of account creation from day one. They are the foundation, not a workaround.</p>
+          <p>KYC and AML checks are part of account creation from day one. They are the foundation.</p>
         </div>
       </div>
     </div>
@@ -2320,7 +2525,7 @@
         <div class="about-hero-glass reveal">
           <div class="eyebrow on-dark">ABOUT ZOEY</div>
           <h1 class="about-h1 about-h1--on-glass">Stablecoin-Native Infrastructure for Global Equities Investing.</h1>
-          <p class="lede about-hero-lede about-hero-lede--on-glass">We are your stablecoin-funded pathway to global equities and U.S. stocks. Fractional access opens the world's most transformative companies to Africans, making it possible to invest in the stocks reshaping the future, without needing to buy a whole share.</p>
+          <p class="lede about-hero-lede about-hero-lede--on-glass">We are your stablecoin-funded pathway to global equities and U.S. stocks. Fractional access opens major global companies to Africans, making it possible to invest without needing to buy a whole share.</p>
         </div>
       </div>
     </div>
@@ -2357,7 +2562,7 @@
 
       <div class="about-copy-grid">
         <p class="about-copy">Many people across Africa can already hold digital dollars. Moving from those stablecoins into global equities has usually meant multiple financial rails, currency conversions, and intermediaries stacked on top of each other, each one adding cost, delay, or friction.</p>
-        <p class="about-copy">We've built a stablecoin-native route instead. One path from the dollars you already hold to the shares of companies you want to own, without forcing you through disconnected systems along the way. We've built it with a deliberate focus on making global equities more accessible from African markets.</p>
+        <p class="about-copy">We've built a stablecoin-native route instead: one path from the dollars you already hold to the shares of companies you want to own, without forcing you through disconnected systems along the way, with a deliberate focus on making global equities more accessible from African markets.</p>
       </div>
     </div>
   </section>
@@ -2439,7 +2644,7 @@
 
       <div class="about-copy-grid">
         <p class="about-copy" style="color:rgba(247,246,243,0.68);">When you initiate a transaction, our systems need to recognize if that same request is ever processed more than once: whether a connection drops mid-transfer, you tap retry, or a payment provider sends the same confirmation twice. Each request carries an identifier, so a repeat never becomes a duplicate transaction; it simply returns the original result. In financial infrastructure, this property is called idempotency, and it's a foundational part of how we've designed the system above.</p>
-        <p class="about-copy" style="color:rgba(247,246,243,0.68);">This matters because we don't design only for perfect network conditions. Unstable connectivity, delayed responses, and interrupted sessions are an ordinary part of how people transact across much of Africa, and infrastructure should be built to expect that, not assume it away. We don't yet claim any specific security certification; what we can say is that resilience to real-world network conditions is a core engineering requirement, not an edge case.</p>
+        <p class="about-copy" style="color:rgba(247,246,243,0.68);">This matters because we don't design only for perfect network conditions. Unstable connectivity, delayed responses, and interrupted sessions are an ordinary part of how people transact across much of Africa, and infrastructure should be built to expect that, not assume it away. We don't yet claim any specific security certification; what we can say is that resilience to real-world network conditions is a core engineering requirement.</p>
       </div>
     </div>
   </section>
@@ -2705,13 +2910,21 @@
   // ---- Stocks section: interactive fractional-share calculator (demo price, clearly labeled) ----
   const AAPL_DEMO_PRICE = 196.40;
   const scFractionEl = document.getElementById('scFraction');
+  // Formats a fractional-share value for display: up to 4 decimal places,
+  // with any trailing zeros (and a trailing decimal point) trimmed off, so
+  // 0.5000 -> "0.5", 0.1250 -> "0.125", 1.2121... -> "1.2121", never a raw
+  // floating-point artifact like 0.050000000000000003. The division that
+  // produced the value is untouched -- this only formats it for display.
+  function formatFractionalShares(value) {
+    return value.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+  }
   document.querySelectorAll('.sc-amt-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.sc-amt-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const amt = parseFloat(btn.dataset.amt);
       const fraction = amt / AAPL_DEMO_PRICE;
-      scFractionEl.textContent = fraction.toFixed(3);
+      scFractionEl.textContent = formatFractionalShares(fraction);
     });
   });
 
