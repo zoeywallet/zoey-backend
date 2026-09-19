@@ -3836,21 +3836,46 @@
         submitBtn.disabled = false;
         const title = document.getElementById('zwSuccessTitle');
         const copy = document.getElementById('zwSuccessCopy');
-        if (title) title.textContent = 'Account created.';
-        // The backend creates the account as unverified and emails a
-        // verification link (see api/index.py's POST /api/auth/signup) --
-        // reflect whichever actually happened rather than always claiming
-        // an email was sent. Verification doesn't block dashboard access
-        // today (see backend/models.py), so the redirect below is unchanged.
-        if (copy) {
-          copy.textContent = data && data.verification_email_sent
-            ? "You're all set — we've sent a verification link to your email. Taking you to your dashboard..."
-            : "You're all set — taking you to your dashboard...";
+
+        // Email/password accounts are created UNVERIFIED (email_verified =
+        // false) and the backend deliberately does NOT set a session
+        // cookie on signup -- see api/index.py's POST /api/auth/signup
+        // docstring ("this does NOT authenticate the new user"). It signals
+        // that explicitly via `requires_verification: true`. Unlike Google
+        // sign-in (identity is verified during the OAuth flow itself, see
+        // handleGoogleCredential below), there is no session yet here, so
+        // this branch must NEVER redirect to /dashboard -- /api/me and
+        // /api/dashboard would just 401 and dashboard.html would bounce the
+        // person straight back to /login, which is the exact bug this
+        // replaces.
+        if (data && data.requires_verification) {
+          if (title) title.textContent = 'Check your email';
+          if (copy) {
+            // Only claim an email was sent if the backend actually
+            // confirms delivery -- never assume success from a 200 response
+            // alone (see backend/email_sender.py's send_verification_email,
+            // which fails soft and reports the real outcome via this same
+            // verification_email_sent field).
+            copy.textContent = data.verification_email_sent
+              ? "We've sent a verification link to your email. Click it, then log in to reach your dashboard."
+              : "Your account was created, but we couldn't send the verification email right now. Please try again shortly, or contact support if this keeps happening.";
+          }
+          formState.style.display = 'none';
+          successState.classList.add('show');
+          // Deliberately no redirect and no assumed session -- see comment
+          // above. The person verifies their email, then logs in normally
+          // on the existing /login page.
+          return;
         }
+
+        // Defensive fallback only: POST /api/auth/signup always returns
+        // requires_verification: true today, so this branch should not be
+        // reachable in practice. Kept rather than silently doing nothing if
+        // that behavior is ever intentionally changed server-side.
+        if (title) title.textContent = 'Account created.';
+        if (copy) copy.textContent = "You're all set — taking you to your dashboard...";
         formState.style.display = 'none';
         successState.classList.add('show');
-        // Already authenticated (the signup response set the session
-        // cookie) -- go straight to the dashboard, no separate login step.
         setTimeout(() => { window.location.href = '/dashboard'; }, 700);
       }).catch((err) => {
         submitBtn.classList.remove('loading');

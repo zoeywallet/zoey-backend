@@ -734,3 +734,80 @@ class TestGoogleAuth:
     def test_missing_credential_is_rejected(self, client):
         resp = client.post("/api/auth/google", json={})
         assert resp.status_code == 422
+
+
+class TestFrontendSignupRedirectRegression:
+    """Static regression guard for the index.html signup-success bug fixed
+    in "Fix email verification signup flow": the frontend used to redirect
+    straight to /dashboard after ANY successful POST /api/auth/signup
+    response, even though the backend never authenticates that request (see
+    TestSignupDoesNotAutoLogin above) and explicitly returns
+    requires_verification: true. Browser JS can't be exercised through
+    FastAPI's TestClient, so these tests statically inspect the shipped
+    index.html/login.html source instead -- crude, but enough to make this
+    exact regression loud and immediate if it's ever reintroduced."""
+
+    @staticmethod
+    def _read(name: str) -> str:
+        return (Path(__file__).resolve().parent.parent / name).read_text(encoding="utf-8")
+
+    def test_signup_handler_checks_requires_verification(self):
+        index_html = self._read("index.html")
+        signup_start = index_html.index("submitSignup(payload).then((data) => {")
+        signup_end = index_html.index("}).catch((err) => {", signup_start)
+        handler_body = index_html[signup_start:signup_end]
+        assert "requires_verification" in handler_body, (
+            "the email/password signup success handler must branch on the "
+            "backend's requires_verification field"
+        )
+
+    def test_signup_handler_does_not_unconditionally_redirect_to_dashboard(self):
+        """The exact bug this guards against: an unconditional dashboard
+        redirect sitting directly inside the signup .then() handler, with
+        no requires_verification check gating it."""
+        index_html = self._read("index.html")
+        signup_start = index_html.index("submitSignup(payload).then((data) => {")
+        signup_end = index_html.index("}).catch((err) => {", signup_start)
+        handler_body = index_html[signup_start:signup_end]
+
+        verification_check_pos = handler_body.index("requires_verification")
+        return_pos = handler_body.index("return;")
+        redirect_pos = handler_body.index("window.location.href = '/dashboard'")
+
+        # The requires_verification branch's own `return` must come BEFORE
+        # the dashboard redirect -- i.e. the redirect is only reachable in
+        # the (today, unreachable) fallback path, never unconditionally.
+        assert verification_check_pos < return_pos < redirect_pos, (
+            "the dashboard redirect must be unreachable for a "
+            "requires_verification signup response -- this is the exact "
+            "bug 'Fix email verification signup flow' fixed"
+        )
+
+    def test_signup_handler_does_not_falsely_claim_email_was_sent(self):
+        index_html = self._read("index.html")
+        signup_start = index_html.index("submitSignup(payload).then((data) => {")
+        signup_end = index_html.index("}).catch((err) => {", signup_start)
+        handler_body = index_html[signup_start:signup_end]
+        assert "verification_email_sent" in handler_body, (
+            "the success copy must branch on verification_email_sent "
+            "rather than always claiming an email was sent"
+        )
+
+    def test_google_signup_still_redirects_to_dashboard(self):
+        """Confirms the fix didn't collaterally break Google sign-in --
+        Google verifies identity during the OAuth flow itself, so
+        handleGoogleCredential's success path SHOULD still go straight to
+        /dashboard, unlike email/password signup above."""
+        index_html = self._read("index.html")
+        google_start = index_html.index("function handleGoogleCredential(response){")
+        window = index_html[google_start : google_start + 2000]
+        assert "window.location.href = '/dashboard'" in window
+
+    def test_no_gmail_credential_in_shipped_frontend_files(self):
+        """GMAIL_APP_PASSWORD/GMAIL_USER are backend-only secrets (see
+        backend/email_sender.py) and must never appear in any HTML/JS
+        actually shipped to the browser."""
+        for name in ("index.html", "login.html", "dashboard.html"):
+            content = self._read(name)
+            assert "GMAIL_APP_PASSWORD" not in content
+            assert "GMAIL_USER" not in content
