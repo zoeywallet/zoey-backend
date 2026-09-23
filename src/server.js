@@ -51,6 +51,12 @@ if (!process.env.ADMIN_KEY) {
 if (!mailer.isConfigured()) {
   logger.warn('Gmail is not configured (GMAIL_USER / GMAIL_APP_PASSWORD / NOTIFY_TO) — leads will still be saved, but no notification email will be sent until these are set.');
 }
+console.log('[DB DIAGNOSTIC]', {
+  listUsersType: typeof db.listUsers,
+  dbKeys: Object.keys(db),
+  dbModulePath: require.resolve('./db'),
+});
+
 if (db.listUsers().length === 0) {
   logger.warn('No user accounts exist yet — /login will reject everything until one is created. Run: npm run create-user -- <email> <password> ["Full Name"]');
 }
