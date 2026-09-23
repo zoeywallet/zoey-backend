@@ -1,3 +1,4 @@
+// Vercel runtime rebuild diagnostic
 // Zoey Wallet lead-capture backend.
 //
 //   Website lead form  →  POST /api/leads  →  SQLite (leads.db)  →  Gmail
