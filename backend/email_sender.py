@@ -86,6 +86,16 @@ def send_verification_email(*, to_email: str, name: str, verify_url: str) -> boo
             "Vercel Environment Variables in production.",
             to_email,
         )
+        # Temporary diagnostic: logs ONLY whether each of the five SMTP_*
+        # settings is present (True/False) -- never their actual values,
+        # never the password, username, host, or any email address. Safe
+        # to leave in server-side logs; remove once the missing/misscoped
+        # variable is identified.
+        logger.error(
+            "send_verification_email: presence check -- "
+            "SMTP_HOST=%s SMTP_PORT=%s SMTP_USER=%s SMTP_PASSWORD=%s SMTP_FROM=%s",
+            bool(SMTP_HOST), SMTP_PORT is not None, bool(SMTP_USER), bool(SMTP_PASSWORD), bool(SMTP_FROM),
+        )
         return False
 
     msg = EmailMessage()
