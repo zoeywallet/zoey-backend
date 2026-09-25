@@ -1,21 +1,22 @@
 """
 Sends the app's own transactional email (right now: just the "verify your
-email" message) via Gmail SMTP, reusing this project's EXISTING env var
-names (GMAIL_USER / GMAIL_APP_PASSWORD) rather than inventing new ones --
-those two were already present in .env / .env.example, added earlier for a
-lead-notification feature that was never built, and are reused here exactly
-as they are: GMAIL_USER doubles as both the SMTP login name and the "From"
-address (Gmail requires the From address to be the authenticated account or
-one of its verified aliases anyway, so there's no separate EMAIL_FROM to
-configure).
+email" message) via SMTP, using provider-neutral environment variable
+names -- SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM -- so
+this module works against any STARTTLS-capable SMTP provider rather than
+being hard-wired to one. SMTP_USER is the SMTP login name; SMTP_FROM is
+the address that appears in the "From" header. They're kept as two
+separate settings (rather than reusing SMTP_USER for both, as the earlier
+Gmail-specific implementation did) since not every provider requires the
+authenticated account and the From address to be identical -- some allow
+sending as a verified alias distinct from the login name.
 
 This module deliberately has ONLY authentication-adjacent scope: it sends
 mail that this server itself composes and signs (a verification link), via
-plain SMTP credentials. It does not use the Gmail API, does not request any
-Gmail/Drive/Calendar/Contacts OAuth scope, and has nothing to do with the
-separate "Continue with Google" SIGN-IN feature in backend/google_auth.py --
-that's Google *identity* verification (who is this person), this is Zoey's
-own outbound mail (an email *to* that person). See backend/google_auth.py's
+plain SMTP credentials. It does not use any provider's HTTP API, does not
+request any OAuth scope, and has nothing to do with the separate
+"Continue with Google" SIGN-IN feature in backend/google_auth.py -- that's
+Google *identity* verification (who is this person), this is Zoey's own
+outbound mail (an email *to* that person). See backend/google_auth.py's
 own docstring for the identity side.
 
 Every function here fails soft: a misconfigured or down mail server must
@@ -35,40 +36,61 @@ from email.message import EmailMessage
 
 logger = logging.getLogger("zoey.email")
 
-GMAIL_USER = os.environ.get("GMAIL_USER", "")
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
+SMTP_HOST = os.environ.get("SMTP_HOST", "")
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SMTP_FROM = os.environ.get("SMTP_FROM", "")
 
-_SMTP_HOST = "smtp.gmail.com"
-_SMTP_PORT = 587  # STARTTLS, not implicit TLS (465) -- Gmail's documented default for app passwords.
+
+def _parse_smtp_port(raw: str) -> int | None:
+    """Safely converts the SMTP_PORT env var (always a string, since env
+    vars are strings) to an int. Returns None -- rather than raising, or
+    silently falling back to a guessed port -- for anything that isn't a
+    valid integer, so a typo'd SMTP_PORT reliably shows up as "not
+    configured" (see is_email_configured() below) instead of either
+    crashing this module's import or quietly trying to connect on the
+    wrong port."""
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+# STARTTLS, not implicit TLS (465) -- this project's confirmed SMTP
+# configuration uses STARTTLS on 587, and that's what the send below
+# performs regardless of what SMTP_PORT is set to.
+SMTP_PORT = _parse_smtp_port(os.environ.get("SMTP_PORT", "587"))
 
 
 def is_email_configured() -> bool:
-    """True once real Gmail credentials are present. Both GMAIL_USER and
-    GMAIL_APP_PASSWORD are blank in this project's .env today (per its own
-    "configure later" comment) -- callers use this to decide whether to even
-    attempt a send, and to log a clear, specific reason rather than an SMTP
-    stack trace when nothing is configured yet."""
-    return bool(GMAIL_USER and GMAIL_APP_PASSWORD)
+    """True once real SMTP configuration is present: SMTP_HOST, SMTP_USER,
+    SMTP_PASSWORD, and SMTP_FROM must all be non-blank, and SMTP_PORT must
+    have parsed to a valid integer. Callers use this to decide whether to
+    even attempt a send, and to log a clear, specific reason rather than an
+    SMTP stack trace when nothing is configured yet."""
+    return bool(SMTP_HOST and SMTP_USER and SMTP_PASSWORD and SMTP_FROM and SMTP_PORT is not None)
 
 
 def send_verification_email(*, to_email: str, name: str, verify_url: str) -> bool:
     """Sends the "verify your email" message. Returns True if the message
-    was handed off to Gmail's SMTP server successfully, False otherwise --
-    never raises. A False return means the caller should tell the user
-    something went wrong (without SMTP internals) and that they can use
-    "resend verification email" to try again once delivery is fixed."""
+    was handed off to the configured SMTP server successfully, False
+    otherwise -- never raises. A False return means the caller should tell
+    the user something went wrong (without SMTP internals) and that they
+    can use "resend verification email" to try again once delivery is
+    fixed."""
     if not is_email_configured():
         logger.error(
-            "send_verification_email: GMAIL_USER/GMAIL_APP_PASSWORD are not "
-            "configured (both blank) -- cannot send to %s. Set both in .env "
-            "for local dev, or as Vercel Environment Variables in production.",
+            "send_verification_email: SMTP is not fully configured "
+            "(SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASSWORD/SMTP_FROM) -- "
+            "cannot send to %s. Set all five in .env for local dev, or as "
+            "Vercel Environment Variables in production.",
             to_email,
         )
         return False
 
     msg = EmailMessage()
     msg["Subject"] = "Verify your email for Zoey Wallet"
-    msg["From"] = GMAIL_USER
+    msg["From"] = SMTP_FROM
     msg["To"] = to_email
     msg.set_content(
         f"Hi {name},\n\n"
@@ -106,9 +128,9 @@ def send_verification_email(*, to_email: str, name: str, verify_url: str) -> boo
     )
 
     try:
-        with smtplib.SMTP(_SMTP_HOST, _SMTP_PORT, timeout=10) as server:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
             server.starttls()
-            server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+            server.login(SMTP_USER, SMTP_PASSWORD)
             server.send_message(msg)
         return True
     except Exception:

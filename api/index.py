@@ -186,8 +186,9 @@ def _issue_and_send_verification_email(request: Request, db: Session, user) -> b
     email was actually sent -- callers (signup, resend-verification) use
     this to decide what to tell the user, but NEVER to decide whether the
     request itself succeeded: account creation must not fail just because
-    mail delivery is unavailable (e.g. GMAIL_USER/GMAIL_APP_PASSWORD are
-    still blank in this project's .env today -- see backend/email_sender.py).
+    mail delivery is unavailable (e.g. SMTP_HOST/SMTP_USER/SMTP_PASSWORD/
+    SMTP_FROM are still blank in this project's .env today -- see
+    backend/email_sender.py).
 
     The verify URL is built from THIS request's own base_url (not a
     hardcoded/env-configured domain) so it's automatically correct in every

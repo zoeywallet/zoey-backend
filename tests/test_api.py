@@ -233,14 +233,14 @@ class TestSession:
 # POST /api/auth/resend-verification
 # ---------------------------------------------------------------------------
 #
-# GMAIL_USER/GMAIL_APP_PASSWORD are blank in this project's .env today (see
-# .env.example), so these tests monkeypatch api.index.send_verification_email
-# rather than sending real mail -- that's a deliberate substitute for a mail
-# server, not a shortcut around testing the surrounding logic (token
-# generation/storage/expiry, the actual HTTP responses, and the DB state)
-# for real. Once real Gmail credentials are set, the exact same request
-# flow will additionally send a real email; nothing about that requires a
-# different code path.
+# SMTP_HOST/SMTP_USER/SMTP_PASSWORD/SMTP_FROM are blank in this project's
+# .env today (see .env.example), so these tests monkeypatch
+# api.index.send_verification_email rather than sending real mail -- that's
+# a deliberate substitute for a mail server, not a shortcut around testing
+# the surrounding logic (token generation/storage/expiry, the actual HTTP
+# responses, and the DB state) for real. Once real SMTP credentials are
+# set, the exact same request flow will additionally send a real email;
+# nothing about that requires a different code path.
 
 def _capture_sent_emails(monkeypatch):
     """Patches api.index.send_verification_email to record calls instead of
@@ -309,7 +309,8 @@ class TestSignupVerification:
 
     def test_signup_still_succeeds_when_email_sending_fails(self, client, monkeypatch):
         """Account creation must never fail just because mail delivery is
-        unavailable (e.g. GMAIL_USER/GMAIL_APP_PASSWORD not configured)."""
+        unavailable (e.g. SMTP_HOST/SMTP_USER/SMTP_PASSWORD/SMTP_FROM not
+        configured)."""
         import api.index as api_index
 
         monkeypatch.setattr(api_index, "send_verification_email", lambda **kw: False)
@@ -327,6 +328,70 @@ class TestSignupVerification:
         body = resp.json()
         assert body["verification_email_sent"] is False
         assert "zw_session" not in resp.cookies  # account still created, but never auto-authenticated
+
+
+# ---------------------------------------------------------------------------
+# backend/email_sender.py: the SMTP transport itself (provider-neutral
+# SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASSWORD/SMTP_FROM configuration).
+# Everything in TestSignupVerification above exercises this only through
+# the monkeypatched api.index.send_verification_email; these tests instead
+# exercise backend.email_sender's own is_email_configured()/port-parsing
+# logic directly, without touching smtplib or any network.
+# ---------------------------------------------------------------------------
+
+class TestEmailSenderConfiguration:
+    def test_is_email_configured_requires_every_field(self, monkeypatch):
+        import backend.email_sender as email_sender
+
+        fields = ["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM"]
+        for field in fields:
+            monkeypatch.setattr(email_sender, field, "set")
+        monkeypatch.setattr(email_sender, "SMTP_PORT", 587)
+        assert email_sender.is_email_configured() is True
+
+        # Blanking any single required field must make it False again.
+        for field in fields:
+            monkeypatch.setattr(email_sender, field, "")
+            assert email_sender.is_email_configured() is False
+            monkeypatch.setattr(email_sender, field, "set")  # restore before the next field
+
+    def test_is_email_configured_false_when_port_unparseable(self, monkeypatch):
+        import backend.email_sender as email_sender
+
+        for field in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM"):
+            monkeypatch.setattr(email_sender, field, "set")
+        # None is what _parse_smtp_port() returns for a garbage SMTP_PORT.
+        monkeypatch.setattr(email_sender, "SMTP_PORT", None)
+        assert email_sender.is_email_configured() is False
+
+    def test_parse_smtp_port_accepts_int_strings_rejects_garbage(self):
+        from backend.email_sender import _parse_smtp_port
+
+        assert _parse_smtp_port("587") == 587
+        assert _parse_smtp_port("465") == 465
+        assert _parse_smtp_port("") is None
+        assert _parse_smtp_port("not-a-port") is None
+        assert _parse_smtp_port(None) is None
+
+    def test_send_verification_email_fails_soft_and_logs_when_unconfigured(self, monkeypatch, caplog):
+        """Mirrors test_signup_still_succeeds_when_email_sending_fails above,
+        but at the email_sender module level directly: an unconfigured SMTP
+        setup must return False, never raise, and must log a clear
+        server-side reason -- without ever including credential values in
+        that log line."""
+        import backend.email_sender as email_sender
+
+        monkeypatch.setattr(email_sender, "SMTP_HOST", "")
+        monkeypatch.setattr(email_sender, "SMTP_USER", "")
+        monkeypatch.setattr(email_sender, "SMTP_PASSWORD", "")
+        monkeypatch.setattr(email_sender, "SMTP_FROM", "")
+
+        with caplog.at_level("ERROR", logger="zoey.email"):
+            result = email_sender.send_verification_email(
+                to_email="test@example.com", name="Test", verify_url="https://example.com/verify?token=abc"
+            )
+        assert result is False
+        assert "SMTP" in caplog.text
 
 
 # ---------------------------------------------------------------------------
@@ -739,6 +804,266 @@ class TestGoogleAuth:
     def test_missing_credential_is_rejected(self, client):
         resp = client.post("/api/auth/google", json={})
         assert resp.status_code == 422
+# ---------------------------------------------------------------------------
+# Brokerage data foundation (backend/models.py's BrokerageAccount,
+# CashBalance, Position, Transaction, Order)
+# ---------------------------------------------------------------------------
+#
+# These five tables are not wired into any route yet -- see
+# backend/models.py's module docstring. Nothing in api/index.py creates a
+# row in any of them, so there is no endpoint to exercise here the way
+# other test classes in this file exercise api/index.py's routes. These
+# tests instead exercise the SQLAlchemy models/constraints directly --
+# exactly what you'd want proven before anything is ever wired in: the
+# ownership chain and the uniqueness constraints actually hold at the
+# database level, not just in application code that doesn't exist yet.
+
+class TestBrokerageDataFoundation:
+    def test_existing_users_still_work(self, client, db_session):
+        """Sanity check: adding five new tables to backend/models.py must
+        not disturb the existing users table or its login flow."""
+        _create_test_user(db_session, email="stillworks@example.com", password="correct-horse-battery")
+        resp = client.post(
+            "/api/login",
+            json={"email": "stillworks@example.com", "password": "correct-horse-battery"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+
+    def test_existing_leads_still_work(self, client):
+        """Same sanity check for the other existing table, leads."""
+        resp = client.post(
+            "/api/leads",
+            json={"name": "Still Works", "email": "leadstillworks@example.com"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["ok"] is True
+
+    def _make_user_and_account(
+        self, db_session, *, email="brokerage@example.com", provider="drivewealth", external_account_id="dw-acct-1"
+    ):
+        from backend.models import BrokerageAccount
+
+        user = _create_test_user(db_session, email=email)
+        account = BrokerageAccount(
+            user_id=user.id,
+            provider=provider,
+            external_account_id=external_account_id,
+            status="active",
+        )
+        db_session.add(account)
+        db_session.commit()
+        db_session.refresh(account)
+        return user, account
+
+    def test_brokerage_account_belongs_to_a_user(self, db_session):
+        user, account = self._make_user_and_account(db_session)
+        assert account.user_id == user.id
+
+    def test_cash_balance_belongs_to_a_brokerage_account(self, db_session):
+        from decimal import Decimal
+
+        from backend.models import CashBalance
+
+        _, account = self._make_user_and_account(
+            db_session, email="cash@example.com", external_account_id="dw-acct-cash"
+        )
+        balance = CashBalance(
+            brokerage_account_id=account.id,
+            currency="USDT",
+            available_balance=Decimal("100.00"),
+            total_balance=Decimal("100.00"),
+        )
+        db_session.add(balance)
+        db_session.commit()
+        db_session.refresh(balance)
+        assert balance.brokerage_account_id == account.id
+
+    def test_position_belongs_to_a_brokerage_account(self, db_session):
+        from decimal import Decimal
+
+        from backend.models import Position
+
+        _, account = self._make_user_and_account(
+            db_session, email="position@example.com", external_account_id="dw-acct-position"
+        )
+        position = Position(
+            brokerage_account_id=account.id,
+            symbol="NVDA",
+            quantity=Decimal("1.5"),
+            average_cost=Decimal("200.00"),
+        )
+        db_session.add(position)
+        db_session.commit()
+        db_session.refresh(position)
+        assert position.brokerage_account_id == account.id
+
+    def test_transaction_belongs_to_a_brokerage_account(self, db_session):
+        from decimal import Decimal
+
+        from backend.models import Transaction
+
+        _, account = self._make_user_and_account(
+            db_session, email="txn@example.com", external_account_id="dw-acct-txn"
+        )
+        txn = Transaction(
+            brokerage_account_id=account.id,
+            transaction_type="deposit",
+            amount=Decimal("50.00"),
+            currency="USD",
+            status="settled",
+        )
+        db_session.add(txn)
+        db_session.commit()
+        db_session.refresh(txn)
+        assert txn.brokerage_account_id == account.id
+
+    def test_order_belongs_to_a_brokerage_account(self, db_session):
+        from decimal import Decimal
+
+        from backend.models import Order
+
+        _, account = self._make_user_and_account(
+            db_session, email="order@example.com", external_account_id="dw-acct-order"
+        )
+        order = Order(
+            brokerage_account_id=account.id,
+            symbol="TSLA",
+            side="buy",
+            order_type="market",
+            quantity=Decimal("2"),
+            status="submitted",
+        )
+        db_session.add(order)
+        db_session.commit()
+        db_session.refresh(order)
+        assert order.brokerage_account_id == account.id
+
+    def test_duplicate_provider_external_account_id_is_rejected(self, db_session):
+        from sqlalchemy.exc import IntegrityError
+
+        from backend.models import BrokerageAccount
+
+        _user1, _account1 = self._make_user_and_account(
+            db_session, email="dupe-a@example.com", external_account_id="dw-shared-id"
+        )
+        user2 = _create_test_user(db_session, email="dupe-b@example.com")
+        dupe = BrokerageAccount(
+            user_id=user2.id,
+            provider="drivewealth",
+            external_account_id="dw-shared-id",  # same (provider, external_account_id) as above, different user
+            status="active",
+        )
+        db_session.add(dupe)
+        with pytest.raises(IntegrityError):
+            db_session.commit()
+        db_session.rollback()
+
+    def test_duplicate_brokerage_account_id_currency_is_rejected(self, db_session):
+        from decimal import Decimal
+
+        from sqlalchemy.exc import IntegrityError
+
+        from backend.models import CashBalance
+
+        _, account = self._make_user_and_account(
+            db_session, email="dupecash@example.com", external_account_id="dw-acct-dupecash"
+        )
+        db_session.add(
+            CashBalance(
+                brokerage_account_id=account.id, currency="USDT",
+                available_balance=Decimal("1"), total_balance=Decimal("1"),
+            )
+        )
+        db_session.commit()
+
+        db_session.add(
+            CashBalance(
+                brokerage_account_id=account.id, currency="USDT",
+                available_balance=Decimal("2"), total_balance=Decimal("2"),
+            )
+        )
+        with pytest.raises(IntegrityError):
+            db_session.commit()
+        db_session.rollback()
+
+    def test_duplicate_brokerage_account_id_symbol_is_rejected(self, db_session):
+        from decimal import Decimal
+
+        from sqlalchemy.exc import IntegrityError
+
+        from backend.models import Position
+
+        _, account = self._make_user_and_account(
+            db_session, email="dupeposition@example.com", external_account_id="dw-acct-dupeposition"
+        )
+        db_session.add(Position(brokerage_account_id=account.id, symbol="AMD", quantity=Decimal("1"), average_cost=Decimal("100")))
+        db_session.commit()
+
+        db_session.add(Position(brokerage_account_id=account.id, symbol="AMD", quantity=Decimal("2"), average_cost=Decimal("110")))
+        with pytest.raises(IntegrityError):
+            db_session.commit()
+        db_session.rollback()
+
+    def test_multiple_null_external_ids_do_not_conflict(self, db_session):
+        """NULL-safe uniqueness sanity check: two transactions on the same
+        account with no external_transaction_id yet (still pending, never
+        synced) must NOT be treated as duplicates of each other."""
+        from decimal import Decimal
+
+        from backend.models import Transaction
+
+        _, account = self._make_user_and_account(
+            db_session, email="nulltxn@example.com", external_account_id="dw-acct-nulltxn"
+        )
+        db_session.add(
+            Transaction(brokerage_account_id=account.id, transaction_type="deposit", amount=Decimal("10"), currency="USD", status="pending")
+        )
+        db_session.add(
+            Transaction(brokerage_account_id=account.id, transaction_type="deposit", amount=Decimal("20"), currency="USD", status="pending")
+        )
+        db_session.commit()  # must NOT raise
+
+    def test_fractional_share_quantity_round_trips_exactly(self, db_session):
+        """Decimal, not float: a fractional share quantity must come back
+        byte-for-byte exact, not approximated."""
+        from decimal import Decimal
+
+        from backend.models import Position
+
+        _, account = self._make_user_and_account(
+            db_session, email="fractional@example.com", external_account_id="dw-acct-fractional"
+        )
+        exact_quantity = Decimal("0.12345678")
+        position = Position(
+            brokerage_account_id=account.id, symbol="NVDA", quantity=exact_quantity, average_cost=Decimal("201.30")
+        )
+        db_session.add(position)
+        db_session.commit()
+        db_session.refresh(position)
+
+        assert position.quantity == exact_quantity
+        assert isinstance(position.quantity, Decimal)
+
+    def test_monetary_and_quantity_columns_are_numeric_not_float(self):
+        """Schema-level guarantee, independent of any single row: every
+        money/quantity column on the five new tables is SQLAlchemy Numeric
+        (Python Decimal), never Float."""
+        from sqlalchemy import Float, Numeric
+
+        from backend.models import BrokerageAccount, CashBalance, Order, Position, Transaction
+
+        numeric_columns = {
+            CashBalance: ["available_balance", "total_balance"],
+            Position: ["quantity", "average_cost", "market_value", "unrealized_gain_loss"],
+            Transaction: ["quantity", "price", "amount"],
+            Order: ["quantity", "limit_price"],
+        }
+        for model, column_names in numeric_columns.items():
+            for column_name in column_names:
+                column_type = getattr(model, column_name).type
+                assert isinstance(column_type, Numeric), f"{model.__name__}.{column_name} must be Numeric"
+                assert not isinstance(column_type, Float), f"{model.__name__}.{column_name} must not be Float"
 
 
 class TestFrontendSignupRedirectRegression:
@@ -816,6 +1141,7 @@ class TestFrontendSignupRedirectRegression:
             content = self._read(name)
             assert "GMAIL_APP_PASSWORD" not in content
             assert "GMAIL_USER" not in content
+
 
 # ---------------------------------------------------------------------------
 # GET /api/dashboard: honest data, not the old hard-coded mock
