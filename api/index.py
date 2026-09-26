@@ -130,6 +130,13 @@ def _env_number(name: str, default: float, *, cast):
 RATE_LIMIT_MAX = _env_number("RATE_LIMIT_MAX", 5, cast=int)
 RATE_LIMIT_WINDOW_SECONDS = _env_number("RATE_LIMIT_WINDOW_MIN", 10, cast=float) * 60
 
+# When set (production), this pins verification-email links to the public
+# domain instead of whatever host the request happened to arrive on --
+# see _issue_and_send_verification_email() below. Left blank in Preview
+# (and locally) on purpose, so Preview/local keep deriving the link from
+# request.base_url exactly as before.
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "").rstrip("/")
+
 _attempts: dict[str, deque] = defaultdict(deque)
 
 
@@ -199,7 +206,8 @@ def _issue_and_send_verification_email(request: Request, db: Session, user) -> b
     """
     raw_token, token_hash, expires_at = generate_verification_token()
     set_email_verification_token(db, user, token_hash=token_hash, expires_at=expires_at)
-    verify_url = f"{str(request.base_url).rstrip('/')}/api/auth/verify-email?token={quote(raw_token)}"
+    base = APP_BASE_URL or str(request.base_url).rstrip("/")
+    verify_url = f"{base}/api/auth/verify-email?token={quote(raw_token)}"
     return send_verification_email(to_email=user.email, name=user.name, verify_url=verify_url)
 
 
