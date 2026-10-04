@@ -223,3 +223,53 @@ class ResendVerificationIn(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     email: EmailStr
+
+
+class RequestPasswordResetIn(BaseModel):
+    """POST /api/auth/request-password-reset request body. Same shape as
+    ResendVerificationIn above -- just an email address -- because the
+    same non-enumeration principle applies: this schema's validation
+    failures (missing/malformed email) are the ONLY thing allowed to
+    differ in response shape, never whether the address has an account."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    """POST /api/auth/reset-password request body. Reuses the EXACT same
+    password-strength validator as SignupIn's own password field
+    (_password_meets_requirements / _PASSWORD_MIN_LENGTH) -- there is only
+    one Zoey password policy, not a second one invented for this form."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    token: str
+    password: str
+    confirm_password: str
+
+    @field_validator("token")
+    @classmethod
+    def _token_present(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Missing reset token.")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def _password_valid(cls, v: str) -> str:
+        if not _password_meets_requirements(v):
+            raise ValueError(
+                f"Password must be at least {_PASSWORD_MIN_LENGTH} characters "
+                "and include at least one letter and one number."
+            )
+        return v
+
+    @field_validator("confirm_password")
+    @classmethod
+    def _passwords_match(cls, v: str, info) -> str:
+        password = info.data.get("password")
+        if password is not None and v != password:
+            raise ValueError("Passwords do not match.")
+        return v

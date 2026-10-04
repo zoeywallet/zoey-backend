@@ -670,6 +670,348 @@ class TestResendVerification:
 
 
 # ---------------------------------------------------------------------------
+# POST /api/auth/request-password-reset + POST /api/auth/reset-password
+# ---------------------------------------------------------------------------
+#
+# Same monkeypatch-the-sender substitute for a real mail server as
+# _capture_sent_emails above, kept as a separate helper (and a separate
+# capture list) rather than reused, because reset emails and verification
+# emails must never be conflated -- a test asserting "no verification
+# email was sent" should not pass only because the thing that WAS sent
+# was secretly a reset email.
+
+def _capture_sent_reset_emails(monkeypatch):
+    """Patches api.index.send_password_reset_email to record calls
+    instead of talking to smtplib, and returns the list it appends to."""
+    import api.index as api_index
+
+    sent: list[dict] = []
+
+    def _fake_send(*, to_email, name, reset_url):
+        sent.append({"to_email": to_email, "name": name, "reset_url": reset_url})
+        return True
+
+    monkeypatch.setattr(api_index, "send_password_reset_email", _fake_send)
+    return sent
+
+
+def _extract_reset_token(reset_url: str) -> str:
+    import re
+
+    m = re.search(r"token=([^&]+)", reset_url)
+    assert m is not None, f"no token= query param in {reset_url!r}"
+    return m.group(1)
+
+
+class TestRequestPasswordReset:
+    """Covers audit test cases A, B, C: the public response and whether an
+    email is actually issued must be identical for an existing verified
+    user, a nonexistent address, and a Google-only account."""
+
+    def test_existing_user_gets_generic_response_and_an_email(self, client, db_session, monkeypatch):
+        sent = _capture_sent_reset_emails(monkeypatch)
+        _create_test_user(db_session, email="reset-a@example.com")
+
+        resp = client.post("/api/auth/request-password-reset", json={"email": "reset-a@example.com"})
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["ok"] is True
+        assert body["message"] == "If an account exists for this email address, we've sent password reset instructions."
+        assert len(sent) == 1
+        assert sent[0]["to_email"] == "reset-a@example.com"
+        assert "token=" in sent[0]["reset_url"]
+        # Production-domain pinning, same mechanism as verification emails.
+        assert sent[0]["reset_url"].startswith("http://testserver/reset-password.html?token=")
+
+    def test_nonexistent_email_gets_the_identical_public_response(self, client, monkeypatch):
+        sent = _capture_sent_reset_emails(monkeypatch)
+
+        resp = client.post("/api/auth/request-password-reset", json={"email": "no-such-account@example.com"})
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["ok"] is True
+        assert body["message"] == "If an account exists for this email address, we've sent password reset instructions."
+        assert len(sent) == 0  # nothing to send -- and critically, the response above was identical anyway
+
+    def test_google_only_account_gets_the_identical_public_response(self, client, db_session, monkeypatch):
+        from backend.database import create_google_user
+
+        sent = _capture_sent_reset_emails(monkeypatch)
+        create_google_user(db_session, email="google-only@example.com", name="Google Person", google_sub="sub-reset-c")
+
+        resp = client.post("/api/auth/request-password-reset", json={"email": "google-only@example.com"})
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["ok"] is True
+        assert body["message"] == "If an account exists for this email address, we've sent password reset instructions."
+        # No Zoey password to reset -- correctly skipped, and Google OAuth
+        # data/behavior is completely untouched by this request.
+        assert len(sent) == 0
+
+    def test_responses_are_byte_for_byte_identical_across_all_three_cases(self, client, db_session, monkeypatch):
+        """Explicit confirmation (per the audit's own requirement) that
+        valid, nonexistent and Google-only requests cannot be
+        distinguished from the response alone."""
+        from backend.database import create_google_user
+
+        _capture_sent_reset_emails(monkeypatch)
+        _create_test_user(db_session, email="reset-exists@example.com")
+        create_google_user(db_session, email="reset-google@example.com", name="G", google_sub="sub-reset-identical")
+
+        r1 = client.post("/api/auth/request-password-reset", json={"email": "reset-exists@example.com"})
+        r2 = client.post("/api/auth/request-password-reset", json={"email": "reset-nonexistent@example.com"})
+        r3 = client.post("/api/auth/request-password-reset", json={"email": "reset-google@example.com"})
+
+        assert r1.status_code == r2.status_code == r3.status_code == 200
+        assert r1.json() == r2.json() == r3.json()
+
+    def test_invalid_email_format_is_rejected(self, client, monkeypatch):
+        sent = _capture_sent_reset_emails(monkeypatch)
+        resp = client.post("/api/auth/request-password-reset", json={"email": "not-an-email"})
+        assert resp.status_code == 422
+        assert len(sent) == 0
+
+
+class TestResetPassword:
+    """Covers audit test cases D-L: token validity/expiry/single-use,
+    password-policy reuse, and the exact scrypt hashing path."""
+
+    def _request_and_extract_token(self, client, db_session, monkeypatch, email="reset-flow@example.com", password="original-pw1"):
+        sent = _capture_sent_reset_emails(monkeypatch)
+        _create_test_user(db_session, email=email, password=password)
+        client.post("/api/auth/request-password-reset", json={"email": email})
+        assert len(sent) == 1
+        return _extract_reset_token(sent[0]["reset_url"])
+
+    def test_valid_token_resets_the_password(self, client, db_session, monkeypatch):
+        token = self._request_and_extract_token(client, db_session, monkeypatch, email="reset-d@example.com")
+
+        resp = client.post(
+            "/api/auth/reset-password",
+            json={"token": token, "password": "brand-new-pw1", "confirm_password": "brand-new-pw1"},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["ok"] is True
+        assert body["message"] == "Your Zoey Wallet password has been successfully reset."
+        # No session cookie is issued -- consistent with signup's own
+        # "never auto-authenticate" decision; the person logs in normally.
+        assert "zw_session" not in resp.cookies
+
+    def test_invalid_token_is_rejected_safely(self, client):
+        resp = client.post(
+            "/api/auth/reset-password",
+            json={"token": "this-token-was-never-issued", "password": "whatever-pw1", "confirm_password": "whatever-pw1"},
+        )
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["ok"] is False
+        assert body["code"] == "invalid_or_expired"
+        assert body["message"] == "This password reset link is invalid or has expired."
+        # Never leaks whether a token "almost" matched, a stack trace, or
+        # any internal detail.
+        assert "token" not in body["message"].lower() or "invalid" in body["message"].lower()
+
+    def test_expired_token_is_rejected_safely(self, client, db_session, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+
+        from backend.database import find_user_by_email
+
+        token = self._request_and_extract_token(client, db_session, monkeypatch, email="reset-f@example.com")
+
+        # Force the stored expiry into the past, same technique the
+        # existing TestVerifyEmail expiry test uses for email-verify
+        # tokens -- simulates real elapsed time without actually waiting
+        # PASSWORD_RESET_TTL_MINUTES in the test.
+        user = find_user_by_email(db_session, "reset-f@example.com")
+        user.password_reset_expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+        db_session.commit()
+
+        resp = client.post(
+            "/api/auth/reset-password",
+            json={"token": token, "password": "whatever-pw1", "confirm_password": "whatever-pw1"},
+        )
+        assert resp.status_code == 400
+        assert resp.json()["code"] == "invalid_or_expired"
+
+    def test_consumed_token_cannot_be_reused(self, client, db_session, monkeypatch):
+        token = self._request_and_extract_token(client, db_session, monkeypatch, email="reset-g@example.com")
+
+        first = client.post(
+            "/api/auth/reset-password",
+            json={"token": token, "password": "first-new-pw1", "confirm_password": "first-new-pw1"},
+        )
+        assert first.status_code == 200
+
+        second = client.post(
+            "/api/auth/reset-password",
+            json={"token": token, "password": "second-new-pw1", "confirm_password": "second-new-pw1"},
+        )
+        assert second.status_code == 400
+        assert second.json()["code"] == "invalid_or_expired"
+
+    def test_password_mismatch_is_rejected(self, client, db_session, monkeypatch):
+        token = self._request_and_extract_token(client, db_session, monkeypatch, email="reset-h@example.com")
+        resp = client.post(
+            "/api/auth/reset-password",
+            json={"token": token, "password": "one-new-pw1", "confirm_password": "different-pw1"},
+        )
+        assert resp.status_code == 422
+        assert "match" in resp.json()["message"].lower()
+
+    def test_weak_password_is_rejected_by_the_existing_policy(self, client, db_session, monkeypatch):
+        token = self._request_and_extract_token(client, db_session, monkeypatch, email="reset-i@example.com")
+        resp = client.post(
+            "/api/auth/reset-password",
+            json={"token": token, "password": "short", "confirm_password": "short"},
+        )
+        assert resp.status_code == 422
+        # Exact same policy message SignupIn's own validator raises.
+        assert "at least 8 characters" in resp.json()["message"]
+
+    def test_old_password_no_longer_works_and_new_password_does(self, client, db_session, monkeypatch):
+        """Covers audit test cases K and L together."""
+        email = "reset-kl@example.com"
+        token = self._request_and_extract_token(client, db_session, monkeypatch, email=email, password="old-password-1")
+
+        reset_resp = client.post(
+            "/api/auth/reset-password",
+            json={"token": token, "password": "new-password-1", "confirm_password": "new-password-1"},
+        )
+        assert reset_resp.status_code == 200
+
+        old_login = client.post("/api/login", json={"email": email, "password": "old-password-1"})
+        assert old_login.status_code == 401
+
+        new_login = client.post("/api/login", json={"email": email, "password": "new-password-1"})
+        assert new_login.status_code == 200
+        assert "zw_session" in new_login.cookies
+
+    def test_new_password_is_stored_as_a_proper_scrypt_hash(self, client, db_session, monkeypatch):
+        """Confirms case J's success path went through the real
+        hash_password()/update_user_password() -- not a shortcut -- by
+        reading the stored hash back out of the database directly."""
+        from backend.database import find_user_by_email
+
+        email = "reset-j@example.com"
+        token = self._request_and_extract_token(client, db_session, monkeypatch, email=email)
+
+        client.post(
+            "/api/auth/reset-password",
+            json={"token": token, "password": "freshly-hashed-pw1", "confirm_password": "freshly-hashed-pw1"},
+        )
+
+        db_session.expire_all()
+        user = find_user_by_email(db_session, email)
+        assert user.password_hash.startswith("scrypt:")
+        assert "freshly-hashed-pw1" not in user.password_hash
+
+    def test_reset_token_is_cleared_after_successful_reset(self, client, db_session, monkeypatch):
+        from backend.database import find_user_by_email
+
+        email = "reset-clear@example.com"
+        token = self._request_and_extract_token(client, db_session, monkeypatch, email=email)
+
+        client.post(
+            "/api/auth/reset-password",
+            json={"token": token, "password": "cleared-pw1", "confirm_password": "cleared-pw1"},
+        )
+
+        db_session.expire_all()
+        user = find_user_by_email(db_session, email)
+        assert user.password_reset_token_hash is None
+        assert user.password_reset_expires_at is None
+
+    def test_requesting_a_new_reset_supersedes_the_older_token(self, client, db_session, monkeypatch):
+        email = "reset-supersede@example.com"
+        sent = _capture_sent_reset_emails(monkeypatch)
+        _create_test_user(db_session, email=email, password="original-pw1")
+
+        client.post("/api/auth/request-password-reset", json={"email": email})
+        old_token = _extract_reset_token(sent[-1]["reset_url"])
+
+        client.post("/api/auth/request-password-reset", json={"email": email})
+        new_token = _extract_reset_token(sent[-1]["reset_url"])
+
+        assert old_token != new_token
+
+        # The superseded (older) token must no longer work.
+        resp = client.post(
+            "/api/auth/reset-password",
+            json={"token": old_token, "password": "whatever-pw1", "confirm_password": "whatever-pw1"},
+        )
+        assert resp.status_code == 400
+        assert resp.json()["code"] == "invalid_or_expired"
+
+
+class TestPasswordResetRegression:
+    """Covers audit test cases M, N, O, P: this feature must be purely
+    additive. Each test here re-confirms a pre-existing behavior still
+    works exactly as it did before this feature existed, in the same
+    test run/process as the new password-reset tests above."""
+
+    def test_signup_still_works_unaffected(self, client, monkeypatch):
+        sent = _capture_sent_emails(monkeypatch)  # the *verification* email capture, not the reset one
+        resp = client.post(
+            "/api/auth/signup",
+            json={
+                "name": "Regression Check",
+                "email": "regression-signup@example.com",
+                "password": "signup-pw-1",
+                "confirm_password": "signup-pw-1",
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.json()["requires_verification"] is True
+        assert len(sent) == 1
+
+    def test_normal_login_still_works_unaffected(self, client, db_session):
+        _create_test_user(db_session, email="regression-login@example.com", password="regression-pw1")
+        resp = client.post("/api/login", json={"email": "regression-login@example.com", "password": "regression-pw1"})
+        assert resp.status_code == 200
+        assert "zw_session" in resp.cookies
+
+    def test_google_oauth_still_works_and_is_not_touched_by_reset_feature(self, client, db_session, monkeypatch):
+        from backend.database import create_google_user, find_user_by_email
+        from backend.google_auth import GoogleIdentity
+
+        create_google_user(db_session, email="regression-google@example.com", name="Regression Google", google_sub="sub-regression")
+        _patch_google_identity(
+            monkeypatch,
+            GoogleIdentity(sub="sub-regression", email="regression-google@example.com", email_verified=True, name="Regression Google"),
+        )
+        resp = client.post("/api/auth/google", json={"credential": "fake-credential"})
+        assert resp.status_code == 200
+        assert "zw_session" in resp.cookies
+
+        # And requesting a password reset for this same account must not
+        # have left it with a password it never had.
+        client.post("/api/auth/request-password-reset", json={"email": "regression-google@example.com"})
+        db_session.expire_all()
+        user = find_user_by_email(db_session, "regression-google@example.com")
+        assert user.password_hash is None
+
+    def test_email_verification_flow_still_works_unaffected(self, client, monkeypatch):
+        sent = _capture_sent_emails(monkeypatch)
+        client.post(
+            "/api/auth/signup",
+            json={
+                "name": "Verify Regression",
+                "email": "regression-verify@example.com",
+                "password": "verify-pw-1",
+                "confirm_password": "verify-pw-1",
+            },
+        )
+        token = _extract_token(sent[0]["verify_url"])
+        resp = client.get(f"/api/auth/verify-email?token={token}", follow_redirects=False)
+        assert resp.status_code == 302
+        assert resp.headers["location"] == "/login?verified=1"
+
+
+# ---------------------------------------------------------------------------
 # POST /api/auth/google
 # ---------------------------------------------------------------------------
 #

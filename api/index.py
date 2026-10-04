@@ -16,6 +16,8 @@ Routes:
     POST /api/auth/signup                 real account creation (unverified) -> no session cookie yet
     GET  /api/auth/verify-email           emailed link target -> marks the account verified
     POST /api/auth/resend-verification    re-sends a fresh verification email
+    POST /api/auth/request-password-reset re-sends a neutral response + emails a reset link if the account exists
+    POST /api/auth/reset-password         consumes a reset token -> sets a new password (no session cookie)
     POST /api/auth/google                 "Continue with Google" -> sets the session cookie
     POST /api/login                       email + password (must be verified) -> sets the session cookie
     POST /api/logout                      clears the session cookie
@@ -35,8 +37,10 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 import time
 from collections import defaultdict, deque
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
 
@@ -69,22 +73,34 @@ from backend.auth import (  # noqa: E402
 )
 from backend.dashboard_data import get_dashboard_data
 from backend.database import (
+    clear_password_reset_token,
     create_google_user,
     create_lead,
     create_user,
     find_user_by_email,
     find_user_by_google_sub,
+    find_user_by_reset_token_hash,
     find_user_by_verification_token_hash,
     get_db,
     init_db,
     link_google_identity,
     set_email_verification_token,
     set_email_verified,
+    set_password_reset_token,
+    update_user_password,
 )
-from backend.email_sender import send_verification_email
+from backend.email_sender import send_password_reset_email, send_verification_email
 from backend.email_verification import generate_verification_token, hash_token, is_expired
 from backend.google_auth import GOOGLE_CLIENT_ID, GoogleAuthError, verify_google_id_token
-from backend.schemas import GoogleAuthIn, LeadIn, LoginIn, ResendVerificationIn, SignupIn
+from backend.schemas import (
+    GoogleAuthIn,
+    LeadIn,
+    LoginIn,
+    RequestPasswordResetIn,
+    ResendVerificationIn,
+    ResetPasswordIn,
+    SignupIn,
+)
 
 logger = logging.getLogger("zoey.api")
 
@@ -136,6 +152,15 @@ RATE_LIMIT_WINDOW_SECONDS = _env_number("RATE_LIMIT_WINDOW_MIN", 10, cast=float)
 # (and locally) on purpose, so Preview/local keep deriving the link from
 # request.base_url exactly as before.
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "").rstrip("/")
+
+# How long a freshly-issued password-reset link stays valid. Same
+# env-var-with-sane-default pattern as EMAIL_VERIFY_TTL_HOURS
+# (backend/email_verification.py) -- 30 minutes by default, deliberately
+# much shorter than email verification's 24 hours, since a reset link
+# grants control over the account's password, not just proof of address
+# ownership.
+PASSWORD_RESET_TTL_MINUTES = _env_number("PASSWORD_RESET_TTL_MINUTES", 30, cast=float)
+_PASSWORD_RESET_TOKEN_BYTES = 32  # 256 bits -- same entropy as the email-verification token.
 
 _attempts: dict[str, deque] = defaultdict(deque)
 
@@ -209,6 +234,52 @@ def _issue_and_send_verification_email(request: Request, db: Session, user) -> b
     base = APP_BASE_URL or str(request.base_url).rstrip("/")
     verify_url = f"{base}/api/auth/verify-email?token={quote(raw_token)}"
     return send_verification_email(to_email=user.email, name=user.name, verify_url=verify_url)
+
+
+def _generate_password_reset_token() -> tuple[str, str, datetime]:
+    """Returns (raw_token, token_hash, expires_at) for a password-reset
+    link -- deliberately its own function rather than reusing
+    generate_verification_token(), even though the mechanics are
+    identical, because the two token types must never be generated from
+    the same call site (keeps "reset" and "verify" token issuance
+    independently auditable/greppable). Reuses hash_token() from
+    backend/email_verification.py -- that function is already fully
+    generic (SHA-256 of a random token), not specific to email
+    verification, so this is the "use the existing token utilities where
+    appropriate" the audit called for, without conflating the two
+    features' own token columns."""
+    raw_token = secrets.token_urlsafe(_PASSWORD_RESET_TOKEN_BYTES)
+    token_hash = hash_token(raw_token)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=PASSWORD_RESET_TTL_MINUTES)
+    return raw_token, token_hash, expires_at
+
+
+def _issue_and_send_password_reset_email(request: Request, db: Session, user) -> bool:
+    """Generates a fresh password-reset token for `user`, stores its hash
+    (backend/database.py's set_password_reset_token), and emails the
+    link. Returns whether the email was actually sent -- the caller
+    (POST /api/auth/request-password-reset) deliberately never branches
+    its PUBLIC response on this value, for the same account-enumeration
+    reason _issue_and_send_verification_email's callers don't either: a
+    delivery failure must look identical to "no such account" from the
+    outside.
+
+    The reset URL uses APP_BASE_URL when set (pinning it to
+    https://zoeywallet.co in production, same as the email-verification
+    link), falling back to this request's own base_url otherwise -- the
+    exact same mechanism _issue_and_send_verification_email already uses,
+    reused unchanged here rather than re-implemented.
+
+    Points at /reset-password.html (a plain static file, like
+    contact.html/legal.html) rather than a vercel.json-rewritten clean URL
+    like /login -- this intentionally avoids touching vercel.json for this
+    feature; see the accompanying report for why.
+    """
+    raw_token, token_hash, expires_at = _generate_password_reset_token()
+    set_password_reset_token(db, user, token_hash=token_hash, expires_at=expires_at)
+    base = APP_BASE_URL or str(request.base_url).rstrip("/")
+    reset_url = f"{base}/reset-password.html?token={quote(raw_token)}"
+    return send_password_reset_email(to_email=user.email, name=user.name, reset_url=reset_url)
 
 
 # ---------------------------------------------------------------------------
@@ -496,6 +567,116 @@ async def api_auth_resend_verification(request: Request, db: Session = Depends(g
     return generic_response
 
 
+@app.post("/api/auth/request-password-reset")
+async def api_auth_request_password_reset(request: Request, db: Session = Depends(get_db)):
+    """Starts the "Forgot password?" flow. Always returns the SAME
+    generic response regardless of whether the address belongs to an
+    account, is Google-only (no Zoey password to reset), or mail delivery
+    itself fails -- the exact non-enumeration principle
+    api_auth_resend_verification above already establishes for this
+    codebase, applied here to a more sensitive action (this one can lead
+    to changing a password, not just re-sending a link)."""
+    ip = _client_ip(request)
+    if _rate_limited(f"request-password-reset:{ip}"):
+        return JSONResponse(
+            status_code=429,
+            content={"ok": False, "success": False, "message": "Too many attempts. Please try again in a few minutes."},
+        )
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    try:
+        reset_in = RequestPasswordResetIn.model_validate(body)
+    except ValidationError:
+        return JSONResponse(
+            status_code=422,
+            content={"ok": False, "success": False, "message": "Enter a valid email address."},
+        )
+
+    generic_response = {
+        "ok": True,
+        "success": True,
+        "message": "If an account exists for this email address, we've sent password reset instructions.",
+    }
+
+    user = find_user_by_email(db, reset_in.email)
+    # Only issue/send a reset token for an account that actually has a
+    # Zoey password to reset -- a Google-only account (password_hash is
+    # None; see backend/models.py) has nothing for this flow to change,
+    # and silently skipping it here (while still returning the identical
+    # generic response below) keeps Google OAuth completely untouched by
+    # this feature, rather than teaching it to grow a Zoey password as a
+    # side effect of a reset request.
+    if user is not None and user.password_hash is not None:
+        _issue_and_send_password_reset_email(request, db, user)
+        # Deliberately not branching the response on whether the send
+        # itself succeeded -- same reasoning as resend-verification above.
+
+    return generic_response
+
+
+@app.post("/api/auth/reset-password")
+async def api_auth_reset_password(request: Request, db: Session = Depends(get_db)):
+    """Consumes a password-reset token and sets a new password. Does NOT
+    issue a session cookie -- consistent with POST /api/auth/signup's own
+    documented decision to keep POST /api/login as the single source of
+    truth for session issuance; the person is sent back to a normal login
+    with their new password, not silently logged in here."""
+    ip = _client_ip(request)
+    if _rate_limited(f"reset-password:{ip}"):
+        return JSONResponse(
+            status_code=429,
+            content={"ok": False, "success": False, "message": "Too many attempts. Please try again in a few minutes."},
+        )
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    try:
+        reset_in = ResetPasswordIn.model_validate(body)
+    except ValidationError as exc:
+        # Surface the first validator's message (e.g. "Passwords do not
+        # match.", the password-strength message) the same way the
+        # frontend's own SignupIn-backed form already expects to read it,
+        # rather than a generic 422 -- these are messages the person is
+        # meant to see and act on.
+        errors = exc.errors()
+        message = errors[0]["msg"] if errors else "Enter a valid password."
+        if message.startswith("Value error, "):
+            message = message[len("Value error, "):]
+        return JSONResponse(status_code=422, content={"ok": False, "success": False, "message": message})
+
+    token_hash = hash_token(reset_in.token)
+    user = find_user_by_reset_token_hash(db, token_hash)
+    # Deliberately indistinguishable, same ambiguity
+    # find_user_by_verification_token_hash's own docstring describes:
+    # "never existed", "already used and cleared", and "superseded by a
+    # newer request" all look identical from here, and all get the same
+    # "invalid or expired" response.
+    if user is None:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "success": False, "message": "This password reset link is invalid or has expired.", "code": "invalid_or_expired"},
+        )
+
+    if is_expired(user.password_reset_expires_at):
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "success": False, "message": "This password reset link is invalid or has expired.", "code": "invalid_or_expired"},
+        )
+
+    new_hash = hash_password(reset_in.password)
+    update_user_password(db, user.id, new_hash)
+    clear_password_reset_token(db, user)
+
+    return {"ok": True, "success": True, "message": "Your Zoey Wallet password has been successfully reset."}
+
+
 @app.post("/api/auth/google")
 async def api_auth_google(request: Request, response: Response, db: Session = Depends(get_db)):
     """"Continue with Google" -- verifies the credential Google's Identity
@@ -721,6 +902,24 @@ def serve_dashboard(claims: dict | None = Depends(get_current_claims)):
     if claims is None:
         return Response(status_code=302, headers={"Location": "/login"})
     return _serve("dashboard.html")
+
+
+# forgot-password.html / reset-password.html are plain static files (like
+# contact.html/legal.html, which also have no route here and no
+# vercel.json rewrite) -- served directly by Vercel's static host in
+# production by filename, with these two routes existing purely for local
+# `uvicorn api.index:app --reload` convenience, same as serve_login /
+# serve_dashboard above are for login.html / dashboard.html. Unlike those
+# two, no auth-based redirect applies here -- the recovery flow must stay
+# reachable whether or not someone currently has a session cookie.
+@app.get("/forgot-password.html")
+def serve_forgot_password():
+    return _serve("forgot-password.html")
+
+
+@app.get("/reset-password.html")
+def serve_reset_password():
+    return _serve("reset-password.html")
 
 
 _assets_dir = PROJECT_ROOT / "assets"

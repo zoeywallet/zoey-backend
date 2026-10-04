@@ -152,3 +152,74 @@ def send_verification_email(*, to_email: str, name: str, verify_url: str) -> boo
         # message.
         logger.exception("send_verification_email: failed to send to %s", to_email)
         return False
+
+
+def send_password_reset_email(*, to_email: str, name: str, reset_url: str) -> bool:
+    """Sends the "reset your password" message. Same contract as
+    send_verification_email above: returns True if handed off to the
+    configured SMTP server successfully, False otherwise -- never raises.
+    Deliberately reuses the exact same SMTP_* configuration, the same
+    is_email_configured() guard, and the same plain-text + HTML multipart
+    shape as send_verification_email -- this is not a second email
+    implementation, just a second message built on the same one."""
+    if not is_email_configured():
+        logger.error(
+            "send_password_reset_email: SMTP is not fully configured "
+            "(SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASSWORD/SMTP_FROM) -- "
+            "cannot send to %s. Set all five in .env for local dev, or as "
+            "Vercel Environment Variables in production.",
+            to_email,
+        )
+        return False
+
+    msg = EmailMessage()
+    msg["Subject"] = "Reset your Zoey Wallet password"
+    msg["From"] = SMTP_FROM
+    msg["To"] = to_email
+    msg.set_content(
+        f"Hi {name},\n\n"
+        f"We received a request to reset your Zoey Wallet password. Click "
+        f"the link below to choose a new one:\n\n"
+        f"{reset_url}\n\n"
+        f"This link expires in 30 minutes. If you didn't request a "
+        f"password reset, you can safely ignore this email -- your "
+        f"password will not be changed.\n\n"
+        f"— Zoey Wallet"
+    )
+    msg.add_alternative(
+        f"""\
+<html>
+  <body style="font-family: -apple-system, Helvetica, Arial, sans-serif; color: #111; line-height: 1.5;">
+    <p>Hi {name},</p>
+    <p>We received a request to reset your Zoey Wallet password. Click the button below to choose a new one:</p>
+    <p>
+      <a href="{reset_url}"
+         style="display: inline-block; background: #111; color: #fff; text-decoration: none;
+                padding: 12px 24px; border-radius: 6px; font-weight: 600;">
+        Reset password
+      </a>
+    </p>
+    <p style="color: #666; font-size: 13px;">
+      Or paste this link into your browser: <br>{reset_url}
+    </p>
+    <p style="color: #666; font-size: 13px;">
+      This link expires in 30 minutes. If you didn't request a password
+      reset, you can safely ignore this email -- your password will not
+      be changed.
+    </p>
+    <p>— Zoey Wallet</p>
+  </body>
+</html>
+""",
+        subtype="html",
+    )
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(msg)
+        return True
+    except Exception:
+        logger.exception("send_password_reset_email: failed to send to %s", to_email)
+        return False

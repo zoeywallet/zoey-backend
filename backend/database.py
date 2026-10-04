@@ -156,6 +156,7 @@ def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     _ensure_user_columns()
     _ensure_google_and_verification_columns()
+    _ensure_password_reset_columns()
 
 
 def _ensure_user_columns() -> None:
@@ -276,6 +277,34 @@ def _ensure_google_and_verification_columns() -> None:
                 conn.execute(text("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL"))
         else:
             _sqlite_make_password_hash_nullable()
+
+
+def _ensure_password_reset_columns() -> None:
+    """Adds the "Forgot password?" reset-token columns to an
+    ALREADY-EXISTING `users` table if they aren't there yet -- the same
+    additive, non-destructive ALTER TABLE pattern as
+    `_ensure_google_and_verification_columns` above (which this mirrors
+    for email_verify_token_hash/email_verify_expires_at). Both new columns
+    are simply nullable from the start -- there is no NOT NULL constraint
+    to ever drop, unlike password_hash -- so unlike that function this one
+    needs no dialect-specific ALTER COLUMN handling, only the same
+    dialect-aware TIMESTAMP/DATETIME column type already used just above.
+    Never touches existing rows, never touches any other table."""
+    inspector = inspect(engine)
+    if "users" not in inspector.get_table_names():
+        return
+
+    dialect = engine.dialect.name  # "sqlite" or "postgresql"
+    existing_columns = {col["name"] for col in inspector.get_columns("users")}
+
+    if "password_reset_token_hash" not in existing_columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN password_reset_token_hash VARCHAR(64)"))
+
+    if "password_reset_expires_at" not in existing_columns:
+        with engine.begin() as conn:
+            column_type = "TIMESTAMP WITH TIME ZONE" if dialect == "postgresql" else "DATETIME"
+            conn.execute(text(f"ALTER TABLE users ADD COLUMN password_reset_expires_at {column_type}"))
 
 
 def _sqlite_make_password_hash_nullable() -> None:
@@ -522,6 +551,51 @@ def set_email_verified(db: Session, user: User) -> None:
     user.email_verified = True
     user.email_verify_token_hash = None
     user.email_verify_expires_at = None
+    db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Password reset ("Forgot password?") -- same hash-only, single-use,
+# supersede-on-resend pattern as the email-verification functions just
+# above. Deliberately separate columns/functions rather than reusing the
+# email-verification ones: a reset token and a verification token must
+# never be interchangeable (a verification link must never double as a
+# way to change someone's password, and vice versa).
+# ---------------------------------------------------------------------------
+
+def set_password_reset_token(db: Session, user: User, *, token_hash: str, expires_at: datetime) -> None:
+    """Stores a freshly-generated password-reset token's hash (never the
+    raw token -- see backend/models.py's User.password_reset_token_hash)
+    and its expiry. Overwrites any previous reset token on this account,
+    so requesting a new reset link supersedes an older, still-unused one --
+    only the newest link works, mirroring set_email_verification_token's
+    own "resend" semantics."""
+    user.password_reset_token_hash = token_hash
+    user.password_reset_expires_at = expires_at
+    db.commit()
+
+
+def find_user_by_reset_token_hash(db: Session, token_hash: str) -> Optional[User]:
+    """Returns the user this (already-hashed) reset token currently
+    belongs to, or None if no user has this exact hash on file right now
+    -- the same three-way ambiguity as
+    find_user_by_verification_token_hash (never existed / already used and
+    cleared / superseded by a newer request), and callers should treat a
+    None result the same way: a generic "invalid or expired" message,
+    never distinguishing which case it was."""
+    stmt = select(User).where(User.password_reset_token_hash == token_hash)
+    return db.execute(stmt).scalar_one_or_none()
+
+
+def clear_password_reset_token(db: Session, user: User) -> None:
+    """Invalidates this account's outstanding reset token without changing
+    anything else -- called once a reset has been completed successfully
+    (see POST /api/auth/reset-password in api/index.py), so the same
+    emailed link can never be replayed a second time. Does not touch
+    password_hash itself; the caller is expected to have already set the
+    new password hash via update_user_password() before calling this."""
+    user.password_reset_token_hash = None
+    user.password_reset_expires_at = None
     db.commit()
 
 

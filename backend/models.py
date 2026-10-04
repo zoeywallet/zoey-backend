@@ -140,6 +140,18 @@ class User(Base):
     email_verify_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     email_verify_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Password-reset token -- same SHA-256-hash-only pattern as
+    # email_verify_token_hash/email_verify_expires_at just above (see
+    # backend/email_verification.py's own comment for why SHA-256, not
+    # scrypt, is the right choice for an already-high-entropy random
+    # token). Added for the "Forgot password?" flow; nullable because most
+    # rows never have an outstanding reset request. Cleared back to None
+    # the moment the token is used (see backend/database.py's
+    # clear_password_reset_token) or superseded by a newer request, the
+    # same single-use/supersede semantics as email verification.
+    password_reset_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    password_reset_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=False
