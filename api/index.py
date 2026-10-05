@@ -293,13 +293,15 @@ def healthz() -> dict:
 
 
 @app.get("/api/markets/ticker")
-def markets_ticker() -> dict:
+def markets_ticker(db: Session = Depends(get_db)) -> dict:
     """Public, unauthenticated snapshot for the landing-page floating
-    market-ticker cards (index.html .ticker-section). Server-side
-    cached in backend/services/market_data.py so visitor traffic never
-    translates 1:1 into Twelve Data API calls, and the Twelve Data
-    API key never leaves this backend."""
-    return {"tickers": get_market_snapshot()}
+    market-ticker cards (index.html .ticker-section). Backed by a durable
+    snapshot in Neon/Postgres (backend/services/market_data.py +
+    backend/database.py) so visitor traffic never translates 1:1 into
+    Twelve Data API calls, Vercel cold starts/concurrent instances can't
+    duplicate a refresh, and the Twelve Data API key never leaves this
+    backend."""
+    return {"tickers": get_market_snapshot(db)}
 
 
 @app.post("/api/leads")

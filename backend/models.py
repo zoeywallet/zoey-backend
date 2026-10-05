@@ -377,3 +377,105 @@ class Order(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=False
     )
+
+
+# ---------------------------------------------------------------------------
+# Market ticker durable snapshot/rate-limit state (landing-page floating
+# ticker -- backend/services/market_data.py, GET /api/markets/ticker)
+# ---------------------------------------------------------------------------
+#
+# Vercel's Python functions are stateless and ephemeral (see this file's own
+# module docstring above re: no "sessions" table) -- a plain in-process
+# cache/lock/counter in market_data.py cannot be the authority on "have we
+# already fetched this, and are we within budget," because a cold start or
+# a concurrent instance simply doesn't share that memory. These two tables
+# are that authority instead: ordinary rows in the same Neon/Postgres
+# database every other table here already lives in, read and written
+# through backend/database.py exactly like every other table in this file
+# (nothing outside backend/database.py touches a Session directly -- see
+# this file's own module docstring).
+#
+# MarketTickerCache holds the latest known-good value per (symbol, kind) --
+# "kind" is "quote" (price/change/currency) or "sparkline" (a short price
+# history for the card's mini-chart) -- plus next_eligible_at, which is
+# shared by every symbol in the same refresh group (see market_data.py's
+# TICKER_GROUPS) and is what a refresh attempt checks to decide whether
+# that group is due yet. A symbol's price/sparkline_values/currency/
+# fetched_at are left exactly as they were the last time Twelve Data
+# returned good data for it -- a failed or skipped refresh never clears
+# them, so the ticker always has *something* to show for all 11 symbols,
+# even while only some groups have been refreshed so far.
+#
+# MarketTickerCreditLog is a small, continuously-pruned append-only log of
+# "we just spent N Twelve Data credits," used to compute a true rolling
+# 60-second window (not a fixed/resetting bucket) shared across every
+# Vercel instance -- see claim_market_ticker_refresh() in
+# backend/database.py for how the two tables work together to guarantee no
+# more than a fixed credit budget is ever spent in any rolling 60-second
+# period, regardless of concurrent requests, concurrent instances, or cold
+# starts.
+
+
+class MarketTickerCache(Base):
+    """One row per (symbol, kind) tracked by the landing-page floating
+    ticker. 22 rows total once fully seeded: 11 symbols x 2 kinds
+    ("quote", "sparkline"). See module section comment above."""
+
+    __tablename__ = "market_ticker_cache"
+    __table_args__ = (
+        UniqueConstraint("symbol", "kind", name="uq_market_ticker_cache_symbol_kind"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(String(10), nullable=False)
+    # Which rotating refresh group this symbol belongs to (e.g. "group_1")
+    # -- symbols in the same group share one next_eligible_at and are
+    # refreshed together in one batched Twelve Data call. See
+    # backend/services/market_data.py's TICKER_GROUPS.
+    group_name: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    # ---- kind="quote" fields (both None until the first successful fetch) ----
+    price: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
+    change_percent: Mapped[Decimal | None] = mapped_column(Numeric(9, 4), nullable=True)
+    currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # ---- kind="sparkline" field (None until the first successful fetch) ----
+    # Comma-separated floats, oldest-to-newest (e.g. "123.45,124.01,...") --
+    # a plain delimited string, not a JSON column, to match every other
+    # table in this file (no JSON type is used anywhere else here).
+    sparkline_values: Mapped[str | None] = mapped_column(String(600), nullable=True)
+    # Last time Twelve Data actually returned good data for this row. None
+    # until the first successful fetch; a failed/skipped refresh never
+    # updates this (see claim_market_ticker_refresh / record_market_ticker_*
+    # in backend/database.py) -- it only ever moves forward.
+    fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # When this row's GROUP is next allowed to be refreshed. Every row that
+    # shares a (group_name, kind) is kept in lockstep -- updated together,
+    # by claim_market_ticker_refresh, the moment that group+kind is
+    # claimed. Defaults to "now" so a brand-new row is immediately
+    # eligible, which is what makes first-ever seeding progressive (claimed
+    # one group at a time, rate-limited the same as any later refresh)
+    # instead of a single burst for all 11 symbols -- see that function's
+    # docstring.
+    next_eligible_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, nullable=False
+    )
+
+
+class MarketTickerCreditLog(Base):
+    """Append-only log of Twelve Data credit spends, pruned by
+    claim_market_ticker_refresh (backend/database.py) to only the last
+    rate-limit window's worth of rows. SUM(credits) WHERE claimed_at is
+    within the last N seconds is the durable, cross-instance rolling-window
+    credit count that gates every refresh attempt -- see module section
+    comment above."""
+
+    __tablename__ = "market_ticker_credit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    claimed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, nullable=False, index=True
+    )
+    credits: Mapped[int] = mapped_column(Integer, nullable=False)
+    group_name: Mapped[str] = mapped_column(String(20), nullable=False)
+    kind: Mapped[str] = mapped_column(String(10), nullable=False)
+

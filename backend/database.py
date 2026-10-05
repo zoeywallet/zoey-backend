@@ -40,15 +40,24 @@ from __future__ import annotations
 
 import os
 from collections.abc import Generator
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
-from sqlalchemy import create_engine, func, inspect, select, text
+from sqlalchemy import create_engine, delete, func, inspect, select, text, update
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
-from backend.models import Base, BrokerageAccount, CashBalance, Lead, Position, User
+from backend.models import (
+    Base,
+    BrokerageAccount,
+    CashBalance,
+    Lead,
+    MarketTickerCache,
+    MarketTickerCreditLog,
+    Position,
+    User,
+)
 
 # ---------------------------------------------------------------------------
 # Engine setup
@@ -699,3 +708,209 @@ def list_positions(db: Session, brokerage_account_id: int) -> list[Position]:
     precondition as list_cash_balances above."""
     stmt = select(Position).where(Position.brokerage_account_id == brokerage_account_id)
     return list(db.execute(stmt).scalars().all())
+
+
+# ---------------------------------------------------------------------------
+# Market ticker (landing-page floating ticker -- backend/services/
+# market_data.py, GET /api/markets/ticker). See backend/models.py's
+# MarketTickerCache/MarketTickerCreditLog docstrings for the schema this
+# works against, and claim_market_ticker_refresh's own docstring below for
+# the concurrency design.
+# ---------------------------------------------------------------------------
+
+# The one (symbol, kind) row every claim attempt locks first, to serialize
+# claims across every concurrent request and every Vercel instance through
+# a single database row rather than through Python process memory. Chosen
+# because it is always the first row ensure_market_ticker_rows() creates,
+# so it exists from the very first call onward.
+_ANCHOR_SYMBOL = "AAPL"
+_ANCHOR_KIND = "quote"
+
+
+def ensure_market_ticker_rows(db: Session, tickers: list[dict], now: datetime) -> None:
+    """Idempotently makes sure a MarketTickerCache row exists for every
+    (symbol, kind) in `tickers` (kind in "quote"/"sparkline"), inserting
+    only whichever ones are missing. A newly-inserted row's
+    next_eligible_at defaults to `now` (see that column's docstring), so a
+    brand-new/empty table seeds itself progressively through the normal
+    claim_market_ticker_refresh rate limit -- never a burst requesting all
+    11 symbols' worth of credits at once. Already-existing rows (and their
+    cached values / schedule) are left untouched.
+
+    `tickers` is a list of {"symbol": ..., "group": ...} dicts (see
+    backend/services/market_data.py's TICKERS)."""
+    existing = {
+        (row.symbol, row.kind)
+        for row in db.execute(select(MarketTickerCache.symbol, MarketTickerCache.kind)).all()
+    }
+    to_add = []
+    for t in tickers:
+        for kind in ("quote", "sparkline"):
+            if (t["symbol"], kind) not in existing:
+                to_add.append(
+                    MarketTickerCache(
+                        symbol=t["symbol"],
+                        kind=kind,
+                        group_name=t["group"],
+                        next_eligible_at=now,
+                    )
+                )
+    if to_add:
+        db.add_all(to_add)
+        db.commit()
+
+
+def claim_market_ticker_refresh(
+    db: Session,
+    *,
+    now: datetime,
+    max_credits_per_window: int,
+    window_seconds: int,
+    quote_interval_seconds: int,
+    sparkline_interval_seconds: int,
+) -> Optional[dict]:
+    """Atomically claims AT MOST ONE (group_name, kind) to refresh from
+    Twelve Data, honoring a durable rolling-window credit budget shared
+    across every Vercel instance. Returns
+    {"group_name": ..., "kind": ..., "symbols": [...]} on a successful
+    claim -- the caller should then call Twelve Data for exactly those
+    symbols and record the result with record_market_ticker_quote /
+    record_market_ticker_sparkline below -- or None if nothing is
+    currently due, or everything that's due would exceed the credit
+    budget right now. Either way, on None the caller just serves the
+    existing snapshot; this function never calls Twelve Data itself.
+
+    Concurrency: every attempt first locks the one fixed, always-present
+    anchor row (_ANCHOR_SYMBOL/_ANCHOR_KIND) with SELECT ... FOR UPDATE.
+    Postgres (and, via SQLite's whole-database write lock, SQLite too)
+    then serializes every claim attempt -- from every concurrent request,
+    on every Vercel instance, cold-started or warm -- through that one
+    row, not through anything in Python process memory. The rolling
+    6-credit check below is therefore computed and acted on as a single
+    atomic unit: two concurrent attempts can never both believe they have
+    budget for the same credits.
+
+    The rolling window itself is computed from MarketTickerCreditLog, not
+    a fixed/resetting bucket -- SUM(credits) for every claim logged in the
+    last `window_seconds`, so a claim is only ever allowed if adding it
+    would keep that true rolling sum at or under `max_credits_per_window`.
+    Due groups are tried most-overdue-first; if the most-overdue one would
+    exceed the budget, the next-most-overdue (smaller) one is tried
+    instead, so a bit of budget doesn't go unused just because the largest
+    due group doesn't fit.
+    """
+    anchor = db.execute(
+        select(MarketTickerCache)
+        .where(MarketTickerCache.symbol == _ANCHOR_SYMBOL, MarketTickerCache.kind == _ANCHOR_KIND)
+        .with_for_update()
+    ).scalar_one_or_none()
+    if anchor is None:
+        # Not seeded yet -- ensure_market_ticker_rows() handles seeding and
+        # is always called before this function (see
+        # backend/services/market_data.py's get_market_snapshot).
+        db.rollback()
+        return None
+
+    window_start = now - timedelta(seconds=window_seconds)
+    used = db.execute(
+        select(func.coalesce(func.sum(MarketTickerCreditLog.credits), 0)).where(
+            MarketTickerCreditLog.claimed_at > window_start
+        )
+    ).scalar_one()
+
+    due_groups = db.execute(
+        select(
+            MarketTickerCache.group_name,
+            MarketTickerCache.kind,
+            func.count(MarketTickerCache.id).label("n"),
+            func.min(MarketTickerCache.next_eligible_at).label("due_at"),
+        )
+        .where(MarketTickerCache.next_eligible_at <= now)
+        .group_by(MarketTickerCache.group_name, MarketTickerCache.kind)
+        .order_by("due_at", MarketTickerCache.group_name, MarketTickerCache.kind)
+    ).all()
+
+    for group_name, kind, n, _due_at in due_groups:
+        credits = int(n)  # Twelve Data: 1 credit per symbol in the request, batched or not
+        if used + credits > max_credits_per_window:
+            continue  # would blow the rolling budget right now -- try the next-most-overdue group instead
+
+        interval = quote_interval_seconds if kind == "quote" else sparkline_interval_seconds
+        db.execute(
+            update(MarketTickerCache)
+            .where(MarketTickerCache.group_name == group_name, MarketTickerCache.kind == kind)
+            .values(next_eligible_at=now + timedelta(seconds=interval))
+            .execution_options(synchronize_session=False)
+        )
+        db.add(MarketTickerCreditLog(claimed_at=now, credits=credits, group_name=group_name, kind=kind))
+        db.flush()
+        # Opportunistic cleanup -- keeps this append-only log tiny; nothing
+        # outside the current rolling window is ever needed again.
+        # synchronize_session=False: SQLite doesn't round-trip timezone
+        # info on DateTime(timezone=True) columns, so a naive claimed_at
+        # read back from a prior flush can't be compared in Python against
+        # the timezone-aware `window_start` below -- a plain SQL DELETE
+        # (no in-session Python-side comparison) sidesteps that entirely,
+        # and nothing in this function needs the ORM identity map updated
+        # for rows this old anyway.
+        db.execute(
+            delete(MarketTickerCreditLog)
+            .where(MarketTickerCreditLog.claimed_at <= window_start)
+            .execution_options(synchronize_session=False)
+        )
+
+        symbols = [
+            row.symbol
+            for row in db.execute(
+                select(MarketTickerCache.symbol).where(
+                    MarketTickerCache.group_name == group_name, MarketTickerCache.kind == kind
+                )
+            ).all()
+        ]
+        db.commit()
+        return {"group_name": group_name, "kind": kind, "symbols": symbols}
+
+    db.rollback()  # release the FOR UPDATE lock; nothing claimed this time
+    return None
+
+
+def record_market_ticker_quote(
+    db: Session,
+    *,
+    symbol: str,
+    price: float,
+    change_percent: float,
+    currency: str,
+    now: datetime,
+) -> None:
+    """Writes a successful Twelve Data /quote result for one symbol. Only
+    called after a successful upstream fetch -- a failure never calls
+    this, so the row's previous (still-valid) values are left untouched."""
+    db.execute(
+        update(MarketTickerCache)
+        .where(MarketTickerCache.symbol == symbol, MarketTickerCache.kind == "quote")
+        .values(price=price, change_percent=change_percent, currency=currency, fetched_at=now)
+        .execution_options(synchronize_session=False)
+    )
+    db.commit()
+
+
+def record_market_ticker_sparkline(db: Session, *, symbol: str, values: list[float], now: datetime) -> None:
+    """Writes a successful Twelve Data /time_series result for one symbol.
+    Only called after a successful upstream fetch, same as
+    record_market_ticker_quote above."""
+    db.execute(
+        update(MarketTickerCache)
+        .where(MarketTickerCache.symbol == symbol, MarketTickerCache.kind == "sparkline")
+        .values(sparkline_values=",".join(repr(v) for v in values), fetched_at=now)
+        .execution_options(synchronize_session=False)
+    )
+    db.commit()
+
+
+def get_market_ticker_cache_rows(db: Session) -> list[MarketTickerCache]:
+    """Every current MarketTickerCache row (both kinds, all symbols) --
+    the full durable snapshot, read fresh on every /api/markets/ticker
+    request. backend/services/market_data.py turns this into the
+    frontend-facing shape."""
+    return list(db.execute(select(MarketTickerCache)).scalars().all())

@@ -1,57 +1,83 @@
 """
-Server-side Twelve Data client + cache for the floating market-ticker
-cards on the landing page (index.html's .ticker-section).
+Server-side Twelve Data client for the floating market-ticker cards on the
+landing page (index.html's .ticker-section), backed by a durable snapshot
+in Neon/Postgres rather than process memory.
 
-This fills in the placeholder this file used to be (see git history --
-it reserved this exact spot for "a future market-data provider
-integration"). Note the scope: this only serves the landing-page ticker
-strip. backend/dashboard_data.py's holdings still return fixed mock
-numbers -- wiring real prices into the dashboard is a separate,
-not-yet-built piece of work (see backend/models.py's Position docstring).
+The frontend only ever calls our own GET /api/markets/ticker (api/index.py),
+which calls get_market_snapshot() below; Twelve Data is never contacted
+from client-side JavaScript, and TWELVE_DATA_API_KEY is read ONLY here.
 
-Twelve Data's REST API (https://api.twelvedata.com) is read with an API
-key that must never reach the browser -- this module is the ONLY thing
-that reads TWELVE_DATA_API_KEY from the environment (a local .env file
-in dev -- see .env.example -- or a real Vercel environment variable in
-production). The frontend only ever calls our own GET /api/markets/ticker
-(api/index.py), which calls this module; Twelve Data is never contacted
-from client-side JavaScript.
+WHY NOT AN IN-MEMORY CACHE (the previous version of this file used one):
+Vercel's Python functions are stateless and ephemeral -- every cold start
+begins with empty process memory, and Vercel can run multiple concurrent
+instances of the same function that share nothing. A module-level dict/
+lock/timestamp cannot be the authority on "have we already fetched this
+symbol recently" or "are we within our credit budget," because a different
+instance -- or the same instance after a cold start -- has no way to know
+what any other instance has done. The durable state lives in Postgres
+instead (backend/models.py's MarketTickerCache / MarketTickerCreditLog,
+read and written exclusively through the named functions in
+backend/database.py -- this module never touches a Session directly,
+matching that file's own convention).
 
-Caching: Twelve Data's free plan caps out at 8 API credits/minute and
-800/day, and each symbol in a request costs 1 credit. This module tracks
-11 symbols, so one quote refresh + one sparkline (time_series) refresh
-together cost 22 credits. A single in-process cache, shared by every
-visitor hitting this server instance, means visitor traffic no longer
-determines how often Twelve Data gets called -- only these TTLs do:
+CREDIT BUDGET: Twelve Data's Basic 8 plan meters 1 credit PER SYMBOL in a
+request, even when symbols are batched into one HTTP call -- batching
+reduces HTTP calls, not credits. All 11 symbols in one call (11 credits)
+already exceeds the 8-credits/minute cap by itself. The fix here is to
+never request more than a few symbols at a time, spread across a rotating
+schedule, gated by a durable rolling-60-second credit count
+(backend/database.py's claim_market_ticker_refresh) that is shared across
+every Vercel instance and enforced atomically -- see that function's own
+docstring for exactly how.
 
-    11 symbols / 1800s quote TTL      -> ~528 credits/day
-    11 symbols / 5400s sparkline TTL  -> ~176 credits/day
-    total                             -> ~704 credits/day (under the 800 cap,
-                                          leaving headroom for local dev reloads)
+REFRESH SCHEDULE: the 11 symbols are split into 4 groups (TICKER_GROUPS
+below). Price (/quote) and sparkline (/time_series) are refreshed on
+independent schedules -- sparkline needs to be fresh far less often than
+price -- one group at a time:
 
-That means on the free plan prices refresh roughly every 30 minutes and
-the sparkline roughly every 90 minutes -- not continuously live. If a
-paid Twelve Data plan is adopted later, lowering QUOTE_TTL_SECONDS and
-SPARKLINE_TTL_SECONDS below is the only change needed for fresher data.
+    price:     one group (<=3 symbols) every QUOTE_REFRESH_SECONDS
+               -> full rotation (all 11 symbols) every 30 min
+               -> 11 credits / 30 min  = ~22 credits/hour  = ~528 credits/day
+    sparkline: one group (<=3 symbols) every SPARKLINE_REFRESH_SECONDS
+               -> full rotation (all 11 symbols) every 150 min (2.5h)
+               -> 11 credits / 150 min = ~4.4 credits/hour = ~105.6 credits/day
+    total                                                 ~ 633.6 credits/day
+                                                             (under the 800/day
+                                                              cap, ~166 credits
+                                                              of headroom)
 
-A lock makes sure that if many requests arrive at once right as a cache
-entry goes stale, only one of them actually calls Twelve Data; the rest
-reuse its result instead of each firing their own upstream request.
+MAX_CREDITS_PER_WINDOW (6, over a rolling 60 seconds, enforced in
+claim_market_ticker_refresh) is the hard ceiling -- never schedule more
+than this many credits in any rolling 60-second period, including during
+first-ever seeding of an empty table (ensure_market_ticker_rows seeds every
+row as immediately-eligible, so seeding goes through the exact same
+rate-limited claim path as any later refresh -- never the old
+11-quote + 11-time_series = 22-credit burst).
 
-On any failure (network error, timeout, missing/invalid API key, rate
-limit, Twelve Data error payload, unrecognized symbol) this NEVER
-fabricates a price. It falls back to the last good cached value if one
-exists, or marks that symbol "unavailable" if it doesn't -- the frontend
-renders that state, this module just never invents numbers.
+FAILURE HANDLING: on any failure (network error, timeout, 429, 5xx,
+missing/invalid API key, unrecognized symbol) this NEVER fabricates a
+price and NEVER erases a symbol's last good cached value -- a failed claim
+simply isn't recorded (see get_market_snapshot below), and
+next_eligible_at was already advanced as part of the claim itself, so a
+failure does not trigger an immediate retry that could spend further
+credits -- the next attempt waits for the normal schedule.
 """
 from __future__ import annotations
 
 import logging
 import os
-import threading
-import time
+from datetime import datetime, timezone
 
 import requests
+from sqlalchemy.orm import Session
+
+from backend.database import (
+    claim_market_ticker_refresh,
+    ensure_market_ticker_rows,
+    get_market_ticker_cache_rows,
+    record_market_ticker_quote,
+    record_market_ticker_sparkline,
+)
 
 logger = logging.getLogger("zoey.market_data")
 
@@ -61,43 +87,48 @@ TWELVE_DATA_BASE = "https://api.twelvedata.com"
 # One entry per floating ticker card. `td_symbol` is what gets sent to
 # Twelve Data; `symbol` is what the card displays. NASDAQ's `td_symbol`
 # (IXIC, the Nasdaq Composite) is the standard ticker used by most market
-# data providers for this index -- if it is not what this Twelve Data
-# plan recognizes, that one card simply renders as "unavailable" (each
-# symbol is fetched/validated independently; one bad symbol can't take
-# the rest down or produce a fake number for itself).
+# data providers for this index -- if it is not what this Twelve Data plan
+# recognizes, that one card simply renders as "unavailable" (each symbol is
+# fetched/validated independently; one bad symbol can't take the rest down
+# or produce a fake number for itself). `group` assigns each symbol to one
+# of the 4 rotating refresh groups below -- see module docstring.
 TICKERS = [
-    {"symbol": "AAPL", "td_symbol": "AAPL", "logo": "aapl.jpg"},
-    {"symbol": "NVDA", "td_symbol": "NVDA", "logo": "nvda.jpg"},
-    {"symbol": "MSFT", "td_symbol": "MSFT", "logo": "msft.jpg"},
-    {"symbol": "TSLA", "td_symbol": "TSLA", "logo": "tsla.jpg"},
-    {"symbol": "AMZN", "td_symbol": "AMZN", "logo": "amzn.jpg"},
-    {"symbol": "GOOGL", "td_symbol": "GOOGL", "logo": "googl.jpg"},
-    {"symbol": "META", "td_symbol": "META", "logo": "meta.jpg"},
-    {"symbol": "AMD", "td_symbol": "AMD", "logo": "amd.jpg"},
-    {"symbol": "PLTR", "td_symbol": "PLTR", "logo": "pltr.jpg"},
-    {"symbol": "NFLX", "td_symbol": "NFLX", "logo": "nflx.jpg"},
-    {"symbol": "NASDAQ", "td_symbol": "IXIC", "logo": "nasdaq.jpg", "index": True},
+    {"symbol": "AAPL", "td_symbol": "AAPL", "logo": "aapl.jpg", "group": "group_1"},
+    {"symbol": "NVDA", "td_symbol": "NVDA", "logo": "nvda.jpg", "group": "group_1"},
+    {"symbol": "MSFT", "td_symbol": "MSFT", "logo": "msft.jpg", "group": "group_1"},
+    {"symbol": "TSLA", "td_symbol": "TSLA", "logo": "tsla.jpg", "group": "group_2"},
+    {"symbol": "AMZN", "td_symbol": "AMZN", "logo": "amzn.jpg", "group": "group_2"},
+    {"symbol": "GOOGL", "td_symbol": "GOOGL", "logo": "googl.jpg", "group": "group_2"},
+    {"symbol": "META", "td_symbol": "META", "logo": "meta.jpg", "group": "group_3"},
+    {"symbol": "AMD", "td_symbol": "AMD", "logo": "amd.jpg", "group": "group_3"},
+    {"symbol": "PLTR", "td_symbol": "PLTR", "logo": "pltr.jpg", "group": "group_3"},
+    {"symbol": "NFLX", "td_symbol": "NFLX", "logo": "nflx.jpg", "group": "group_4"},
+    {"symbol": "NASDAQ", "td_symbol": "IXIC", "logo": "nasdaq.jpg", "group": "group_4", "index": True},
 ]
+_BY_SYMBOL = {t["symbol"]: t for t in TICKERS}
 
-_SYMBOLS_PARAM = ",".join(t["td_symbol"] for t in TICKERS)
-
-QUOTE_TTL_SECONDS = 1800      # ~30 min -- see module docstring for the credit budget
-SPARKLINE_TTL_SECONDS = 5400  # ~90 min
+# ---- Rate-limit / schedule configuration (see module docstring) ----
+MAX_CREDITS_PER_WINDOW = 6   # hard ceiling, enforced atomically in claim_market_ticker_refresh
+RATE_WINDOW_SECONDS = 60     # a true rolling window, not a fixed/resetting bucket
+QUOTE_REFRESH_SECONDS = 450       # 7.5 min/group -> full 11-symbol rotation every 30 min
+SPARKLINE_REFRESH_SECONDS = 2250  # 37.5 min/group -> full 11-symbol rotation every 150 min
 HTTP_TIMEOUT_SECONDS = 6
 SPARKLINE_INTERVAL = "15min"
 SPARKLINE_OUTPUTSIZE = 20
 
-_cache_lock = threading.Lock()
-_quote_cache: dict = {"data": None, "fetched_at": 0.0}
-_sparkline_cache: dict = {"data": None, "fetched_at": 0.0}
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _twelve_data_get(path: str, params: dict) -> dict | None:
+    """GETs one Twelve Data endpoint. Never logs the API key, the request
+    URL/query string, or any request/response object that could contain
+    them -- only the endpoint path and a sanitized status/error description
+    (see module docstring's "FAILURE HANDLING" and the project's security
+    requirements for this file)."""
     if not TWELVE_DATA_API_KEY:
-        logger.warning(
-            "TWELVE_DATA_API_KEY is not set; the market ticker will show "
-            "as unavailable until it is configured."
-        )
+        logger.warning("Twelve Data request skipped: endpoint=%s reason=no_api_key_configured", path)
         return None
     try:
         resp = requests.get(
@@ -107,28 +138,49 @@ def _twelve_data_get(path: str, params: dict) -> dict | None:
         )
         resp.raise_for_status()
         payload = resp.json()
-    except Exception as exc:  # network error, timeout, bad JSON, HTTP error status
-        logger.warning("Twelve Data request to %s failed: %s", path, exc)
+    except requests.exceptions.HTTPError as exc:
+        # str(exc) / exc.response.url would include the full request URL,
+        # apikey included -- log only the numeric status code instead.
+        status = exc.response.status_code if exc.response is not None else "unknown"
+        logger.warning("Twelve Data request failed: endpoint=%s status=%s", path, status)
+        return None
+    except requests.exceptions.Timeout:
+        logger.warning("Twelve Data request failed: endpoint=%s error=timeout", path)
+        return None
+    except requests.exceptions.RequestException as exc:
+        # Network error, connection error, etc. -- log only the exception's
+        # class name, never str(exc) (which can embed the request URL).
+        logger.warning("Twelve Data request failed: endpoint=%s error=%s", path, type(exc).__name__)
+        return None
+    except ValueError:
+        # resp.json() couldn't parse the response body.
+        logger.warning("Twelve Data request failed: endpoint=%s error=invalid_response_body", path)
         return None
     if isinstance(payload, dict) and payload.get("status") == "error":
-        logger.warning("Twelve Data returned an error for %s: %s", path, payload.get("message"))
+        logger.warning("Twelve Data request failed: endpoint=%s error=api_error", path)
         return None
     return payload
 
 
-def _fetch_quotes() -> dict[str, dict]:
-    payload = _twelve_data_get("quote", {"symbol": _SYMBOLS_PARAM})
+def _fetch_quotes(symbols: list[str]) -> dict[str, dict]:
+    """Fetches /quote for exactly `symbols` (a claimed group, <=3 symbols
+    today -- never all 11 at once). Returns {symbol: {price, change_percent,
+    currency}}, only for symbols Twelve Data actually returned good data
+    for."""
+    td_symbols = [_BY_SYMBOL[s]["td_symbol"] for s in symbols]
+    payload = _twelve_data_get("quote", {"symbol": ",".join(td_symbols)})
     if payload is None:
         return {}
     if "symbol" in payload:
         payload = {payload["symbol"]: payload}
     out: dict[str, dict] = {}
-    for t in TICKERS:
-        row = payload.get(t["td_symbol"])
+    for s in symbols:
+        td_symbol = _BY_SYMBOL[s]["td_symbol"]
+        row = payload.get(td_symbol)
         if not isinstance(row, dict) or row.get("status") == "error" or row.get("close") is None:
             continue
         try:
-            out[t["symbol"]] = {
+            out[s] = {
                 "price": float(row["close"]),
                 "change_percent": float(row.get("percent_change", 0.0)),
                 "currency": row.get("currency") or "USD",
@@ -138,22 +190,31 @@ def _fetch_quotes() -> dict[str, dict]:
     return out
 
 
-def _fetch_sparklines() -> dict[str, list[float]]:
+def _fetch_sparklines(symbols: list[str]) -> dict[str, list[float]]:
+    """Fetches /time_series for exactly `symbols` (a claimed group).
+    Returns {symbol: [closes, oldest-to-newest]}, only for symbols Twelve
+    Data actually returned good data for."""
+    td_symbols = [_BY_SYMBOL[s]["td_symbol"] for s in symbols]
     payload = _twelve_data_get(
         "time_series",
         {
-            "symbol": _SYMBOLS_PARAM,
+            "symbol": ",".join(td_symbols),
             "interval": SPARKLINE_INTERVAL,
             "outputsize": SPARKLINE_OUTPUTSIZE,
         },
     )
     if payload is None:
         return {}
-    if "values" in payload:
-        payload = {TICKERS[0]["td_symbol"]: payload}
+    if "values" in payload and len(symbols) == 1:
+        # Twelve Data returns the single-symbol shape (no outer symbol key)
+        # only when exactly one symbol was requested -- safe to attribute
+        # directly to that one symbol (every ticker group has >=2 symbols
+        # today, so this branch is defensive, not the normal path).
+        payload = {td_symbols[0]: payload}
     out: dict[str, list[float]] = {}
-    for t in TICKERS:
-        row = payload.get(t["td_symbol"])
+    for s in symbols:
+        td_symbol = _BY_SYMBOL[s]["td_symbol"]
+        row = payload.get(td_symbol)
         values = row.get("values") if isinstance(row, dict) else None
         if not values:
             continue
@@ -162,54 +223,91 @@ def _fetch_sparklines() -> dict[str, list[float]]:
         except (TypeError, ValueError):
             continue
         if closes:
-            out[t["symbol"]] = closes
+            out[s] = closes
     return out
 
 
-def _refresh_if_stale(cache: dict, ttl: float, fetch_fn) -> None:
-    now = time.time()
-    if cache["data"] is not None and (now - cache["fetched_at"]) < ttl:
-        return
-    with _cache_lock:
-        now = time.time()
-        if cache["data"] is not None and (now - cache["fetched_at"]) < ttl:
-            return
-        fresh = fetch_fn()
-        if fresh:
-            cache["data"] = fresh
-            cache["fetched_at"] = now
-        elif cache["data"] is None:
-            cache["data"] = {}
-            cache["fetched_at"] = now
+def _perform_claim(db: Session, claim: dict, now: datetime) -> None:
+    """Calls Twelve Data for exactly the symbols in `claim` and records
+    whatever succeeded. Never raises -- a failed fetch simply records
+    nothing, leaving each symbol's previous good value (if any) in place;
+    see module docstring's FAILURE HANDLING."""
+    symbols = claim["symbols"]
+    if claim["kind"] == "quote":
+        quotes = _fetch_quotes(symbols)
+        for symbol, q in quotes.items():
+            record_market_ticker_quote(
+                db,
+                symbol=symbol,
+                price=q["price"],
+                change_percent=q["change_percent"],
+                currency=q["currency"],
+                now=now,
+            )
+    else:
+        sparklines = _fetch_sparklines(symbols)
+        for symbol, values in sparklines.items():
+            record_market_ticker_sparkline(db, symbol=symbol, values=values, now=now)
 
 
-def get_market_snapshot() -> list[dict]:
-    """Returns one entry per TICKERS item. Never raises, never fabricates
-    a price -- a symbol with no good cached data comes back with
-    status="unavailable" and no price/change/sparkline fields."""
-    _refresh_if_stale(_quote_cache, QUOTE_TTL_SECONDS, _fetch_quotes)
-    _refresh_if_stale(_sparkline_cache, SPARKLINE_TTL_SECONDS, _fetch_sparklines)
-
-    quotes = _quote_cache["data"] or {}
-    sparklines = _sparkline_cache["data"] or {}
+def _build_snapshot(rows) -> list[dict]:
+    """Turns the durable MarketTickerCache rows into the exact response
+    shape the frontend already expects (see index.html's tickerCardHTML) --
+    unchanged from before this change, so the frontend needs no update."""
+    by_symbol: dict[str, dict] = {}
+    for row in rows:
+        entry = by_symbol.setdefault(row.symbol, {})
+        if row.kind == "quote" and row.price is not None:
+            entry["price"] = float(row.price)
+            entry["change_percent"] = float(row.change_percent) if row.change_percent is not None else 0.0
+            entry["currency"] = row.currency or "USD"
+        elif row.kind == "sparkline" and row.sparkline_values:
+            try:
+                entry["sparkline"] = [float(v) for v in row.sparkline_values.split(",") if v]
+            except ValueError:
+                entry["sparkline"] = []
 
     out = []
     for t in TICKERS:
-        q = quotes.get(t["symbol"])
-        entry = {
-            "symbol": t["symbol"],
-            "logo": t["logo"],
-            "index": bool(t.get("index")),
-        }
-        if q:
-            entry.update(
+        cached = by_symbol.get(t["symbol"], {})
+        item = {"symbol": t["symbol"], "logo": t["logo"], "index": bool(t.get("index"))}
+        if "price" in cached:
+            item.update(
                 status="ok",
-                price=q["price"],
-                currency=q["currency"],
-                change_percent=q["change_percent"],
-                sparkline=sparklines.get(t["symbol"]) or [],
+                price=cached["price"],
+                currency=cached["currency"],
+                change_percent=cached["change_percent"],
+                sparkline=cached.get("sparkline") or [],
             )
         else:
-            entry["status"] = "unavailable"
-        out.append(entry)
+            item["status"] = "unavailable"
+        out.append(item)
     return out
+
+
+def get_market_snapshot(db: Session) -> list[dict]:
+    """Returns one entry per TICKERS item. Never raises, never fabricates a
+    price -- a symbol with no good cached data comes back with
+    status="unavailable" and no price/change/sparkline fields.
+
+    On every call: makes sure every (symbol, kind) row exists (seeding, if
+    this is the very first call ever -- progressively rate-limited, see
+    module docstring), attempts at most ONE durably rate-limited refresh
+    claim, performs it if one was won, then reads and returns the full
+    current snapshot regardless of whether a claim happened. All Twelve
+    Data traffic is driven by this function; nothing else in the app calls
+    Twelve Data."""
+    now = _utcnow()
+    ensure_market_ticker_rows(db, TICKERS, now)
+    claim = claim_market_ticker_refresh(
+        db,
+        now=now,
+        max_credits_per_window=MAX_CREDITS_PER_WINDOW,
+        window_seconds=RATE_WINDOW_SECONDS,
+        quote_interval_seconds=QUOTE_REFRESH_SECONDS,
+        sparkline_interval_seconds=SPARKLINE_REFRESH_SECONDS,
+    )
+    if claim is not None:
+        _perform_claim(db, claim, now)
+    rows = get_market_ticker_cache_rows(db)
+    return _build_snapshot(rows)
