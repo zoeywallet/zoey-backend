@@ -110,47 +110,113 @@
   .hero{ padding:186px 0 90px; overflow:visible; position:relative; }
 
   /* ============ FLOATING MARKET TICKER ============ */
+  /* Wide horizontal financial tiles, modeled on the information
+     architecture of a professional ticker-tape (logo + identity on the
+     left, a large intraday sparkline on the right) -- fully custom Zoey
+     styling, no third-party branding or widgets. Kept visually restrained:
+     minimal radius, minimal shadow, no heavy glassmorphism blur, tight
+     gaps so the strip reads as continuous. */
   .ticker-section{ position:relative; margin-top:-42px; margin-bottom:28px; z-index:3; }
   .ticker-viewport{
-    overflow:hidden; padding:10px 0;
+    overflow:hidden; padding:16px 0;
     -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 64px, #000 calc(100% - 64px), transparent 100%);
     mask-image: linear-gradient(90deg, transparent 0, #000 64px, #000 calc(100% - 64px), transparent 100%);
   }
-  .ticker-track{ display:flex; gap:16px; width:max-content; animation: marquee-scroll 52s linear infinite; will-change:transform; }
+  .ticker-track{ display:flex; gap:9px; width:max-content; animation: marquee-scroll 52s linear infinite; will-change:transform; }
   @keyframes marquee-scroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
   @media (prefers-reduced-motion: reduce){ .ticker-track{ animation:none; } }
 
   .ticker-card{
-    flex:0 0 auto; width:175px; height:86px; padding:11px 18px 10px; border-radius:20px;
-    display:flex; flex-direction:column; overflow:hidden;
-    background: rgba(11,18,32,0.9); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    border:1px solid rgba(247,246,243,0.08);
-    box-shadow: 0 10px 24px -10px rgba(5,7,12,0.4);
+    flex:0 0 auto; width:304px; height:116px; padding:14px 16px; border-radius:8px;
+    display:flex; align-items:center; gap:14px; overflow:hidden; position:relative;
+    /* Near-black navy is the DOMINANT surface (#0B1220 -> #0E1A2B).
+       #132238 / #1B2E4A are secondary depth tones used sparingly, as a
+       soft top-left reflection only -- not blended through the whole
+       fill, so the card reads as dark institutional glass rather than a
+       blue card. */
+    background:
+      radial-gradient(130% 150% at 12% -15%, rgba(27,46,74,0.30), transparent 58%),
+      linear-gradient(165deg, #0E1A2B 0%, #0B1220 100%);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border:1px solid rgba(27,46,74,0.65);
+    box-shadow: inset 0 1px 0 rgba(27,46,74,0.45), 0 2px 10px -6px rgba(2,5,10,0.6);
+    transition: transform .25s ease, filter .25s ease, box-shadow .25s ease, background .25s ease;
   }
-  .ticker-card.index-card{ background: rgba(51,85,255,0.94); border-color: rgba(247,246,243,0.14); }
-  .tc-top{ display:flex; align-items:center; gap:7px; margin-bottom:3px; }
-  .tc-dot{ width:7px; height:7px; border-radius:2.5px; flex:0 0 auto; }
-  .tc-sym{ font-family: var(--font-mono); font-weight:700; font-size:15px; color:#F7F6F3; letter-spacing:0.2px; }
-  .tc-tag{ margin-left:auto; font-family:var(--font-mono); font-size:8.5px; letter-spacing:0.8px; color:rgba(247,246,243,0.4); border:1px solid rgba(247,246,243,0.18); border-radius:4px; padding:1px 5px; }
-  .tc-name{ font-size:11px; color: rgba(247,246,243,0.5); margin-bottom:auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .ticker-card.index-card .tc-name{ color: rgba(247,246,243,0.72); }
-  .tc-spark{ align-self:flex-end; width:78px; height:17px; }
+  /* Extremely subtle reflected-light sheen (secondary tone, not white) --
+     a positioned (out-of-flow) layer, so .tc-left/.tc-right below are
+     given their own stacking order to paint above it, not under it. */
+  .ticker-card::before{
+    content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background: linear-gradient(180deg, rgba(27,46,74,0.22), rgba(27,46,74,0) 45%);
+  }
+  .ticker-card:hover{
+    transform: translateY(-2px);
+    filter: brightness(1.05);
+    background:
+      radial-gradient(130% 150% at 12% -15%, rgba(27,46,74,0.48), transparent 58%),
+      linear-gradient(165deg, #122037 0%, #0D1726 100%);
+    box-shadow: inset 0 1px 0 rgba(27,46,74,0.6), 0 6px 16px -8px rgba(2,5,10,0.65);
+  }
+  .ticker-card.index-card{
+    background:
+      linear-gradient(165deg, rgba(24,46,92,0.92) 0%, rgba(16,32,66,0.93) 48%, rgba(10,22,46,0.95) 100%);
+    border-color: rgba(123,178,255,0.26);
+  }
+  .tc-left{ position:relative; z-index:1; flex:1 1 54%; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:5px; }
+  .tc-head{ display:flex; align-items:center; gap:11px; }
+  /* Logo badge: restrained white/off-white container -- the company mark,
+     not the container, is meant to be the dominant visual element. The
+     image source is a whitespace-trimmed derivative (see
+     assets/logos/trim/, built by _trim_logos_tmp.py from the supplied
+     assets/logos/*.jpg without stretching, cropping into, recoloring or
+     otherwise altering the mark itself -- only the dead white margin the
+     source canvases shipped with is removed), so a slim 2px padding here
+     is enough for the mark to fill most of the box. */
+  .tc-logo{
+    width:50px; height:50px; border-radius:8px; flex:0 0 auto; overflow:hidden; padding:2px;
+    background:#F7F6F3; display:flex; align-items:center; justify-content:center;
+  }
+  .tc-logo img{ width:100%; height:100%; object-fit:contain; display:block; }
+  .tc-idblock{ display:flex; flex-direction:column; min-width:0; }
+  .tc-sym{ font-family: var(--font-mono); font-weight:800; font-size:16.5px; color:#FDFEFF; letter-spacing:0.3px; line-height:1.2; font-variant-numeric: tabular-nums; }
+  .tc-name{ font-family: var(--font-body); font-size:10px; letter-spacing:0.2px; color:rgba(205,221,242,0.8); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px; }
+  .tc-price{ font-family: var(--font-mono); font-weight:800; font-size:19.5px; color:#FFFFFF; line-height:1.1; font-variant-numeric: tabular-nums; }
+  .tc-price .ccy{ font-size:9.5px; color:rgba(214,226,245,0.55); margin-left:3px; font-weight:500; }
+  .tc-change{ font-family: var(--font-mono); font-weight:700; font-size:13px; letter-spacing:0.1px; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; font-variant-numeric: tabular-nums; }
+  .tc-change .arrow{ font-size:10.5px; line-height:1; }
+  .tc-change.up{ color:#35E6C4; }
+  .tc-change.down{ color:#FF6273; }
+  .tc-right{ position:relative; z-index:1; flex:1 1 46%; min-width:0; height:100%; display:flex; align-items:center; }
+  .tc-spark{ width:100%; height:66px; display:block; }
+  .tc-unavailable{ font-family: var(--font-body); font-size:10.5px; color:rgba(247,246,243,0.38); }
+  .tc-skel{ height:14px; width:62%; border-radius:4px; background:rgba(247,246,243,0.08); animation: tc-pulse 1.4s ease-in-out infinite; }
+  @keyframes tc-pulse{ 0%,100%{ opacity:0.5; } 50%{ opacity:1; } }
 
-  .ticker-cta-wrap{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); display:flex; justify-content:center; z-index:5; pointer-events:none; }
+  /* Fully contained INSIDE the card strip -- vertically centered within
+     the 116px card height (56px button: ~30px of clear card/background
+     space above AND below, touching neither the top nor bottom card
+     edge), horizontally centered, stationary while the securities scroll
+     behind it. Positioned absolutely relative to .ticker-section (which
+     establishes its own positioning context), NOT the hero -- this
+     cannot reach outside .ticker-section, so hero layout is untouched. */
+  .ticker-cta-wrap{ position:absolute; left:0; right:0; top:46px; display:flex; justify-content:center; z-index:6; pointer-events:none; }
   .ticker-cta{
-    pointer-events:auto; font-family: var(--font-body); font-weight:600; font-size:14px; color:#fff;
+    pointer-events:auto;
+    font-family: var(--font-body); font-weight:600; font-size:14px; color:#fff;
     background:
       radial-gradient(130% 190% at 28% -25%, rgba(255,255,255,0.30), transparent 55%),
       linear-gradient(135deg, #2ED3B7 0%, #3FBBC4 45%, #4FA3FF 100%);
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    height:50px; display:inline-flex; align-items:center; padding:0 26px;
+    height:56px; display:inline-flex; align-items:center; padding:0 26px;
     border-radius:999px; border:1px solid rgba(255,255,255,0.45);
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,0.55),
       inset 0 -12px 18px -12px rgba(11,18,32,0.28),
       0 0 0 1px rgba(46,211,183,0.18),
       0 18px 36px -12px rgba(20,80,110,0.4),
-      0 0 32px -4px rgba(79,163,255,0.45);
+      0 0 32px -4px rgba(79,163,255,0.45),
+      0 16px 30px -10px rgba(3,8,18,0.6),
+      0 0 24px -4px rgba(79,189,255,0.4);
     transition: background .2s ease, transform .15s ease, box-shadow .2s ease;
   }
   .ticker-cta:hover{
@@ -163,12 +229,18 @@
       inset 0 -12px 18px -12px rgba(11,18,32,0.28),
       0 0 0 1px rgba(46,211,183,0.24),
       0 22px 42px -12px rgba(20,80,110,0.46),
-      0 0 42px -2px rgba(79,163,255,0.58);
+      0 0 42px -2px rgba(79,163,255,0.58),
+      0 18px 34px -10px rgba(3,8,18,0.65);
   }
 
   @media (max-width: 900px){
-    .ticker-card{ width:160px; height:80px; padding:10px 16px 9px; }
-    .tc-sym{ font-size:14px; }
+    .ticker-viewport{ padding:16px 0; }
+    .ticker-cta-wrap{ top:44px; }
+    .ticker-card{ width:262px; height:104px; padding:12px 14px; gap:12px; }
+    .tc-logo{ width:44px; height:44px; padding:2px; }
+    .tc-sym{ font-size:14.5px; }
+    .tc-price{ font-size:17px; }
+    .tc-spark{ height:56px; }
     .ticker-cta{ height:48px; padding:0 22px; font-size:13.5px; }
   }
   .hero-grid{ display:grid; grid-template-columns: 1fr 0.92fr; gap:56px; align-items:center; }
@@ -1237,10 +1309,15 @@
     .hero-proof .stat b{ font-size:12.5px; line-height:1.25; }
     .hero-proof .stat span{ font-size:7.5px; letter-spacing:0.2px; }
     .ticker-section{ margin-top:-30px; margin-bottom:24px; }
-    .ticker-card{ width:150px; height:76px; padding:10px 14px 8px; border-radius:16px; }
-    .tc-sym{ font-size:13px; }
-    .tc-name{ font-size:10px; }
-    .tc-spark{ width:66px; height:19px; }
+    .ticker-viewport{ padding:16px 0; }
+    .ticker-cta-wrap{ top:40px; }
+    .ticker-card{ width:232px; height:92px; padding:10px 12px; border-radius:8px; gap:10px; }
+    .tc-sym{ font-size:14px; }
+    .tc-logo{ width:38px; height:38px; padding:2px; }
+    .tc-name{ max-width:92px; font-size:9px; }
+    .tc-price{ font-size:15.5px; }
+    .tc-change{ font-size:11.5px; }
+    .tc-spark{ height:48px; }
     .ticker-cta{ height:44px; padding:0 20px; font-size:13px; }
     /* Phone becomes a normal-flow block stacked BELOW the typography/stats
        (previously absolutely positioned beside them, which is what forced
@@ -1915,7 +1992,7 @@
         <h1>Global markets.<br><span class="h1-frac-line">Fractional Shares.</span><br>Built for Africans</h1>
         <p class="lede">Invest in your favourite shares and US stocks for as little as <span class="dollar-emphasis">$1</span> with your USDT &amp; USDC</p>
         <div class="hero-ctas">
-          <a href="#markets" class="btn btn-outline">Explore markets</a>
+          <a href="#cta" class="btn btn-outline">Start Investing</a>
         </div>
         <div class="hero-proof">
           <div class="stat"><b>4,000+</b><span>GLOBAL EQUITIES</span></div>
@@ -1936,11 +2013,11 @@
 
   <!-- ============ FLOATING MARKET TICKER ============ -->
   <section class="ticker-section" aria-label="Markets available on Zoey">
+    <div class="ticker-cta-wrap">
+      <a href="#markets" class="ticker-cta">Explore markets</a>
+    </div>
     <div class="ticker-viewport">
       <div class="ticker-track" id="tickerTrack"></div>
-    </div>
-    <div class="ticker-cta-wrap">
-      <a href="#cta" class="ticker-cta">Get started</a>
     </div>
   </section>
 
@@ -2867,48 +2944,113 @@
 
 <script>
   // ---- Floating market ticker ----
-  // Typographic treatment, not real company logos (trademarked marks, not something to reproduce
-  // here). Bold ticker symbol as the primary identifier, each company's well-known public brand
-  // color as a small accent. NASDAQ is treated as an index/market reference, not a stock.
-  // Sparklines are decorative shapes only. No numbers or percentages are attached to them, since
-  // this section has no live data source (that's what the Markets/TradingView section is for).
-  const tickerItems = [
-    { sym:'AAPL', name:'Apple', color:'#A8A8AC', up:true },
-    { sym:'NVDA', name:'NVIDIA', color:'#76B900', up:true },
-    { sym:'PLTR', name:'Palantir', color:'#5B7CFF', up:false },
-    { sym:'AMD', name:'Advanced Micro Devices', color:'#ED1C24', up:true },
-    { sym:'MSFT', name:'Microsoft', color:'#00A4EF', up:true },
-    { sym:'AMZN', name:'Amazon', color:'#FF9900', up:true },
-    { sym:'GOOGL', name:'Alphabet', color:'#4285F4', up:false },
-    { sym:'TSLA', name:'Tesla', color:'#E82127', up:true },
-    { sym:'NASDAQ', name:'Nasdaq Composite', index:true },
-  ];
-  function tickerSparkline(up){
-    const pts = up
-      ? "0,26 12,22 24,24 36,15 48,17 60,8 72,10 84,3"
-      : "0,5 12,9 24,7 36,15 48,13 60,20 72,18 84,25";
-    const color = up ? '#2ED3B7' : '#FF6B7A';
-    return `<svg class="tc-spark" viewBox="0 0 84 28" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/></svg>`;
+  // Real data only, from our own backend (GET /api/markets/ticker), which
+  // proxies Twelve Data server-side -- see backend/market_data.py. The
+  // Twelve Data API key never reaches this file or the browser. Logos are
+  // the real brand assets supplied for this project (assets/logos/),
+  // used as-is. Nothing here fabricates a price: a symbol with no good
+  // data renders the "unavailable" state instead.
+  const TICKER_REFRESH_MS = 5 * 60 * 1000;
+  const tickerTrackEl = document.getElementById('tickerTrack');
+
+  // Display-only labels (purely cosmetic, frontend-only -- the backend
+  // snapshot keys only on symbol/logo, so this table never needs to touch
+  // backend/services/market_data.py).
+  const TICKER_NAMES = {
+    AAPL: 'Apple', NVDA: 'NVIDIA', MSFT: 'Microsoft', TSLA: 'Tesla',
+    AMZN: 'Amazon', GOOGL: 'Alphabet', META: 'Meta', AMD: 'AMD',
+    PLTR: 'Palantir', NFLX: 'Netflix', NASDAQ: 'Nasdaq Composite'
+  };
+
+  function tickerSparkline(points, up){
+    const color = up ? '#35E6C4' : '#FF6273';
+    if (!points || points.length < 2){
+      return `<svg class="tc-spark" viewBox="0 0 100 64" preserveAspectRatio="none" aria-hidden="true"></svg>`;
+    }
+    const min = Math.min(...points), max = Math.max(...points);
+    const span = (max - min) || 1;
+    const stepX = 100 / (points.length - 1);
+    const pts = points.map((p, i) => {
+      const x = (i * stepX).toFixed(2);
+      const y = (60 - ((p - min) / span) * 54).toFixed(2);
+      return `${x},${y}`;
+    }).join(' ');
+    return `<svg class="tc-spark" viewBox="0 0 100 64" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/></svg>`;
   }
-  function tickerCard(item){
-    if (item.index){
+
+  function tickerCardHTML(t){
+    const isIndex = !!t.index;
+    const classes = 'ticker-card' + (isIndex ? ' index-card' : '');
+    const logoHTML = `<span class="tc-logo"><img src="assets/logos/trim/${t.logo}" alt="" loading="lazy" width="50" height="50"></span>`;
+    const subLabel = isIndex ? 'INDEX' : (TICKER_NAMES[t.symbol] || '');
+    const idBlockHTML = `<span class="tc-idblock"><span class="tc-sym">${t.symbol}</span><span class="tc-name">${subLabel}</span></span>`;
+
+    if (t.status !== 'ok'){
       return `
-        <div class="ticker-card index-card">
-          <div class="tc-top"><span class="tc-sym" style="color:#fff;">${item.sym}</span><span class="tc-tag">INDEX</span></div>
-          <div class="tc-name">${item.name}</div>
-          <svg class="tc-spark" viewBox="0 0 84 28" preserveAspectRatio="none"><polyline points="0,18 12,16 24,18 36,12 48,14 60,9 72,11 84,6" fill="none" stroke="#F7F6F3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/></svg>
+        <div class="${classes}">
+          <div class="tc-left">
+            <div class="tc-head">${logoHTML}${idBlockHTML}</div>
+            <div class="tc-unavailable">Data unavailable</div>
+          </div>
+          <div class="tc-right">${tickerSparkline(null, true)}</div>
         </div>`;
     }
+
+    const up = t.change_percent >= 0;
+    const arrow = up ? '▲' : '▼';
+    const priceLabel = t.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const ccyHTML = (t.currency && t.currency !== 'USD') ? `<span class="ccy">${t.currency}</span>` : '';
+
     return `
-      <div class="ticker-card">
-        <div class="tc-top"><span class="tc-dot" style="background:${item.color};"></span><span class="tc-sym">${item.sym}</span></div>
-        <div class="tc-name">${item.name}</div>
-        ${tickerSparkline(item.up)}
+      <div class="${classes}">
+        <div class="tc-left">
+          <div class="tc-head">${logoHTML}${idBlockHTML}</div>
+          <div class="tc-price">$${priceLabel}${ccyHTML}</div>
+          <div class="tc-change ${up ? 'up' : 'down'}"><span class="arrow">${arrow}</span>${up ? '+' : ''}${t.change_percent.toFixed(2)}%</div>
+        </div>
+        <div class="tc-right">${tickerSparkline(t.sparkline, up)}</div>
       </div>`;
   }
-  // Rendered twice back-to-back so the -50% translateX loop is seamless.
-  const tickerHTML = tickerItems.map(tickerCard).join('');
-  document.getElementById('tickerTrack').innerHTML = tickerHTML + tickerHTML;
+
+  function tickerSkeletonHTML(n){
+    let html = '';
+    for (let i = 0; i < n; i++){
+      html += `
+        <div class="ticker-card">
+          <div class="tc-left">
+            <div class="tc-head"><span class="tc-logo"></span><span class="tc-idblock"><span class="tc-sym">&nbsp;</span></span></div>
+            <div class="tc-skel"></div>
+          </div>
+          <div class="tc-right"></div>
+        </div>`;
+    }
+    return html;
+  }
+
+  // Show a stable skeleton immediately so the strip never flashes empty
+  // or shifts layout while the first real fetch is in flight.
+  if (tickerTrackEl) tickerTrackEl.innerHTML = tickerSkeletonHTML(11) + tickerSkeletonHTML(11);
+
+  async function loadTickerData(){
+    if (!tickerTrackEl) return;
+    try {
+      const res = await fetch('/api/markets/ticker', { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error('bad status ' + res.status);
+      const data = await res.json();
+      const items = Array.isArray(data.tickers) ? data.tickers : [];
+      if (!items.length) throw new Error('empty ticker payload');
+      // Rendered twice back-to-back so the -50% translateX loop is seamless.
+      const html = items.map(tickerCardHTML).join('');
+      tickerTrackEl.innerHTML = html + html;
+    } catch (err){
+      // Leave whatever is already rendered (skeleton or last good data) in
+      // place rather than breaking the strip or faking numbers.
+      console.warn('Market ticker data unavailable:', err);
+    }
+  }
+
+  loadTickerData();
+  setInterval(loadTickerData, TICKER_REFRESH_MS);
 
   // ---- Stocks section: interactive fractional-share calculator (demo price, clearly labeled) ----
   const AAPL_DEMO_PRICE = 196.40;

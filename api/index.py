@@ -92,6 +92,7 @@ from backend.database import (
 from backend.email_sender import send_password_reset_email, send_verification_email
 from backend.email_verification import generate_verification_token, hash_token, is_expired
 from backend.google_auth import GOOGLE_CLIENT_ID, GoogleAuthError, verify_google_id_token
+from backend.services.market_data import get_market_snapshot
 from backend.schemas import (
     GoogleAuthIn,
     LeadIn,
@@ -289,6 +290,16 @@ def _issue_and_send_password_reset_email(request: Request, db: Session, user) ->
 @app.get("/api/healthz")
 def healthz() -> dict:
     return {"ok": True}
+
+
+@app.get("/api/markets/ticker")
+def markets_ticker() -> dict:
+    """Public, unauthenticated snapshot for the landing-page floating
+    market-ticker cards (index.html .ticker-section). Server-side
+    cached in backend/services/market_data.py so visitor traffic never
+    translates 1:1 into Twelve Data API calls, and the Twelve Data
+    API key never leaves this backend."""
+    return {"tickers": get_market_snapshot()}
 
 
 @app.post("/api/leads")
