@@ -768,36 +768,51 @@ def claim_market_ticker_refresh(
     window_seconds: int,
     quote_interval_seconds: int,
     sparkline_interval_seconds: int,
-) -> Optional[dict]:
-    """Atomically claims AT MOST ONE (group_name, kind) to refresh from
-    Twelve Data, honoring a durable rolling-window credit budget shared
-    across every Vercel instance. Returns
-    {"group_name": ..., "kind": ..., "symbols": [...]} on a successful
-    claim -- the caller should then call Twelve Data for exactly those
-    symbols and record the result with record_market_ticker_quote /
-    record_market_ticker_sparkline below -- or None if nothing is
+) -> list[dict]:
+    """Atomically claims EVERY due (group_name, kind) refresh that still
+    fits within the durable rolling-window credit budget, in one locked
+    pass -- not just the first one. Returns a list of
+    {"group_name": ..., "kind": ..., "symbols": [...]} claims (possibly
+    empty) -- the caller should call Twelve Data for each claim returned
+    and record the result with record_market_ticker_quote /
+    record_market_ticker_sparkline below. An empty list means nothing is
     currently due, or everything that's due would exceed the credit
-    budget right now. Either way, on None the caller just serves the
-    existing snapshot; this function never calls Twelve Data itself.
+    budget right now; either way the caller just serves the existing
+    snapshot. This function never calls Twelve Data itself.
+
+    Why a list instead of "at most one": with one claim per
+    /api/markets/ticker request, a cold/empty cache could take as many as
+    8 separate requests (4 groups x 2 kinds) to fully populate, even
+    though a single request's 6-credit budget is usually big enough for
+    more than one of those claims at once (see module docstring's credit
+    budget). Claiming everything that still fits -- not stopping after
+    the first success -- lets cold-start convergence happen in roughly
+    half as many requests, without changing the budget itself: the same
+    rolling-window check below still gates every claim, so the total
+    credits claimed in this call (and in any rolling 60-second window) can
+    never exceed `max_credits_per_window`.
 
     Concurrency: every attempt first locks the one fixed, always-present
     anchor row (_ANCHOR_SYMBOL/_ANCHOR_KIND) with SELECT ... FOR UPDATE.
     Postgres (and, via SQLite's whole-database write lock, SQLite too)
     then serializes every claim attempt -- from every concurrent request,
     on every Vercel instance, cold-started or warm -- through that one
-    row, not through anything in Python process memory. The rolling
-    6-credit check below is therefore computed and acted on as a single
-    atomic unit: two concurrent attempts can never both believe they have
-    budget for the same credits.
+    row, not through anything in Python process memory. The lock is held
+    for the ENTIRE pass below (not released between individual claims),
+    and everything claimed this call is committed together at the end --
+    so two concurrent requests can never both believe they have budget
+    for the same credits, no matter how many claims either of them makes.
 
     The rolling window itself is computed from MarketTickerCreditLog, not
     a fixed/resetting bucket -- SUM(credits) for every claim logged in the
-    last `window_seconds`, so a claim is only ever allowed if adding it
-    would keep that true rolling sum at or under `max_credits_per_window`.
-    Due groups are tried most-overdue-first; if the most-overdue one would
-    exceed the budget, the next-most-overdue (smaller) one is tried
-    instead, so a bit of budget doesn't go unused just because the largest
-    due group doesn't fit.
+    last `window_seconds`, plus every claim already made earlier in this
+    same pass, so a claim is only ever allowed if adding it would keep
+    that true rolling sum at or under `max_credits_per_window`. Due groups
+    are tried most-overdue-first; if the most-overdue one would exceed the
+    remaining budget, the next-most-overdue (possibly smaller) one is
+    tried instead, so a bit of budget doesn't go unused just because the
+    largest due group doesn't fit -- and the loop keeps going afterward
+    instead of stopping.
     """
     anchor = db.execute(
         select(MarketTickerCache)
@@ -809,7 +824,7 @@ def claim_market_ticker_refresh(
         # is always called before this function (see
         # backend/services/market_data.py's get_market_snapshot).
         db.rollback()
-        return None
+        return []
 
     window_start = now - timedelta(seconds=window_seconds)
     used = db.execute(
@@ -830,6 +845,7 @@ def claim_market_ticker_refresh(
         .order_by("due_at", MarketTickerCache.group_name, MarketTickerCache.kind)
     ).all()
 
+    claims: list[dict] = []
     for group_name, kind, n, _due_at in due_groups:
         credits = int(n)  # Twelve Data: 1 credit per symbol in the request, batched or not
         if used + credits > max_credits_per_window:
@@ -844,8 +860,22 @@ def claim_market_ticker_refresh(
         )
         db.add(MarketTickerCreditLog(claimed_at=now, credits=credits, group_name=group_name, kind=kind))
         db.flush()
-        # Opportunistic cleanup -- keeps this append-only log tiny; nothing
-        # outside the current rolling window is ever needed again.
+
+        symbols = [
+            row.symbol
+            for row in db.execute(
+                select(MarketTickerCache.symbol).where(
+                    MarketTickerCache.group_name == group_name, MarketTickerCache.kind == kind
+                )
+            ).all()
+        ]
+        claims.append({"group_name": group_name, "kind": kind, "symbols": symbols})
+        used += credits  # count this claim against the budget for the rest of THIS pass too
+
+    if claims:
+        # Opportunistic cleanup -- once per call (not once per claim),
+        # after every claim in this pass. Keeps this append-only log tiny;
+        # nothing outside the current rolling window is ever needed again.
         # synchronize_session=False: SQLite doesn't round-trip timezone
         # info on DateTime(timezone=True) columns, so a naive claimed_at
         # read back from a prior flush can't be compared in Python against
@@ -858,20 +888,10 @@ def claim_market_ticker_refresh(
             .where(MarketTickerCreditLog.claimed_at <= window_start)
             .execution_options(synchronize_session=False)
         )
-
-        symbols = [
-            row.symbol
-            for row in db.execute(
-                select(MarketTickerCache.symbol).where(
-                    MarketTickerCache.group_name == group_name, MarketTickerCache.kind == kind
-                )
-            ).all()
-        ]
-        db.commit()
-        return {"group_name": group_name, "kind": kind, "symbols": symbols}
-
-    db.rollback()  # release the FOR UPDATE lock; nothing claimed this time
-    return None
+        db.commit()  # one commit for the whole pass -- releases the FOR UPDATE lock
+    else:
+        db.rollback()  # release the FOR UPDATE lock; nothing claimed this time
+    return claims
 
 
 def record_market_ticker_quote(

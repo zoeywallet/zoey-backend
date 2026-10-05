@@ -139,9 +139,12 @@ class TestEmptySnapshot:
 
 class TestProgressiveSeeding:
     def test_seeding_never_bursts_all_11_symbols_at_once(self, client, monkeypatch, db_session):
-        """On a brand-new table, the first request claims at most one
-        group (<=3 symbols) worth of price credits -- never the old
-        11-quote + 11-time_series = 22-credit burst."""
+        """On a brand-new table, the first request claims every due group
+        that still fits the 6-credit rolling budget -- which, from a cold
+        table, is exactly the most-overdue group's quote AND sparkline
+        (3 + 3 = 6 credits, both for the SAME <=3 symbols) -- never the
+        old 11-quote + 11-time_series = 22-credit burst, and never more
+        than the 6-credit ceiling."""
         import backend.database as database
         import backend.services.market_data as market_data
 
@@ -156,14 +159,24 @@ class TestProgressiveSeeding:
         resp = client.get("/api/markets/ticker")
         assert resp.status_code == 200
 
-        # Exactly one upstream call this request, for <=3 symbols -- not 11.
-        assert len(calls) == 1
-        _, symbols_requested = calls[0]
-        assert 1 <= len(symbols_requested) <= 3
+        # From a cold table from a single request: exactly 2 upstream
+        # calls (quote + sparkline for the one most-overdue group), each
+        # for <=3 symbols -- never 11, and never a third call.
+        assert len(calls) == 2
+        total_credits = 0
+        symbol_sets = []
+        for _, symbols_requested in calls:
+            assert 1 <= len(symbols_requested) <= 3
+            total_credits += len(symbols_requested)
+            symbol_sets.append(set(symbols_requested))
+        assert total_credits <= 6  # the approved rolling-window ceiling
+        # Both calls (quote + sparkline) are for the same group's symbols.
+        assert symbol_sets[0] == symbol_sets[1]
 
         rows = database.get_market_ticker_cache_rows(db_session)
         fetched = [r for r in rows if r.fetched_at is not None]
-        assert 1 <= len(fetched) <= 3
+        # Now both quote AND sparkline rows for that one group are fetched.
+        assert 2 <= len(fetched) <= 6
 
     def test_previously_fetched_symbols_stay_visible_while_others_seed(self, client, monkeypatch, db_session):
         """Symbols from an already-claimed group keep showing real data
@@ -217,8 +230,11 @@ class TestAtomicClaimConcurrency:
     def test_two_claims_in_the_same_instant_never_double_claim_the_same_group(self, db_session):
         """Simulates two concurrent requests arriving at the same instant:
         calling claim_market_ticker_refresh twice in a row at the same
-        `now` must never let both claim the *same* group -- the second
-        call either gets a different group or None."""
+        `now` must never let the two CALLS claim any of the same
+        (group_name, kind) pairs between them -- each call may itself
+        return several claims now (see its docstring), but the full set
+        claimed by call 1 and the full set claimed by call 2 must be
+        disjoint."""
         from backend.database import claim_market_ticker_refresh, ensure_market_ticker_rows
         from backend.services.market_data import TICKERS, MAX_CREDITS_PER_WINDOW, RATE_WINDOW_SECONDS, QUOTE_REFRESH_SECONDS, SPARKLINE_REFRESH_SECONDS
 
@@ -235,9 +251,10 @@ class TestAtomicClaimConcurrency:
             window_seconds=RATE_WINDOW_SECONDS, quote_interval_seconds=QUOTE_REFRESH_SECONDS,
             sparkline_interval_seconds=SPARKLINE_REFRESH_SECONDS,
         )
-        assert claim1 is not None
-        if claim2 is not None:
-            assert (claim1["group_name"], claim1["kind"]) != (claim2["group_name"], claim2["kind"])
+        assert len(claim1) > 0  # from a cold table, the first call always wins something
+        pairs1 = {(c["group_name"], c["kind"]) for c in claim1}
+        pairs2 = {(c["group_name"], c["kind"]) for c in claim2}
+        assert pairs1.isdisjoint(pairs2)
 
 
 class TestMaxCreditScheduling:
@@ -268,8 +285,93 @@ class TestMaxCreditScheduling:
             assert total <= MAX_CREDITS_PER_WINDOW
 
 
+class TestMultiClaimPerRequest:
+    """Directly verifies the Stage 1 fix: a single claim_market_ticker_refresh
+    call now claims every due group+kind that still fits the rolling
+    6-credit budget, not just the first one."""
+
+    def test_cold_table_single_call_claims_exactly_two_groups_using_all_six_credits(self, db_session):
+        """From a cold/empty table, every (symbol, kind) row is seeded as
+        equally overdue. The claim ordering (due_at, group_name, kind)
+        means the two most-overdue entries are the SAME group's quote and
+        sparkline (3 credits each) -- so one call claims exactly those
+        two, for exactly 6 credits, and stops there because a third claim
+        of any size (2 or 3 more credits) would exceed the ceiling."""
+        from backend.database import claim_market_ticker_refresh, ensure_market_ticker_rows
+        from backend.services.market_data import TICKERS, MAX_CREDITS_PER_WINDOW, RATE_WINDOW_SECONDS, QUOTE_REFRESH_SECONDS, SPARKLINE_REFRESH_SECONDS
+
+        now = _utcnow()
+        ensure_market_ticker_rows(db_session, TICKERS, now)
+
+        claims = claim_market_ticker_refresh(
+            db_session, now=now, max_credits_per_window=MAX_CREDITS_PER_WINDOW,
+            window_seconds=RATE_WINDOW_SECONDS, quote_interval_seconds=QUOTE_REFRESH_SECONDS,
+            sparkline_interval_seconds=SPARKLINE_REFRESH_SECONDS,
+        )
+
+        assert len(claims) == 2  # exactly two claims in this one call, not just one
+        total_credits = sum(len(c["symbols"]) for c in claims)
+        assert total_credits == 6  # uses the full budget, never exceeds it
+        # Both claims are for the same (most-overdue) group, different kinds.
+        group_names = {c["group_name"] for c in claims}
+        kinds = {c["kind"] for c in claims}
+        assert len(group_names) == 1
+        assert kinds == {"quote", "sparkline"}
+
+    def test_never_claims_a_third_group_beyond_the_budget(self, db_session):
+        """Same cold-table setup: confirms a third claim is never smuggled
+        in even though due_groups still has 6 more entries waiting -- the
+        loop must skip them, not just stop iterating early by accident."""
+        from backend.database import claim_market_ticker_refresh, ensure_market_ticker_rows
+        from backend.services.market_data import TICKERS, MAX_CREDITS_PER_WINDOW, RATE_WINDOW_SECONDS, QUOTE_REFRESH_SECONDS, SPARKLINE_REFRESH_SECONDS
+
+        now = _utcnow()
+        ensure_market_ticker_rows(db_session, TICKERS, now)
+
+        claims = claim_market_ticker_refresh(
+            db_session, now=now, max_credits_per_window=MAX_CREDITS_PER_WINDOW,
+            window_seconds=RATE_WINDOW_SECONDS, quote_interval_seconds=QUOTE_REFRESH_SECONDS,
+            sparkline_interval_seconds=SPARKLINE_REFRESH_SECONDS,
+        )
+        assert len(claims) == 2
+
+        # A second call at the SAME instant (same rolling window, budget
+        # already fully spent) must claim nothing further.
+        more = claim_market_ticker_refresh(
+            db_session, now=now, max_credits_per_window=MAX_CREDITS_PER_WINDOW,
+            window_seconds=RATE_WINDOW_SECONDS, quote_interval_seconds=QUOTE_REFRESH_SECONDS,
+            sparkline_interval_seconds=SPARKLINE_REFRESH_SECONDS,
+        )
+        assert more == []
+
+    def test_cold_start_convergence_takes_roughly_half_as_many_requests(self, client, monkeypatch, db_session):
+        """End-to-end, at the HTTP level: with requests spaced past the
+        60-second rolling window (so each gets a fresh 6-credit budget),
+        all 11 symbols should have real price data within 4 requests (one
+        full group per request) instead of the old up-to-8."""
+        import backend.database as database
+        import backend.services.market_data as market_data
+
+        _patch_twelve_data(monkeypatch, _success_responder)
+
+        t = _utcnow()
+        for _ in range(4):
+            with patch.object(market_data, "_utcnow", return_value=t):
+                resp = client.get("/api/markets/ticker")
+            t = t + timedelta(seconds=market_data.RATE_WINDOW_SECONDS + 5)
+
+        data = resp.json()
+        assert all(item["status"] == "ok" for item in data["tickers"])
+
+
 class TestStaleRefresh:
     def test_price_group_not_due_is_not_reclaimed(self, db_session):
+        """Isolates the interval check from the budget check: wait past
+        the rolling-window length (so the credit budget is fully free
+        again) but still far short of QUOTE_REFRESH_SECONDS, then confirm
+        the groups already claimed do NOT show up again -- proving
+        next_eligible_at, not just a spent budget, is what's keeping them
+        from being reclaimed."""
         from backend.database import claim_market_ticker_refresh, ensure_market_ticker_rows
         from backend.services.market_data import TICKERS, MAX_CREDITS_PER_WINDOW, RATE_WINDOW_SECONDS, QUOTE_REFRESH_SECONDS, SPARKLINE_REFRESH_SECONDS
 
@@ -281,19 +383,20 @@ class TestStaleRefresh:
             window_seconds=RATE_WINDOW_SECONDS, quote_interval_seconds=QUOTE_REFRESH_SECONDS,
             sparkline_interval_seconds=SPARKLINE_REFRESH_SECONDS,
         )
-        assert claim is not None
-        group, kind = claim["group_name"], claim["kind"]
+        assert len(claim) > 0
+        claimed_pairs = {(c["group_name"], c["kind"]) for c in claim}
 
-        # Immediately after being claimed, that same group+kind must not
-        # be claimable again until its interval elapses.
-        soon = now + timedelta(seconds=1)
+        # Past the rolling window (budget fully free again), but nowhere
+        # near QUOTE_REFRESH_SECONDS -- so only the interval, not the
+        # budget, can be preventing a reclaim.
+        soon = now + timedelta(seconds=RATE_WINDOW_SECONDS + 5)
         claim2 = claim_market_ticker_refresh(
             db_session, now=soon, max_credits_per_window=MAX_CREDITS_PER_WINDOW,
             window_seconds=RATE_WINDOW_SECONDS, quote_interval_seconds=QUOTE_REFRESH_SECONDS,
             sparkline_interval_seconds=SPARKLINE_REFRESH_SECONDS,
         )
-        if claim2 is not None:
-            assert (claim2["group_name"], claim2["kind"]) != (group, kind)
+        pairs2 = {(c["group_name"], c["kind"]) for c in claim2}
+        assert pairs2.isdisjoint(claimed_pairs)
 
     def test_sparkline_group_not_due_is_not_reclaimed(self, db_session):
         """Same guarantee, specifically for the sparkline schedule, which
@@ -312,8 +415,8 @@ class TestStaleRefresh:
                 window_seconds=RATE_WINDOW_SECONDS, quote_interval_seconds=QUOTE_REFRESH_SECONDS,
                 sparkline_interval_seconds=SPARKLINE_REFRESH_SECONDS,
             )
-            if claim is not None:
-                seen_kinds.add(claim["kind"])
+            for c in claim:
+                seen_kinds.add(c["kind"])
             t = t + timedelta(seconds=QUOTE_REFRESH_SECONDS + 1)  # advances past price interval, not sparkline's
 
         # Over several price-interval ticks (but far short of the much

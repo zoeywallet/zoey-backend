@@ -177,7 +177,21 @@ def _fetch_quotes(symbols: list[str]) -> dict[str, dict]:
     for s in symbols:
         td_symbol = _BY_SYMBOL[s]["td_symbol"]
         row = payload.get(td_symbol)
-        if not isinstance(row, dict) or row.get("status") == "error" or row.get("close") is None:
+        if not isinstance(row, dict):
+            logger.warning("Twelve Data symbol missing from response: symbol=%s endpoint=quote", td_symbol)
+            continue
+        if row.get("status") == "error":
+            # row.get("message") is Twelve Data's own per-symbol error text in
+            # the RESPONSE body -- never the request URL, query params, or API
+            # key (those only ever appear request-side, in _twelve_data_get's
+            # already-sanitized failure path above) -- safe to log verbatim.
+            logger.warning(
+                "Twelve Data symbol error: symbol=%s endpoint=quote message=%s",
+                td_symbol, row.get("message"),
+            )
+            continue
+        if row.get("close") is None:
+            logger.warning("Twelve Data symbol has no close price: symbol=%s endpoint=quote", td_symbol)
             continue
         try:
             out[s] = {
@@ -215,8 +229,20 @@ def _fetch_sparklines(symbols: list[str]) -> dict[str, list[float]]:
     for s in symbols:
         td_symbol = _BY_SYMBOL[s]["td_symbol"]
         row = payload.get(td_symbol)
-        values = row.get("values") if isinstance(row, dict) else None
+        if not isinstance(row, dict):
+            logger.warning("Twelve Data symbol missing from response: symbol=%s endpoint=time_series", td_symbol)
+            continue
+        if row.get("status") == "error":
+            # Same sanitization guarantee as _fetch_quotes above: this is
+            # Twelve Data's own response-body message, never a URL/key.
+            logger.warning(
+                "Twelve Data symbol error: symbol=%s endpoint=time_series message=%s",
+                td_symbol, row.get("message"),
+            )
+            continue
+        values = row.get("values")
         if not values:
+            logger.warning("Twelve Data symbol has no time_series values: symbol=%s endpoint=time_series", td_symbol)
             continue
         try:
             closes = [float(v["close"]) for v in reversed(values) if v.get("close") is not None]
@@ -292,14 +318,15 @@ def get_market_snapshot(db: Session) -> list[dict]:
 
     On every call: makes sure every (symbol, kind) row exists (seeding, if
     this is the very first call ever -- progressively rate-limited, see
-    module docstring), attempts at most ONE durably rate-limited refresh
-    claim, performs it if one was won, then reads and returns the full
-    current snapshot regardless of whether a claim happened. All Twelve
-    Data traffic is driven by this function; nothing else in the app calls
-    Twelve Data."""
+    module docstring), claims EVERY durably rate-limited refresh that
+    still fits the rolling credit budget right now (not just one -- see
+    claim_market_ticker_refresh's docstring for why), performs each claim
+    won, then reads and returns the full current snapshot regardless of
+    how many claims happened. All Twelve Data traffic is driven by this
+    function; nothing else in the app calls Twelve Data."""
     now = _utcnow()
     ensure_market_ticker_rows(db, TICKERS, now)
-    claim = claim_market_ticker_refresh(
+    claims = claim_market_ticker_refresh(
         db,
         now=now,
         max_credits_per_window=MAX_CREDITS_PER_WINDOW,
@@ -307,7 +334,7 @@ def get_market_snapshot(db: Session) -> list[dict]:
         quote_interval_seconds=QUOTE_REFRESH_SECONDS,
         sparkline_interval_seconds=SPARKLINE_REFRESH_SECONDS,
     )
-    if claim is not None:
+    for claim in claims:
         _perform_claim(db, claim, now)
     rows = get_market_ticker_cache_rows(db)
     return _build_snapshot(rows)
