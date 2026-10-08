@@ -93,6 +93,8 @@ from backend.email_sender import send_password_reset_email, send_verification_em
 from backend.email_verification import generate_verification_token, hash_token, is_expired
 from backend.google_auth import GOOGLE_CLIENT_ID, GoogleAuthError, verify_google_id_token
 from backend.services.market_data import get_market_snapshot
+from backend.routes.alpaca import router as alpaca_router
+from backend.services.alpaca import ALPACA_ENABLED
 from backend.schemas import (
     GoogleAuthIn,
     LeadIn,
@@ -114,6 +116,17 @@ app = FastAPI(title="Zoey Wallet API")
 # `CREATE TABLE IF NOT EXISTS` is a no-op on every subsequent warm
 # invocation that reuses this same module instance.
 init_db()
+
+# Alpaca Broker API Sandbox integration (Day 1 scope: read-only
+# connectivity + sanitized account listing only -- see
+# backend/services/alpaca.py and backend/routes/alpaca.py). Included
+# only when ALPACA_ENABLED is true (default: false), so with the flag
+# unset these two routes do not exist in the route table at all, not
+# merely disabled -- the safest form of a feature flag for something
+# that must stay inaccessible to ordinary production users until
+# explicitly turned on.
+if ALPACA_ENABLED:
+    app.include_router(alpaca_router)
 
 
 # ---------------------------------------------------------------------------
